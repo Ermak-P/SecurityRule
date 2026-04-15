@@ -1,0 +1,36 @@
+@page "/certificates/create"
+@rendermode InteractiveServer
+@inject ICertificateRepository CertificateRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Добавить сертификат</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Добавить сертификат</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="_certificate.Description" Label="Описание" Required="true" Class="mb-3" Lines="3" />
+        <MudDatePicker @bind-Date="_issuedAt" Label="Дата выдачи" Required="true" Class="mb-3" />
+        <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/certificates"))">Отмена</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private Certificate _certificate = new();
+    private DateTime? _issuedAt = DateTime.Now;
+    private DateTime? _expiresAt = DateTime.Now.AddYears(1);
+
+    private async Task Save()
+    {
+        _certificate.IssuedAt = _issuedAt ?? DateTime.Now;
+        _certificate.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
+        await CertificateRepository.AddAsync(_certificate);
+        Snackbar.Add("Сертификат добавлен", Severity.Success);
+        Navigation.NavigateTo("/certificates");
+    }
+}

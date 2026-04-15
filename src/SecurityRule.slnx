@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="SecurityRule/SecurityRule.csproj" />
+  <Project Path="SecurityRule.Domain/SecurityRule.Domain.csproj" />
+  <Project Path="SecurityRule.Infrastructure/SecurityRule.Infrastructure.csproj" />
+  <Project Path="SecurityRule.Tests/SecurityRule.Tests.csproj" />
+  <Project Path="SecurityRule.Web/SecurityRule.Web.csproj" />
 </Solution>

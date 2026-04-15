@@ -1,0 +1,56 @@
+@page "/services/edit/{Id:int}"
+@rendermode InteractiveServer
+@inject IAppServiceRepository AppServiceRepository
+@inject IServerRepository ServerRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Редактировать сервис</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Редактировать сервис</MudText>
+
+@if (_service == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <MudTextField @bind-Value="_service.Name" Label="Название" Required="true" Class="mb-3" />
+            <MudSelect T="int" @bind-Value="_service.ServerId" Label="Сервер" Required="true" Class="mb-3">
+                @foreach (var server in _servers)
+                {
+                    <MudSelectItem Value="@server.Id">@server.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_service.AdAccountName" Label="AD учётная запись" Required="true" Class="mb-3" />
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/services"))">Отмена</MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private AppService? _service;
+    private IEnumerable<Server> _servers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _service = await AppServiceRepository.GetByIdAsync(Id);
+        _servers = await ServerRepository.GetAllAsync();
+    }
+
+    private async Task Save()
+    {
+        if (_service != null)
+        {
+            await AppServiceRepository.UpdateAsync(_service);
+            Snackbar.Add("Сервис обновлён", Severity.Success);
+            Navigation.NavigateTo("/services");
+        }
+    }
+}

@@ -1,0 +1,57 @@
+@page "/certificates/edit/{Id:int}"
+@rendermode InteractiveServer
+@inject ICertificateRepository CertificateRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Редактировать сертификат</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Редактировать сертификат</MudText>
+
+@if (_certificate == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <MudTextField @bind-Value="_certificate.Description" Label="Описание" Required="true" Class="mb-3" Lines="3" />
+            <MudDatePicker @bind-Date="_issuedAt" Label="Дата выдачи" Required="true" Class="mb-3" />
+            <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/certificates"))">Отмена</MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Certificate? _certificate;
+    private DateTime? _issuedAt;
+    private DateTime? _expiresAt;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _certificate = await CertificateRepository.GetByIdAsync(Id);
+        if (_certificate != null)
+        {
+            _issuedAt = _certificate.IssuedAt;
+            _expiresAt = _certificate.ExpiresAt;
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_certificate != null)
+        {
+            _certificate.IssuedAt = _issuedAt ?? DateTime.Now;
+            _certificate.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
+            await CertificateRepository.UpdateAsync(_certificate);
+            Snackbar.Add("Сертификат обновлён", Severity.Success);
+            Navigation.NavigateTo("/certificates");
+        }
+    }
+}

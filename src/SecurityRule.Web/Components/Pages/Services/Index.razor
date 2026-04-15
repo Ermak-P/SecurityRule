@@ -1,0 +1,67 @@
+@page "/services"
+@rendermode InteractiveServer
+@inject IAppServiceRepository AppServiceRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Сервисы</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Сервисы</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="@(() => Navigation.NavigateTo("/services/create"))" Class="mb-4">
+    Добавить сервис
+</MudButton>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="@_services" Hover="true" Striped="true" Dense="true">
+        <HeaderContent>
+            <MudTh>Название</MudTh>
+            <MudTh>Сервер</MudTh>
+            <MudTh>AD учётная запись</MudTh>
+            <MudTh>Сертификаты</MudTh>
+            <MudTh>Действия</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Название">@context.Name</MudTd>
+            <MudTd DataLabel="Сервер">@context.Server?.Name</MudTd>
+            <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
+            <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
+                               OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                               OnClick="@(() => DeleteService(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private IEnumerable<AppService> _services = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _services = await AppServiceRepository.GetAllAsync();
+        _loading = false;
+    }
+
+    private async Task DeleteService(int id)
+    {
+        await AppServiceRepository.DeleteAsync(id);
+        Snackbar.Add("Сервис удалён", Severity.Success);
+        await LoadData();
+    }
+}

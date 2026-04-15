@@ -1,0 +1,44 @@
+@page "/services/create"
+@rendermode InteractiveServer
+@inject IAppServiceRepository AppServiceRepository
+@inject IServerRepository ServerRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Добавить сервис</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Добавить сервис</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="_service.Name" Label="Название" Required="true" Class="mb-3" />
+        <MudSelect T="int" @bind-Value="_service.ServerId" Label="Сервер" Required="true" Class="mb-3">
+            @foreach (var server in _servers)
+            {
+                <MudSelectItem Value="@server.Id">@server.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField @bind-Value="_service.AdAccountName" Label="AD учётная запись" Required="true" Class="mb-3" />
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/services"))">Отмена</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private AppService _service = new();
+    private IEnumerable<Server> _servers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _servers = await ServerRepository.GetAllAsync();
+    }
+
+    private async Task Save()
+    {
+        await AppServiceRepository.AddAsync(_service);
+        Snackbar.Add("Сервис добавлен", Severity.Success);
+        Navigation.NavigateTo("/services");
+    }
+}

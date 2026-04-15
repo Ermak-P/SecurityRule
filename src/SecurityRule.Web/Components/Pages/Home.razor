@@ -1,0 +1,57 @@
+@page "/"
+
+<PageTitle>SecurityRule - Главная</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Добро пожаловать в SecurityRule</MudText>
+<MudText Typo="Typo.body1">Система управления информацией безопасности.</MudText>
+
+<MudGrid Class="mt-4">
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Large" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">Серверы</MudText>
+                <MudText Typo="Typo.body2">Управление серверами и их сервисами</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/servers" Variant="Variant.Text" Color="Color.Primary">Перейти</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.h6">Сервисы</MudText>
+                <MudText Typo="Typo.body2">Управление сервисами и учётными записями AD</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/services" Variant="Variant.Text" Color="Color.Secondary">Перейти</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Large" Color="Color.Success" />
+                <MudText Typo="Typo.h6">Сертификаты</MudText>
+                <MudText Typo="Typo.body2">Управление сертификатами и сроками их действия</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/certificates" Variant="Variant.Text" Color="Color.Success">Перейти</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard>
+            <MudCardContent>
+                <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Large" Color="Color.Warning" />
+                <MudText Typo="Typo.h6">Правила фаервола</MudText>
+                <MudText Typo="Typo.body2">Управление правилами фаервола</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/firewall-rules" Variant="Variant.Text" Color="Color.Warning">Перейти</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
