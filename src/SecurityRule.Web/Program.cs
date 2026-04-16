@@ -35,3 +35,7 @@ app.MapRazorComponents<SecurityRule.Web.Components.App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+// Makes the generated Program class accessible from the E2E test project
+// so WebApplicationFactory<Program> can be used if needed in the future.
+public partial class Program { }
