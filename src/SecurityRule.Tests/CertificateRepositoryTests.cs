@@ -1,5 +1,5 @@
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using NUnit.Framework;
 using SecurityRule.Domain.Models;
 using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Repositories;
@@ -31,6 +31,7 @@ public class CertificateRepositoryTests
     [Test]
     public async Task AddAsync_ShouldAddCertificate()
     {
+        // Arrange
         var cert = new Certificate
         {
             IssuedAt = DateTime.Now.AddYears(-1),
@@ -38,78 +39,97 @@ public class CertificateRepositoryTests
             Description = "Test cert"
         };
 
+        // Act
         await _repository.AddAsync(cert);
 
+        // Assert
         var result = await _context.Certificates.ToListAsync();
-        Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(result[0].Description, Is.EqualTo("Test cert"));
+        result.Should().HaveCount(1);
+        result[0].Description.Should().Be("Test cert");
     }
 
     [Test]
     public async Task GetAllAsync_ShouldReturnAllCertificates()
     {
+        // Arrange
         _context.Certificates.AddRange(
             new Certificate { IssuedAt = DateTime.Now, ExpiresAt = DateTime.Now.AddYears(1), Description = "Cert1" },
             new Certificate { IssuedAt = DateTime.Now, ExpiresAt = DateTime.Now.AddYears(2), Description = "Cert2" }
         );
         await _context.SaveChangesAsync();
 
+        // Act
         var result = await _repository.GetAllAsync();
 
-        Assert.That(result.Count(), Is.EqualTo(2));
+        // Assert
+        result.Should().HaveCount(2);
     }
 
     [Test]
     public async Task GetByIdAsync_ShouldReturnCorrectCertificate()
     {
+        // Arrange
         var cert = new Certificate { IssuedAt = DateTime.Now, ExpiresAt = DateTime.Now.AddYears(1), Description = "Cert1" };
         _context.Certificates.Add(cert);
         await _context.SaveChangesAsync();
 
+        // Act
         var result = await _repository.GetByIdAsync(cert.Id);
 
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Description, Is.EqualTo("Cert1"));
+        // Assert
+        result.Should().NotBeNull();
+        result!.Description.Should().Be("Cert1");
     }
 
     [Test]
     public async Task GetByIdAsync_ShouldReturnNull_WhenNotFound()
     {
+        // Arrange – empty database
+
+        // Act
         var result = await _repository.GetByIdAsync(999);
 
-        Assert.That(result, Is.Null);
+        // Assert
+        result.Should().BeNull();
     }
 
     [Test]
     public async Task UpdateAsync_ShouldUpdateCertificate()
     {
+        // Arrange
         var cert = new Certificate { IssuedAt = DateTime.Now, ExpiresAt = DateTime.Now.AddYears(1), Description = "Cert1" };
         _context.Certificates.Add(cert);
         await _context.SaveChangesAsync();
 
+        // Act
         cert.Description = "UpdatedCert";
         await _repository.UpdateAsync(cert);
 
+        // Assert
         var result = await _context.Certificates.FindAsync(cert.Id);
-        Assert.That(result!.Description, Is.EqualTo("UpdatedCert"));
+        result!.Description.Should().Be("UpdatedCert");
     }
 
     [Test]
     public async Task DeleteAsync_ShouldRemoveCertificate()
     {
+        // Arrange
         var cert = new Certificate { IssuedAt = DateTime.Now, ExpiresAt = DateTime.Now.AddYears(1), Description = "Cert1" };
         _context.Certificates.Add(cert);
         await _context.SaveChangesAsync();
 
+        // Act
         await _repository.DeleteAsync(cert.Id);
 
+        // Assert
         var result = await _context.Certificates.ToListAsync();
-        Assert.That(result, Is.Empty);
+        result.Should().BeEmpty();
     }
 
     [Test]
     public async Task IsExpired_WhenExpiresAtIsInPast_ShouldBeTrue()
     {
+        // Arrange
         var cert = new Certificate
         {
             IssuedAt = DateTime.Now.AddYears(-2),
@@ -119,8 +139,10 @@ public class CertificateRepositoryTests
         _context.Certificates.Add(cert);
         await _context.SaveChangesAsync();
 
+        // Act
         var result = await _repository.GetByIdAsync(cert.Id);
 
-        Assert.That(result!.ExpiresAt, Is.LessThan(DateTime.Now));
+        // Assert
+        result!.ExpiresAt.Should().BeBefore(DateTime.Now);
     }
 }

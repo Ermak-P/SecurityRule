@@ -22,14 +22,14 @@ else
     <MudTable Items="@_services" Hover="true" Striped="true" Dense="true">
         <HeaderContent>
             <MudTh>Название</MudTh>
-            <MudTh>Сервер</MudTh>
+            <MudTh>Серверы</MudTh>
             <MudTh>AD учётная запись</MudTh>
             <MudTh>Сертификаты</MudTh>
             <MudTh>Действия</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Название">@context.Name</MudTd>
-            <MudTd DataLabel="Сервер">@context.Server?.Name</MudTd>
+            <MudTd DataLabel="Серверы">@string.Join(", ", context.Servers.Select(s => s.Name))</MudTd>
             <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
             <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
             <MudTd>

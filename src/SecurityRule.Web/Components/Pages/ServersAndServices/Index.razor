@@ -1,0 +1,184 @@
+@page "/servers-and-services"
+@rendermode InteractiveServer
+@inject IServerRepository ServerRepository
+@inject IAppServiceRepository AppServiceRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Серверы и сервисы</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Серверы и сервисы</MudText>
+
+<MudGrid Class="mb-4">
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Navigation.NavigateTo("/servers/create"))">
+            Добавить сервер
+        </MudButton>
+    </MudItem>
+    <MudItem>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Navigation.NavigateTo("/services/create"))">
+            Добавить сервис
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+        <MudTabPanel Text="По серверам" Icon="@Icons.Material.Filled.Dns">
+            @foreach (var server in _servers)
+            {
+                <MudExpansionPanels Class="mb-3">
+                    <MudExpansionPanel>
+                        <TitleContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
+                                    <MudText Typo="Typo.subtitle1"><strong>@server.Name</strong></MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@server.IpAddress</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@server.OperatingSystem</MudChip>
+                                </MudStack>
+                                <MudStack Row="true">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                                   OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{server.Id}"))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                   OnClick="@(() => DeleteServer(server.Id))" />
+                                </MudStack>
+                            </MudStack>
+                        </TitleContent>
+                        <ChildContent>
+                            @if (!server.Services.Any())
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="ml-4">Нет сервисов</MudText>
+                            }
+                            else
+                            {
+                                <MudTable Items="@server.Services" Hover="true" Dense="true" Elevation="0">
+                                    <HeaderContent>
+                                        <MudTh>Сервис</MudTh>
+                                        <MudTh>AD учётная запись</MudTh>
+                                        <MudTh>Сертификаты</MudTh>
+                                        <MudTh>Действия</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd DataLabel="Сервис">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" />
+                                                @context.Name
+                                            </MudStack>
+                                        </MudTd>
+                                        <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
+                                        <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
+                                        <MudTd>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                                           OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                           OnClick="@(() => DeleteService(context.Id))" />
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            }
+                        </ChildContent>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+            @if (!_servers.Any())
+            {
+                <MudText Typo="Typo.body1" Color="Color.Secondary">Серверы не найдены</MudText>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Все сервисы" Icon="@Icons.Material.Filled.MiscellaneousServices">
+            <MudTable Items="@_services" Hover="true" Striped="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Название</MudTh>
+                    <MudTh>Серверы</MudTh>
+                    <MudTh>AD учётная запись</MudTh>
+                    <MudTh>Сертификаты</MudTh>
+                    <MudTh>Действия</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Название">@context.Name</MudTd>
+                    <MudTd DataLabel="Серверы">
+                        @foreach (var s in context.Servers)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="mr-1">@s.Name</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
+                    <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
+                                       OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                       OnClick="@(() => DeleteService(context.Id))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Все серверы" Icon="@Icons.Material.Filled.Storage">
+            <MudTable Items="@_servers" Hover="true" Striped="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Название</MudTh>
+                    <MudTh>IP адрес</MudTh>
+                    <MudTh>Операционная система</MudTh>
+                    <MudTh>Сервисы</MudTh>
+                    <MudTh>Действия</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Название">@context.Name</MudTd>
+                    <MudTd DataLabel="IP адрес">@context.IpAddress</MudTd>
+                    <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
+                    <MudTd DataLabel="Сервисы">@context.Services.Count</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
+                                       OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                       OnClick="@(() => DeleteServer(context.Id))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private IList<Server> _servers = [];
+    private IList<AppService> _services = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _servers = (await ServerRepository.GetAllAsync()).ToList();
+        _services = (await AppServiceRepository.GetAllAsync()).ToList();
+        _loading = false;
+    }
+
+    private async Task DeleteServer(int id)
+    {
+        await ServerRepository.DeleteAsync(id);
+        Snackbar.Add("Сервер удалён", Severity.Success);
+        await LoadData();
+    }
+
+    private async Task DeleteService(int id)
+    {
+        await AppServiceRepository.DeleteAsync(id);
+        Snackbar.Add("Сервис удалён", Severity.Success);
+        await LoadData();
+    }
+}

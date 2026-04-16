@@ -29,10 +29,9 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.AdAccountName).IsRequired().HasMaxLength(200);
-            entity.HasOne(e => e.Server)
+            entity.HasMany(e => e.Servers)
                   .WithMany(s => s.Services)
-                  .HasForeignKey(e => e.ServerId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                  .UsingEntity(j => j.ToTable("ServerServices"));
             entity.HasMany(e => e.Certificates)
                   .WithMany(c => c.Services)
                   .UsingEntity(j => j.ToTable("ServiceCertificates"));

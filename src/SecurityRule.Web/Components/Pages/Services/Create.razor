@@ -12,8 +12,9 @@
 <MudCard>
     <MudCardContent>
         <MudTextField @bind-Value="_service.Name" Label="Название" Required="true" Class="mb-3" />
-        <MudSelect T="int" @bind-Value="_service.ServerId" Label="Сервер" Required="true" Class="mb-3">
-            @foreach (var server in _servers)
+        <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServerIds"
+                   Label="Серверы" Class="mb-3">
+            @foreach (var server in _allServers)
             {
                 <MudSelectItem Value="@server.Id">@server.Name</MudSelectItem>
             }
@@ -28,15 +29,17 @@
 
 @code {
     private AppService _service = new();
-    private IEnumerable<Server> _servers = [];
+    private IEnumerable<Server> _allServers = [];
+    private IEnumerable<int> _selectedServerIds = [];
 
     protected override async Task OnInitializedAsync()
     {
-        _servers = await ServerRepository.GetAllAsync();
+        _allServers = await ServerRepository.GetAllAsync();
     }
 
     private async Task Save()
     {
+        _service.Servers = _allServers.Where(s => _selectedServerIds.Contains(s.Id)).ToList();
         await AppServiceRepository.AddAsync(_service);
         Snackbar.Add("Сервис добавлен", Severity.Success);
         Navigation.NavigateTo("/services");
