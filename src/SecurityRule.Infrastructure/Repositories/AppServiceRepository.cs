@@ -42,13 +42,14 @@ public class AppServiceRepository : IAppServiceRepository
         existing.Name = service.Name;
         existing.AdAccountName = service.AdAccountName;
 
+        var serverIds = service.Servers.Select(s => s.Id).ToList();
+        var trackedServers = await _context.Servers
+            .Where(s => serverIds.Contains(s.Id))
+            .ToListAsync();
+
         existing.Servers.Clear();
-        foreach (var server in service.Servers)
-        {
-            var trackedServer = await _context.Servers.FindAsync(server.Id);
-            if (trackedServer != null)
-                existing.Servers.Add(trackedServer);
-        }
+        foreach (var server in trackedServers)
+            existing.Servers.Add(server);
 
         await _context.SaveChangesAsync();
     }

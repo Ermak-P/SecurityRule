@@ -170,15 +170,29 @@ else
 
     private async Task DeleteServer(int id)
     {
-        await ServerRepository.DeleteAsync(id);
-        Snackbar.Add("Сервер удалён", Severity.Success);
-        await LoadData();
+        try
+        {
+            await ServerRepository.DeleteAsync(id);
+            Snackbar.Add("Сервер удалён", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Ошибка при удалении сервера", Severity.Error);
+        }
     }
 
     private async Task DeleteService(int id)
     {
-        await AppServiceRepository.DeleteAsync(id);
-        Snackbar.Add("Сервис удалён", Severity.Success);
-        await LoadData();
+        try
+        {
+            await AppServiceRepository.DeleteAsync(id);
+            Snackbar.Add("Сервис удалён", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Ошибка при удалении сервиса", Severity.Error);
+        }
     }
 }
