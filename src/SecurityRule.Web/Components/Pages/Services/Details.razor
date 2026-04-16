@@ -1,0 +1,111 @@
+@page "/services/{Id:int}"
+@rendermode InteractiveServer
+@inject IAppServiceRepository AppServiceRepository
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Сервис — @(_service?.Name ?? "...")</PageTitle>
+
+@if (_service == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Color="Color.Secondary" />
+            <MudText Typo="Typo.h4">@_service.Name</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                   OnClick="@(() => Navigation.NavigateTo($"/services/edit/{_service.Id}"))">
+            Редактировать
+        </MudButton>
+    </MudStack>
+
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
+                    <MudText Typo="Typo.body1">@_service.AdAccountName</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>
+                    <MudText Typo="Typo.body1">@_service.Servers.Count</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Сертификатов</MudText>
+                    <MudText Typo="Typo.body1">@_service.Certificates.Count</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.Dns" Class="mr-1" />
+        Серверы
+    </MudText>
+
+    @if (!_service.Servers.Any())
+    {
+        <MudAlert Severity="Severity.Info">Сервис не привязан ни к одному серверу</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@_service.Servers" Hover="true" Striped="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Название</MudTh>
+                <MudTh>IP адрес</MudTh>
+                <MudTh>Операционная система</MudTh>
+                <MudTh>Открыть</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Название">@context.Name</MudTd>
+                <MudTd DataLabel="IP адрес">@context.IpAddress</MudTd>
+                <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
+                <MudTd>
+                    <MudTooltip Text="Открыть в новом окне">
+                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary" Size="Size.Small"
+                                       OnClick="@(() => OpenServerNewTab(context.Id))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Открыть в модальном окне">
+                        <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary" Size="Size.Small"
+                                       OnClick="@(() => OpenServerModal(context.Id))" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private AppService? _service;
+
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _service = await AppServiceRepository.GetByIdAsync(Id);
+        _breadcrumbs =
+        [
+            new BreadcrumbItem("Серверы и сервисы", href: "/servers-and-services"),
+            new BreadcrumbItem("Сервисы", href: "/services"),
+            new BreadcrumbItem(_service?.Name ?? Id.ToString(), href: null, disabled: true)
+        ];
+    }
+
+    async Task OpenServerNewTab(int id) => await JS.InvokeVoidAsync("open", $"/servers/{id}", "_blank");
+
+    async Task OpenServerModal(int id)
+    {
+        var parameters = new DialogParameters<ServerDetailsDialog> { { p => p.ServerId, id } };
+        await DialogService.ShowAsync<ServerDetailsDialog>("Сервер", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+    }
+}

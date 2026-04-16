@@ -2,9 +2,9 @@
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
-@inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>Серверы и сервисы</PageTitle>
 
@@ -46,10 +46,14 @@ else
                                     <MudChip T="string" Size="Size.Small" Color="Color.Info">@server.OperatingSystem</MudChip>
                                 </MudStack>
                                 <MudStack Row="true">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
-                                                   OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{server.Id}"))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                   OnClick="@(() => DeleteServer(server.Id))" />
+                                    <MudTooltip Text="Открыть в новом окне">
+                                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary" Size="Size.Small"
+                                                       OnClick="@(() => OpenNewTab($"/servers/{server.Id}"))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Открыть в модальном окне">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary" Size="Size.Small"
+                                                       OnClick="@(() => OpenServerModal(server.Id))" />
+                                    </MudTooltip>
                                 </MudStack>
                             </MudStack>
                         </TitleContent>
@@ -65,7 +69,7 @@ else
                                         <MudTh>Сервис</MudTh>
                                         <MudTh>AD учётная запись</MudTh>
                                         <MudTh>Сертификаты</MudTh>
-                                        <MudTh>Действия</MudTh>
+                                        <MudTh>Открыть</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="Сервис">
@@ -77,10 +81,14 @@ else
                                         <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
                                         <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
                                         <MudTd>
-                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
-                                                           OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
-                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                           OnClick="@(() => DeleteService(context.Id))" />
+                                            <MudTooltip Text="Открыть в новом окне">
+                                                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary" Size="Size.Small"
+                                                               OnClick="@(() => OpenNewTab($"/services/{context.Id}"))" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="Открыть в модальном окне">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary" Size="Size.Small"
+                                                               OnClick="@(() => OpenServiceModal(context.Id))" />
+                                            </MudTooltip>
                                         </MudTd>
                                     </RowTemplate>
                                 </MudTable>
@@ -102,7 +110,7 @@ else
                     <MudTh>Серверы</MudTh>
                     <MudTh>AD учётная запись</MudTh>
                     <MudTh>Сертификаты</MudTh>
-                    <MudTh>Действия</MudTh>
+                    <MudTh>Открыть</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Название">@context.Name</MudTd>
@@ -115,10 +123,14 @@ else
                     <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
                     <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
                     <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
-                                       OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                       OnClick="@(() => DeleteService(context.Id))" />
+                        <MudTooltip Text="Открыть в новом окне">
+                            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary"
+                                           OnClick="@(() => OpenNewTab($"/services/{context.Id}"))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Открыть в модальном окне">
+                            <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary"
+                                           OnClick="@(() => OpenServiceModal(context.Id))" />
+                        </MudTooltip>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -131,7 +143,7 @@ else
                     <MudTh>IP адрес</MudTh>
                     <MudTh>Операционная система</MudTh>
                     <MudTh>Сервисы</MudTh>
-                    <MudTh>Действия</MudTh>
+                    <MudTh>Открыть</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Название">@context.Name</MudTd>
@@ -139,10 +151,14 @@ else
                     <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
                     <MudTd DataLabel="Сервисы">@context.Services.Count</MudTd>
                     <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
-                                       OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                       OnClick="@(() => DeleteServer(context.Id))" />
+                        <MudTooltip Text="Открыть в новом окне">
+                            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary"
+                                           OnClick="@(() => OpenNewTab($"/servers/{context.Id}"))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Открыть в модальном окне">
+                            <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary"
+                                           OnClick="@(() => OpenServerModal(context.Id))" />
+                        </MudTooltip>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -168,31 +184,19 @@ else
         _loading = false;
     }
 
-    private async Task DeleteServer(int id)
+    async Task OpenNewTab(string url) => await JS.InvokeVoidAsync("open", url, "_blank");
+
+    async Task OpenServerModal(int id)
     {
-        try
-        {
-            await ServerRepository.DeleteAsync(id);
-            Snackbar.Add("Сервер удалён", Severity.Success);
-            await LoadData();
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Ошибка при удалении сервера", Severity.Error);
-        }
+        var parameters = new DialogParameters<ServerDetailsDialog> { { p => p.ServerId, id } };
+        await DialogService.ShowAsync<ServerDetailsDialog>("Сервер", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
     }
 
-    private async Task DeleteService(int id)
+    async Task OpenServiceModal(int id)
     {
-        try
-        {
-            await AppServiceRepository.DeleteAsync(id);
-            Snackbar.Add("Сервис удалён", Severity.Success);
-            await LoadData();
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Ошибка при удалении сервиса", Severity.Error);
-        }
+        var parameters = new DialogParameters<ServiceDetailsDialog> { { p => p.ServiceId, id } };
+        await DialogService.ShowAsync<ServiceDetailsDialog>("Сервис", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
     }
 }

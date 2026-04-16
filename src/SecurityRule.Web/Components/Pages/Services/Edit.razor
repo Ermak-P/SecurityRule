@@ -29,7 +29,12 @@ else
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
-            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/services"))">Отмена</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo($"/services/{Id}"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
         </MudCardActions>
     </MudCard>
 }
@@ -55,7 +60,21 @@ else
             _service.Servers = _allServers.Where(s => _selectedServerIds.Contains(s.Id)).ToList();
             await AppServiceRepository.UpdateAsync(_service);
             Snackbar.Add("Сервис обновлён", Severity.Success);
+            Navigation.NavigateTo($"/services/{Id}");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await AppServiceRepository.DeleteAsync(Id);
+            Snackbar.Add("Сервис удалён", Severity.Success);
             Navigation.NavigateTo("/services");
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Ошибка при удалении сервиса", Severity.Error);
         }
     }
 }

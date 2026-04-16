@@ -22,7 +22,12 @@ else
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
-            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/servers"))">Отмена</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo($"/servers/{Id}"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
         </MudCardActions>
     </MudCard>
 }
@@ -42,7 +47,21 @@ else
         {
             await ServerRepository.UpdateAsync(_server);
             Snackbar.Add("Сервер обновлён", Severity.Success);
+            Navigation.NavigateTo($"/servers/{Id}");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await ServerRepository.DeleteAsync(Id);
+            Snackbar.Add("Сервер удалён", Severity.Success);
             Navigation.NavigateTo("/servers");
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Ошибка при удалении сервера", Severity.Error);
         }
     }
 }

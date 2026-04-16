@@ -1,8 +1,9 @@
 @page "/servers"
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
+@inject IDialogService DialogService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 
 <PageTitle>Серверы</PageTitle>
 
@@ -25,7 +26,7 @@ else
             <MudTh>IP адрес</MudTh>
             <MudTh>Операционная система</MudTh>
             <MudTh>Сервисы</MudTh>
-            <MudTh>Действия</MudTh>
+            <MudTh>Открыть</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Название">@context.Name</MudTd>
@@ -33,10 +34,14 @@ else
             <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
             <MudTd DataLabel="Сервисы">@context.Services.Count</MudTd>
             <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
-                               OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                               OnClick="@(() => DeleteServer(context.Id))" />
+                <MudTooltip Text="Открыть в новом окне">
+                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary"
+                                   OnClick="@(() => OpenNewTab($"/servers/{context.Id}"))" />
+                </MudTooltip>
+                <MudTooltip Text="Открыть в модальном окне">
+                    <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary"
+                                   OnClick="@(() => OpenModal(context.Id))" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -58,10 +63,12 @@ else
         _loading = false;
     }
 
-    private async Task DeleteServer(int id)
+    async Task OpenNewTab(string url) => await JS.InvokeVoidAsync("open", url, "_blank");
+
+    async Task OpenModal(int id)
     {
-        await ServerRepository.DeleteAsync(id);
-        Snackbar.Add("Сервер удалён", Severity.Success);
-        await LoadData();
+        var parameters = new DialogParameters<ServerDetailsDialog> { { p => p.ServerId, id } };
+        await DialogService.ShowAsync<ServerDetailsDialog>("Сервер", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
     }
 }

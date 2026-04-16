@@ -1,8 +1,9 @@
 @page "/services"
 @rendermode InteractiveServer
 @inject IAppServiceRepository AppServiceRepository
+@inject IDialogService DialogService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 
 <PageTitle>Сервисы</PageTitle>
 
@@ -25,7 +26,7 @@ else
             <MudTh>Серверы</MudTh>
             <MudTh>AD учётная запись</MudTh>
             <MudTh>Сертификаты</MudTh>
-            <MudTh>Действия</MudTh>
+            <MudTh>Открыть</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Название">@context.Name</MudTd>
@@ -33,10 +34,14 @@ else
             <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
             <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
             <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
-                               OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                               OnClick="@(() => DeleteService(context.Id))" />
+                <MudTooltip Text="Открыть в новом окне">
+                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary"
+                                   OnClick="@(() => OpenNewTab($"/services/{context.Id}"))" />
+                </MudTooltip>
+                <MudTooltip Text="Открыть в модальном окне">
+                    <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary"
+                                   OnClick="@(() => OpenModal(context.Id))" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -58,10 +63,12 @@ else
         _loading = false;
     }
 
-    private async Task DeleteService(int id)
+    async Task OpenNewTab(string url) => await JS.InvokeVoidAsync("open", url, "_blank");
+
+    async Task OpenModal(int id)
     {
-        await AppServiceRepository.DeleteAsync(id);
-        Snackbar.Add("Сервис удалён", Severity.Success);
-        await LoadData();
+        var parameters = new DialogParameters<ServiceDetailsDialog> { { p => p.ServiceId, id } };
+        await DialogService.ShowAsync<ServiceDetailsDialog>("Сервис", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
     }
 }
