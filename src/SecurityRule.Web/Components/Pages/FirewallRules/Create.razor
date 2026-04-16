@@ -1,0 +1,35 @@
+@page "/firewall-rules/create"
+@rendermode InteractiveServer
+@inject IFirewallRuleRepository FirewallRuleRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Добавить правило фаервола</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Добавить правило фаервола</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="_rule.SourceIp" Label="Исходящий IP адрес" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_rule.DestinationIp" Label="Входящий IP адрес" Required="true" Class="mb-3" />
+        <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_rule.Description" Label="Описание" Class="mb-3" Lines="3" />
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/firewall-rules"))">Отмена</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private FirewallRule _rule = new();
+    private DateTime? _expiresAt = DateTime.Now.AddYears(1);
+
+    private async Task Save()
+    {
+        _rule.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
+        await FirewallRuleRepository.AddAsync(_rule);
+        Snackbar.Add("Правило добавлено", Severity.Success);
+        Navigation.NavigateTo("/firewall-rules");
+    }
+}

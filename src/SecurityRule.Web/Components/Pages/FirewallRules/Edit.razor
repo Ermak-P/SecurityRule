@@ -1,0 +1,53 @@
+@page "/firewall-rules/edit/{Id:int}"
+@rendermode InteractiveServer
+@inject IFirewallRuleRepository FirewallRuleRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Редактировать правило фаервола</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Редактировать правило фаервола</MudText>
+
+@if (_rule == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <MudTextField @bind-Value="_rule.SourceIp" Label="Исходящий IP адрес" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_rule.DestinationIp" Label="Входящий IP адрес" Required="true" Class="mb-3" />
+            <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_rule.Description" Label="Описание" Class="mb-3" Lines="3" />
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/firewall-rules"))">Отмена</MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private FirewallRule? _rule;
+    private DateTime? _expiresAt;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rule = await FirewallRuleRepository.GetByIdAsync(Id);
+        if (_rule != null)
+            _expiresAt = _rule.ExpiresAt;
+    }
+
+    private async Task Save()
+    {
+        if (_rule != null)
+        {
+            _rule.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
+            await FirewallRuleRepository.UpdateAsync(_rule);
+            Snackbar.Add("Правило обновлено", Severity.Success);
+            Navigation.NavigateTo("/firewall-rules");
+        }
+    }
+}
