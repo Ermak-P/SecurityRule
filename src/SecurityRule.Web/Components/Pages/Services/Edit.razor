@@ -72,9 +72,9 @@ else
             Snackbar.Add("Сервис удалён", Severity.Success);
             Navigation.NavigateTo("/services");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            Snackbar.Add("Ошибка при удалении сервиса", Severity.Error);
+            Snackbar.Add($"Ошибка при удалении сервиса: {ex.Message}", Severity.Error);
         }
     }
 }

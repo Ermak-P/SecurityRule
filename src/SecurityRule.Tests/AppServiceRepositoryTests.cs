@@ -47,9 +47,10 @@ public class AppServiceRepositoryTests
         await _repository.AddAsync(service);
 
         // Assert
-        var result = await _context.AppServices.ToListAsync();
+        var result = await _context.AppServices.Include(s => s.Servers).ToListAsync();
         result.Should().HaveCount(1);
         result[0].Name.Should().Be("MyService");
+        result[0].Servers.Should().ContainSingle(s => s.Id == server.Id);
     }
 
     [Test]

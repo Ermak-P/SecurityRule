@@ -59,9 +59,9 @@ else
             Snackbar.Add("Сервер удалён", Severity.Success);
             Navigation.NavigateTo("/servers");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            Snackbar.Add("Ошибка при удалении сервера", Severity.Error);
+            Snackbar.Add($"Ошибка при удалении сервера: {ex.Message}", Severity.Error);
         }
     }
 }
