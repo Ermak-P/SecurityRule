@@ -1,6 +1,7 @@
 @page "/servers/edit/{Id:int}"
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
+@inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -19,6 +20,13 @@ else
             <MudTextField @bind-Value="_server.Name" Label="Название" Required="true" Class="mb-3" />
             <MudTextField @bind-Value="_server.IpAddress" Label="IP адрес" Required="true" Class="mb-3" />
             <MudTextField @bind-Value="_server.OperatingSystem" Label="Операционная система" Required="true" Class="mb-3" />
+            <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServiceIds"
+                       Label="Сервисы" Class="mb-3">
+                @foreach (var service in _allServices)
+                {
+                    <MudSelectItem Value="@service.Id">@service.Name</MudSelectItem>
+                }
+            </MudSelect>
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -35,16 +43,24 @@ else
 @code {
     [Parameter] public int Id { get; set; }
     private Server? _server;
+    private IEnumerable<AppService> _allServices = [];
+    private IReadOnlyCollection<int> _selectedServiceIds = [];
 
     protected override async Task OnInitializedAsync()
     {
         _server = await ServerRepository.GetByIdAsync(Id);
+        _allServices = await AppServiceRepository.GetAllAsync();
+        if (_server != null)
+        {
+            _selectedServiceIds = _server.Services.Select(s => s.Id).ToArray();
+        }
     }
 
     private async Task Save()
     {
         if (_server != null)
         {
+            _server.Services = _allServices.Where(s => _selectedServiceIds.Contains(s.Id)).ToList();
             await ServerRepository.UpdateAsync(_server);
             Snackbar.Add("Сервер обновлён", Severity.Success);
             Navigation.NavigateTo($"/servers/{Id}");

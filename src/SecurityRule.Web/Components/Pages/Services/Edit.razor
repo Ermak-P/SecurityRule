@@ -43,14 +43,16 @@ else
     [Parameter] public int Id { get; set; }
     private AppService? _service;
     private IEnumerable<Server> _allServers = [];
-    private IEnumerable<int> _selectedServerIds = [];
+    private IReadOnlyCollection<int> _selectedServerIds = [];
 
     protected override async Task OnInitializedAsync()
     {
         _service = await AppServiceRepository.GetByIdAsync(Id);
         _allServers = await ServerRepository.GetAllAsync();
         if (_service != null)
+        {
             _selectedServerIds = _service.Servers.Select(s => s.Id).ToList();
+        }
     }
 
     private async Task Save()

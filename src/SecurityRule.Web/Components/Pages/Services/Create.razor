@@ -30,7 +30,7 @@
 @code {
     private AppService _service = new();
     private IEnumerable<Server> _allServers = [];
-    private IEnumerable<int> _selectedServerIds = [];
+    private IReadOnlyCollection<int> _selectedServerIds = [];
 
     protected override async Task OnInitializedAsync()
     {

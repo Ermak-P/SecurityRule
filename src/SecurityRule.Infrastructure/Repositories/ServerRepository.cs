@@ -28,7 +28,24 @@ public class ServerRepository : IServerRepository
 
     public async Task UpdateAsync(Server server)
     {
-        _context.Servers.Update(server);
+        var existing = await _context.Servers
+            .Include(s => s.Services)
+            .FirstOrDefaultAsync(s => s.Id == server.Id);
+        if (existing == null) return;
+
+        existing.Name = server.Name;
+        existing.IpAddress = server.IpAddress;
+        existing.OperatingSystem = server.OperatingSystem;
+
+        var serviceIds = server.Services.Select(s => s.Id).ToList();
+        var trackedServices = await _context.AppServices
+            .Where(s => serviceIds.Contains(s.Id))
+            .ToListAsync();
+
+        existing.Services.Clear();
+        foreach (var service in trackedServices)
+            existing.Services.Add(service);
+
         await _context.SaveChangesAsync();
     }
 
