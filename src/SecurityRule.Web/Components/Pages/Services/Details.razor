@@ -1,8 +1,6 @@
 @page "/services/{Id:int}"
 @rendermode InteractiveServer
 @inject IAppServiceRepository AppServiceRepository
-@inject IDialogService DialogService
-@inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -57,28 +55,34 @@ else
     }
     else
     {
-        <MudTable Items="@_service.Servers" Hover="true" Striped="true" Dense="true">
+        <MudTable T="Server" Items="@_service.Servers" Hover="true" Striped="true" Dense="true" OnRowClick="@ToggleServerRow">
             <HeaderContent>
                 <MudTh>Название</MudTh>
                 <MudTh>IP адрес</MudTh>
                 <MudTh>Операционная система</MudTh>
-                <MudTh>Открыть</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Название">@context.Name</MudTd>
+                <MudTd DataLabel="Название">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@(_expandedServerRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                        @context.Name
+                    </MudStack>
+                </MudTd>
                 <MudTd DataLabel="IP адрес">@context.IpAddress</MudTd>
                 <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
-                <MudTd>
-                    <MudTooltip Text="Открыть в новом окне">
-                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary" Size="Size.Small"
-                                       OnClick="@(() => OpenServerNewTab(context.Id))" />
-                    </MudTooltip>
-                    <MudTooltip Text="Открыть в модальном окне">
-                        <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary" Size="Size.Small"
-                                       OnClick="@(() => OpenServerModal(context.Id))" />
-                    </MudTooltip>
-                </MudTd>
             </RowTemplate>
+            <ChildRowContent Context="srv">
+                @if (_expandedServerRows.Contains(srv.Id))
+                {
+                    <MudTr>
+                        <td colspan="3" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
+                            <MudText Typo="Typo.body2"><strong>IP адрес:</strong> @srv.IpAddress</MudText>
+                            <MudText Typo="Typo.body2"><strong>Операционная система:</strong> @srv.OperatingSystem</MudText>
+                            <MudText Typo="Typo.body2"><strong>Сервисов:</strong> @srv.Services.Count</MudText>
+                        </td>
+                    </MudTr>
+                }
+            </ChildRowContent>
         </MudTable>
     }
 }
@@ -88,6 +92,7 @@ else
     private AppService? _service;
 
     private List<BreadcrumbItem> _breadcrumbs = [];
+    private readonly HashSet<int> _expandedServerRows = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,12 +105,11 @@ else
         ];
     }
 
-    async Task OpenServerNewTab(int id) => await JS.InvokeVoidAsync("open", $"/servers/{id}", "_blank");
-
-    async Task OpenServerModal(int id)
+    private void ToggleServerRow(TableRowClickEventArgs<Server> args)
     {
-        var parameters = new DialogParameters<ServerDetailsDialog> { { p => p.ServerId, id } };
-        await DialogService.ShowAsync<ServerDetailsDialog>("Сервер", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (args.Item is null) return;
+        var id = args.Item.Id;
+        if (!_expandedServerRows.Remove(id))
+            _expandedServerRows.Add(id);
     }
 }

@@ -1,8 +1,6 @@
 @page "/services"
 @rendermode InteractiveServer
 @inject IAppServiceRepository AppServiceRepository
-@inject IDialogService DialogService
-@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <PageTitle>Сервисы</PageTitle>
@@ -20,36 +18,92 @@
 }
 else
 {
-    <MudTable Items="@_services" Hover="true" Striped="true" Dense="true">
+    <MudTable T="AppService" Items="@_services" Hover="true" Striped="true" Dense="true" OnRowClick="@ToggleServiceRow">
         <HeaderContent>
             <MudTh>Название</MudTh>
             <MudTh>Серверы</MudTh>
             <MudTh>AD учётная запись</MudTh>
             <MudTh>Сертификаты</MudTh>
-            <MudTh>Открыть</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Название">@context.Name</MudTd>
+            <MudTd DataLabel="Название">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@(_expandedServiceRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                    @context.Name
+                </MudStack>
+            </MudTd>
             <MudTd DataLabel="Серверы">@string.Join(", ", context.Servers.Select(s => s.Name))</MudTd>
             <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
             <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
-            <MudTd>
-                <MudTooltip Text="Открыть в новом окне">
-                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Color="Color.Primary"
-                                   OnClick="@(() => OpenNewTab($"/services/{context.Id}"))" />
-                </MudTooltip>
-                <MudTooltip Text="Открыть в модальном окне">
-                    <MudIconButton Icon="@Icons.Material.Filled.Pageview" Color="Color.Secondary"
-                                   OnClick="@(() => OpenModal(context.Id))" />
-                </MudTooltip>
-            </MudTd>
         </RowTemplate>
+        <ChildRowContent Context="svc">
+            @if (_expandedServiceRows.Contains(svc.Id))
+            {
+                <MudTr>
+                    <td colspan="4" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
+                                <MudText Typo="Typo.body2">@svc.AdAccountName</MudText>
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>
+                                <MudText Typo="Typo.body2">@svc.Servers.Count</MudText>
+                            </MudItem>
+                            <MudItem xs="12" sm="3">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Сертификатов</MudText>
+                                <MudText Typo="Typo.body2">@svc.Certificates.Count</MudText>
+                            </MudItem>
+                        </MudGrid>
+                        @if (svc.Servers.Any())
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mt-3 mb-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Class="mr-1" />
+                                Серверы (@svc.Servers.Count)
+                            </MudText>
+                            <MudTable T="Server" Items="@svc.Servers" Hover="true" Dense="true" Elevation="0"
+                                      OnRowClick="@ToggleServerRow">
+                                <HeaderContent>
+                                    <MudTh>Название</MudTh>
+                                    <MudTh>IP адрес</MudTh>
+                                    <MudTh>Операционная система</MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="srv">
+                                    <MudTd DataLabel="Название">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudIcon Icon="@(_expandedServerRows.Contains(srv.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                                            @srv.Name
+                                        </MudStack>
+                                    </MudTd>
+                                    <MudTd DataLabel="IP адрес">@srv.IpAddress</MudTd>
+                                    <MudTd DataLabel="Операционная система">@srv.OperatingSystem</MudTd>
+                                </RowTemplate>
+                                <ChildRowContent Context="srv">
+                                    @if (_expandedServerRows.Contains(srv.Id))
+                                    {
+                                        <MudTr>
+                                            <td colspan="3" style="padding: 8px 16px 8px 40px;">
+                                                <MudText Typo="Typo.body2"><strong>IP адрес:</strong> @srv.IpAddress</MudText>
+                                                <MudText Typo="Typo.body2"><strong>Операционная система:</strong> @srv.OperatingSystem</MudText>
+                                                <MudText Typo="Typo.body2"><strong>Сервисов:</strong> @srv.Services.Count</MudText>
+                                            </td>
+                                        </MudTr>
+                                    }
+                                </ChildRowContent>
+                            </MudTable>
+                        }
+                    </td>
+                </MudTr>
+            }
+        </ChildRowContent>
     </MudTable>
 }
 
 @code {
     private IEnumerable<AppService> _services = [];
     private bool _loading = true;
+    private readonly HashSet<int> _expandedServiceRows = [];
+    private readonly HashSet<int> _expandedServerRows = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -63,12 +117,19 @@ else
         _loading = false;
     }
 
-    async Task OpenNewTab(string url) => await JS.InvokeVoidAsync("open", url, "_blank");
-
-    async Task OpenModal(int id)
+    private void ToggleServiceRow(TableRowClickEventArgs<AppService> args)
     {
-        var parameters = new DialogParameters<ServiceDetailsDialog> { { p => p.ServiceId, id } };
-        await DialogService.ShowAsync<ServiceDetailsDialog>("Сервис", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (args.Item is null) return;
+        var id = args.Item.Id;
+        if (!_expandedServiceRows.Remove(id))
+            _expandedServiceRows.Add(id);
+    }
+
+    private void ToggleServerRow(TableRowClickEventArgs<Server> args)
+    {
+        if (args.Item is null) return;
+        var id = args.Item.Id;
+        if (!_expandedServerRows.Remove(id))
+            _expandedServerRows.Add(id);
     }
 }
