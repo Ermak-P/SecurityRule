@@ -1,20 +1,24 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider Theme="@_theme" IsDarkMode="true" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar Elevation="0" Dense="true" Style="border-bottom:1px solid rgba(255,255,255,0.06);">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h6" Class="ml-3">SecurityRule</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" Size="Size.Small" Class="ml-1 mr-1" />
+        <MudText Typo="Typo.h6" Style="font-weight:600;letter-spacing:.4px;">SecurityRule</MudText>
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-3 d-none d-sm-block">Security Management System</MudText>
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
+               Style="border-right:1px solid rgba(255,255,255,0.06);">
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -23,4 +27,39 @@
 @code {
     private bool _drawerOpen = true;
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary          = "#58A6FF",
+            Secondary        = "#BC8CFF",
+            Success          = "#3FB950",
+            Warning          = "#D29922",
+            Error            = "#F85149",
+            Info             = "#58A6FF",
+            Background       = "#0D1117",
+            BackgroundGray   = "#161B22",
+            Surface          = "#161B22",
+            DrawerBackground = "#0D1117",
+            DrawerText       = "#C9D1D9",
+            DrawerIcon       = "#8B949E",
+            AppbarBackground = "#161B22",
+            AppbarText       = "#C9D1D9",
+            TextPrimary      = "#C9D1D9",
+            TextSecondary    = "#8B949E",
+            TextDisabled     = "#484F58",
+            ActionDefault    = "#8B949E",
+            ActionDisabled   = "#484F58",
+            ActionDisabledBackground = "#21262D",
+            Divider          = "#21262D",
+            DividerLight     = "#161B22",
+            TableLines       = "#21262D",
+            LinesDefault     = "#21262D",
+            LinesInputs      = "#30363D",
+            TableStriped     = "rgba(255,255,255,0.02)",
+            TableHover       = "rgba(88,166,255,0.06)",
+            OverlayDark      = "rgba(1,4,9,0.8)"
+        }
+    };
 }

@@ -1,8 +1,15 @@
 <MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Главная</MudNavLink>
+    <div class="nav-logo-spacer"></div>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Дашборд</MudNavLink>
+
+    <MudDivider Class="my-2" />
+    <div class="nav-section-label">ИНФРАСТРУКТУРА</div>
     <MudNavLink Href="/servers-and-services" Icon="@Icons.Material.Filled.AccountTree">Серверы и сервисы</MudNavLink>
     <MudNavLink Href="/servers" Icon="@Icons.Material.Filled.Dns">Серверы</MudNavLink>
     <MudNavLink Href="/services" Icon="@Icons.Material.Filled.MiscellaneousServices">Сервисы</MudNavLink>
+
+    <MudDivider Class="my-2" />
+    <div class="nav-section-label">БЕЗОПАСНОСТЬ</div>
     <MudNavLink Href="/certificates" Icon="@Icons.Material.Filled.Security">Сертификаты</MudNavLink>
     <MudNavLink Href="/firewall-rules" Icon="@Icons.Material.Filled.Shield">Правила фаервола</MudNavLink>
 </MudNavMenu>
