@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<AppService> AppServices => Set<AppService>();
     public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<FirewallRule> FirewallRules => Set<FirewallRule>();
+    public DbSet<OperatingSystemOption> OperatingSystemOptions => Set<OperatingSystemOption>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +50,16 @@ public class AppDbContext : DbContext
             entity.Property(e => e.SourceIp).IsRequired().HasMaxLength(45);
             entity.Property(e => e.DestinationIp).IsRequired().HasMaxLength(45);
             entity.Property(e => e.Description).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<OperatingSystemOption>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.HasData(
+                new OperatingSystemOption { Id = 1, Name = "Windows 11" },
+                new OperatingSystemOption { Id = 2, Name = "Windows Server 2022" }
+            );
         });
     }
 }

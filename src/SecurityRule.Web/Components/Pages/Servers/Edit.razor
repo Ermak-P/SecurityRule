@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
+@inject IOperatingSystemRepository OperatingSystemRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -19,7 +20,9 @@ else
         <MudCardContent>
             <MudTextField @bind-Value="_server.Name" Label="Название" Required="true" Class="mb-3" />
             <MudTextField @bind-Value="_server.IpAddress" Label="IP адрес" Required="true" Class="mb-3" />
-            <MudTextField @bind-Value="_server.OperatingSystem" Label="Операционная система" Required="true" Class="mb-3" />
+            <MudAutocomplete T="string" @bind-Value="_server.OperatingSystem"
+                             Label="Операционная система" Required="true" Class="mb-3"
+                             SearchFunc="@SearchOs" CoerceText="true" />
             <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServiceIds"
                        Label="Сервисы" Class="mb-3">
                 @foreach (var service in _allServices)
@@ -45,15 +48,24 @@ else
     private Server? _server;
     private IEnumerable<AppService> _allServices = [];
     private IReadOnlyCollection<int> _selectedServiceIds = [];
+    private IEnumerable<string> _osOptions = [];
 
     protected override async Task OnInitializedAsync()
     {
         _server = await ServerRepository.GetByIdAsync(Id);
         _allServices = await AppServiceRepository.GetAllAsync();
+        _osOptions = (await OperatingSystemRepository.GetAllAsync()).Select(o => o.Name);
         if (_server != null)
         {
             _selectedServiceIds = _server.Services.Select(s => s.Id).ToArray();
         }
+    }
+
+    private Task<IEnumerable<string>> SearchOs(string value, CancellationToken _)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(_osOptions);
+        return Task.FromResult(_osOptions.Where(o => o.Contains(value, StringComparison.OrdinalIgnoreCase)));
     }
 
     private async Task Save()

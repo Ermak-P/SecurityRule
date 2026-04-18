@@ -19,6 +19,7 @@ builder.Services.AddScoped<IServerRepository, ServerRepository>();
 builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IFirewallRuleRepository, FirewallRuleRepository>();
+builder.Services.AddScoped<IOperatingSystemRepository, OperatingSystemRepository>();
 builder.Services.AddScoped<ThemeState>();
 
 var app = builder.Build();
