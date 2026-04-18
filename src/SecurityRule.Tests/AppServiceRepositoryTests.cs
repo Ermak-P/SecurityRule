@@ -171,4 +171,51 @@ public class AppServiceRepositoryTests
         result.Should().NotBeNull();
         result!.Servers.Should().HaveCount(2);
     }
+
+    [Test]
+    public async Task UpdateAsync_ShouldAssociateServers()
+    {
+        // Arrange
+        var server1 = new Server { Name = "Server1", IpAddress = "10.0.0.1", OperatingSystem = "Linux" };
+        var server2 = new Server { Name = "Server2", IpAddress = "10.0.0.2", OperatingSystem = "Windows" };
+        _context.Servers.AddRange(server1, server2);
+        var service = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1" };
+        _context.AppServices.Add(service);
+        await _context.SaveChangesAsync();
+
+        // Act — associate both servers
+        service.Servers = [server1, server2];
+        await _repository.UpdateAsync(service);
+
+        // Assert
+        var updated = await _repository.GetByIdAsync(service.Id);
+        updated!.Servers.Should().HaveCount(2);
+        updated.Servers.Select(s => s.Name).Should().BeEquivalentTo(["Server1", "Server2"]);
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldReplaceServers()
+    {
+        // Arrange
+        var server1 = new Server { Name = "Server1", IpAddress = "10.0.0.1", OperatingSystem = "Linux" };
+        var server2 = new Server { Name = "Server2", IpAddress = "10.0.0.2", OperatingSystem = "Windows" };
+        _context.Servers.AddRange(server1, server2);
+        var service = new AppService
+        {
+            Name = "Svc1",
+            AdAccountName = "domain\\svc1",
+            Servers = [server1]
+        };
+        _context.AppServices.Add(service);
+        await _context.SaveChangesAsync();
+
+        // Act — replace server1 with server2
+        service.Servers = [server2];
+        await _repository.UpdateAsync(service);
+
+        // Assert
+        var updated = await _repository.GetByIdAsync(service.Id);
+        updated!.Servers.Should().HaveCount(1);
+        updated.Servers.Single().Name.Should().Be("Server2");
+    }
 }
