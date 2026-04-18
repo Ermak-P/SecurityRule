@@ -24,6 +24,7 @@ else
             <MudTh>IP адрес</MudTh>
             <MudTh>Операционная система</MudTh>
             <MudTh>Сервисы</MudTh>
+            <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Название">
@@ -35,12 +36,19 @@ else
             <MudTd DataLabel="IP адрес">@context.IpAddress</MudTd>
             <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
             <MudTd DataLabel="Сервисы">@context.Services.Count</MudTd>
+            <MudTd>
+                <span @onclick:stopPropagation="true">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Title="Редактировать"
+                                   OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
+                </span>
+            </MudTd>
         </RowTemplate>
         <ChildRowContent Context="server">
             @if (_expandedServerRows.Contains(server.Id))
             {
                 <MudTr>
-                    <td colspan="4" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
+                    <td colspan="5" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
                         <MudText Typo="Typo.subtitle2" Class="mb-2">
                             <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
                             Сервисы (@server.Services.Count)

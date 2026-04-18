@@ -24,6 +24,7 @@ else
             <MudTh>Серверы</MudTh>
             <MudTh>AD учётная запись</MudTh>
             <MudTh>Сертификаты</MudTh>
+            <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Название">
@@ -35,12 +36,19 @@ else
             <MudTd DataLabel="Серверы">@string.Join(", ", context.Servers.Select(s => s.Name))</MudTd>
             <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
             <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
+            <MudTd>
+                <span @onclick:stopPropagation="true">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                   Title="Редактировать"
+                                   OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
+                </span>
+            </MudTd>
         </RowTemplate>
         <ChildRowContent Context="svc">
             @if (_expandedServiceRows.Contains(svc.Id))
             {
                 <MudTr>
-                    <td colspan="4" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
+                    <td colspan="5" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
                         <MudGrid>
                             <MudItem xs="12" sm="6">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>

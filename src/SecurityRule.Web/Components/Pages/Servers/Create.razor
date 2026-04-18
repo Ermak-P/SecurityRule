@@ -1,6 +1,7 @@
 @page "/servers/create"
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
+@inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -13,6 +14,13 @@
         <MudTextField @bind-Value="_server.Name" Label="Название" Required="true" Class="mb-3" />
         <MudTextField @bind-Value="_server.IpAddress" Label="IP адрес" Required="true" Class="mb-3" />
         <MudTextField @bind-Value="_server.OperatingSystem" Label="Операционная система" Required="true" Class="mb-3" />
+        <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServiceIds"
+                   Label="Сервисы" Class="mb-3">
+            @foreach (var service in _allServices)
+            {
+                <MudSelectItem Value="@service.Id">@service.Name</MudSelectItem>
+            }
+        </MudSelect>
     </MudCardContent>
     <MudCardActions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -22,9 +30,17 @@
 
 @code {
     private Server _server = new();
+    private IEnumerable<AppService> _allServices = [];
+    private IReadOnlyCollection<int> _selectedServiceIds = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allServices = await AppServiceRepository.GetAllAsync();
+    }
 
     private async Task Save()
     {
+        _server.Services = _allServices.Where(s => _selectedServiceIds.Contains(s.Id)).ToList();
         await ServerRepository.AddAsync(_server);
         Snackbar.Add("Сервер добавлен", Severity.Success);
         Navigation.NavigateTo("/servers");
