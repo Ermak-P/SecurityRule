@@ -19,9 +19,11 @@ public sealed class ОбщиеШаги
     // ── Form interactions ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Fills a MudTextField by its visible label text.
+    /// Fills a MudTextField or MudAutocomplete by its visible label text.
     /// MudBlazor renders &lt;label for="id"&gt; + &lt;input id="id"&gt;, so
     /// Playwright's GetByLabel resolves it correctly.
+    /// For MudAutocomplete (CoerceText=true) pressing Tab after fill coerces the
+    /// typed value and closes any open dropdown.
     /// </summary>
     [When("я заполняю поле {string} значением {string}")]
     public async Task ЗаполнитьПоле(string label, string value)
@@ -29,6 +31,7 @@ public sealed class ОбщиеШаги
         var input = _state.Page.GetByLabel(label, new() { Exact = true });
         await input.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await input.FillAsync(value);
+        await input.PressAsync("Tab");
     }
 
     /// <summary>Clears the current value then types the new one (used in edit scenarios).</summary>
@@ -70,8 +73,10 @@ public sealed class ОбщиеШаги
     [Then("я вижу текст {string} на странице")]
     public async Task ВидетьТекст(string text)
     {
+        // Use .First to avoid strict-mode violations when the text appears in
+        // multiple elements (e.g. both a breadcrumb link and a heading).
         await Assertions
-            .Expect(_state.Page.GetByText(text, new() { Exact = false }))
+            .Expect(_state.Page.GetByText(text, new() { Exact = false }).First)
             .ToBeVisibleAsync(new() { Timeout = 15_000 });
     }
 

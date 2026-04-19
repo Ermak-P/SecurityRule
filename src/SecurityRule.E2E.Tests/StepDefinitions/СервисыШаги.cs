@@ -68,8 +68,13 @@ public sealed class СервисыШаги
     {
         // WaitUntil=Load ensures blazor.web.js is downloaded and executed.
         await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
-        // Allow Blazor's SignalR circuit to connect and hydrate the components.
-        // In development mode on localhost this typically takes < 1 s.
-        await _state.Page.WaitForTimeoutAsync(3_000);
+        // Wait for Blazor Server's circuit to connect and make components interactive.
+        // After blazor.web.js initialises and the SignalR circuit is established,
+        // window.Blazor._internal.navigationManager becomes available.
+        await _state.Page.WaitForFunctionAsync(
+            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
+            null, new() { Timeout = 15_000, PollingInterval = 200 });
+        // Brief grace period for the interactive component tree to finish rendering
+        await _state.Page.WaitForTimeoutAsync(500);
     }
 }

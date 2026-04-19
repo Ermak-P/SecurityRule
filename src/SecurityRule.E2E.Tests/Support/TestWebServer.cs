@@ -31,6 +31,10 @@ public sealed class TestWebServer : IAsyncDisposable
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             EnvironmentName = "Development",
+            // Use the SecurityRule.Web application name so that UseStaticWebAssets()
+            // picks up SecurityRule.Web.staticwebassets.runtime.json (which contains
+            // _framework/blazor.web.js and all other static web assets).
+            ApplicationName = "SecurityRule.Web",
             // Point content root at the SecurityRule.Web project directory so that
             // static web assets (wwwroot, _framework/*.js, _content/* package assets)
             // are found via the Development-mode static web asset file providers.
@@ -51,6 +55,8 @@ public sealed class TestWebServer : IAsyncDisposable
         builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
         builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
         builder.Services.AddScoped<IFirewallRuleRepository, FirewallRuleRepository>();
+        builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IOperatingSystemRepository, SecurityRule.Infrastructure.Repositories.OperatingSystemRepository>();
+        builder.Services.AddScoped<SecurityRule.Web.Services.ThemeState>();
 
         // Listen on a random free port; no HTTPS required for tests
         builder.WebHost.UseUrls("http://127.0.0.1:0");
