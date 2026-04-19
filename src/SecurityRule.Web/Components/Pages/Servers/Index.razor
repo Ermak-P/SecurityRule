@@ -5,12 +5,12 @@
 
 <PageTitle>Серверы</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Серверы</MudText>
-
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
-           OnClick="@(() => Navigation.NavigateTo("/servers/create"))" Class="mb-4">
-    Добавить сервер
-</MudButton>
+<MudStack Row="true" Spacing="1">
+    <MudText Typo="Typo.h4" GutterBottom="true">Серверы</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                   Title="Добавить"
+                   OnClick="@(() => Navigation.NavigateTo($"/servers/create"))" />
+</MudStack>
 
 @if (_loading)
 {
@@ -19,24 +19,15 @@
 else
 {
     <MudTable T="Server" Items="@_servers" Hover="true" Striped="true" Dense="true" OnRowClick="@ToggleServerRow">
-        <HeaderContent>
-            <MudTh>Название</MudTh>
-            <MudTh>IP адрес</MudTh>
-            <MudTh>Операционная система</MudTh>
-            <MudTh>Сервисы</MudTh>
-            <MudTh Style="text-align:right; width:1%"></MudTh>
-        </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Название">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@(_expandedServerRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                    <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
                     @context.Name
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.IpAddress</MudChip>
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="IP адрес">@context.IpAddress</MudTd>
-            <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
-            <MudTd DataLabel="Сервисы">@context.Services.Count</MudTd>
-            <MudTd Style="text-align:right">
+            <MudTd>
                 <span @onclick:stopPropagation="true">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
                                    Title="Редактировать"
@@ -48,9 +39,17 @@ else
             @if (_expandedServerRows.Contains(server.Id))
             {
                 <MudTr>
-                    <td colspan="5" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
+                    <td colspan="2" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">IP адрес</MudText>
+                            <MudText Typo="Typo.body2">@server.IpAddress</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Операционная система</MudText>
+                            <MudText Typo="Typo.body2">@server.OperatingSystem</MudText>
+                        </MudItem>
                         <MudText Typo="Typo.subtitle2" Class="mb-2">
-                            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
+                            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1"/>
                             Сервисы (@server.Services.Count)
                         </MudText>
                         @if (!server.Services.Any())
@@ -69,8 +68,8 @@ else
                                 <RowTemplate Context="svc">
                                     <MudTd DataLabel="Сервис">
                                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                            <MudIcon Icon="@(_expandedServiceRows.Contains(svc.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
-                                            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" />
+                                            <MudIcon Icon="@(_expandedServiceRows.Contains(svc.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default"/>
+                                            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small"/>
                                             @svc.Name
                                         </MudStack>
                                     </MudTd>
@@ -86,6 +85,7 @@ else
                                                 @if (svc.Certificates.Any())
                                                 {
                                                     <MudText Typo="Typo.body2" Class="mt-1"><strong>Сертификаты:</strong></MudText>
+
                                                     @foreach (var cert in svc.Certificates)
                                                     {
                                                         <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">@cert.Description (@cert.ExpiresAt.ToString("dd.MM.yyyy"))</MudChip>

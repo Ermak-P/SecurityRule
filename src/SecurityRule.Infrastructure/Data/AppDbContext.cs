@@ -5,7 +5,10 @@ namespace SecurityRule.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+        Database.EnsureCreated();
+    }
 
     public DbSet<Server> Servers => Set<Server>();
     public DbSet<AppService> AppServices => Set<AppService>();
@@ -62,5 +65,6 @@ public class AppDbContext : DbContext
                 new OperatingSystemOption { Id = 2, Name = "Windows Server 2022" }
             );
         });
+        
     }
 }

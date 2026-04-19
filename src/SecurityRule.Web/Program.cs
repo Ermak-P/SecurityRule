@@ -15,6 +15,11 @@ builder.Services.AddMudServices();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddServerSideBlazor(options => 
+{
+    options.DetailedErrors = true;
+});
+
 builder.Services.AddScoped<IServerRepository, ServerRepository>();
 builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
