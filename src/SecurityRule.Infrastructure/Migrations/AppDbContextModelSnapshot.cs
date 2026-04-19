@@ -52,6 +52,52 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("ServerServices", (string)null);
                 });
 
+            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AdAccounts");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccountGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AdAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdAccountId");
+
+                    b.ToTable("AdAccountGroups");
+                });
+
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
                     b.Property<int>("Id")
@@ -59,6 +105,9 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AdAccountId")
+                        .HasColumnType("int");
 
                     b.Property<string>("AdAccountName")
                         .IsRequired()
@@ -71,6 +120,8 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdAccountId");
 
                     b.ToTable("AppServices");
                 });
@@ -192,6 +243,27 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("Servers");
                 });
 
+            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccountGroup", b =>
+                {
+                    b.HasOne("SecurityRule.Domain.Models.AdAccount", "AdAccount")
+                        .WithMany("Groups")
+                        .HasForeignKey("AdAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AdAccount");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
+                {
+                    b.HasOne("SecurityRule.Domain.Models.AdAccount", "AdAccount")
+                        .WithMany("Services")
+                        .HasForeignKey("AdAccountId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AdAccount");
+                });
+
             modelBuilder.Entity("AppServiceCertificate", b =>
                 {
                     b.HasOne("SecurityRule.Domain.Models.Certificate", null)
@@ -220,6 +292,12 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasForeignKey("ServicesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccount", b =>
+                {
+                    b.Navigation("Groups");
+                    b.Navigation("Services");
                 });
 #pragma warning restore 612, 618
         }

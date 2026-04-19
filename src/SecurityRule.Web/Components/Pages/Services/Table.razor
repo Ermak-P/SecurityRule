@@ -1,4 +1,5 @@
 @inject NavigationManager Navigation
+@inject IDialogService DialogService
 
 <MudTable T="AppService" Items="@Items" Hover="true" Striped="true" Dense="true"
           Elevation="@Elevation" OnRowClick="@ToggleRow">
@@ -16,7 +17,15 @@
                 @context.Name
             </MudStack>
         </MudTd>
-        <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
+        <MudTd DataLabel="AD учётная запись">
+            <span @onclick:stopPropagation="true">
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.AccountCircle"
+                           OnClick="@(() => OpenAdAccountDialog(context))">
+                    @context.AdAccountName
+                </MudButton>
+            </span>
+        </MudTd>
         <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
@@ -52,5 +61,18 @@
         var id = args.Item.Id;
         if (!_expandedRows.Remove(id))
             _expandedRows.Add(id);
+    }
+
+    private async Task OpenAdAccountDialog(AppService svc)
+    {
+        var parameters = new DialogParameters<AdAccountDetailsDialog>
+        {
+            { p => p.AdAccountId, svc.AdAccountId },
+            { p => p.AccountName, svc.AdAccountName }
+        };
+        await DialogService.ShowAsync<AdAccountDetailsDialog>(
+            "AD учётная запись",
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
     }
 }

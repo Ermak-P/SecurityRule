@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
+@inject IDialogService DialogService
 
 @if (_displayService == null)
 {
@@ -34,7 +35,12 @@ else
             <MudGrid>
                 <MudItem xs="12" sm="6">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
-                    <MudText Typo="Typo.body1">@_displayService.AdAccountName</MudText>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
+                               StartIcon="@Icons.Material.Filled.AccountCircle"
+                               Style="margin-left: -6px;"
+                               OnClick="@OpenAdAccountDialog">
+                        @_displayService.AdAccountName
+                    </MudButton>
                 </MudItem>
                 <MudItem xs="12" sm="3">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>
@@ -91,5 +97,19 @@ else
                 new BreadcrumbItem(_displayService?.Name ?? Id.ToString(), href: null, disabled: true)
             ];
         }
+    }
+
+    private async Task OpenAdAccountDialog()
+    {
+        if (_displayService == null) return;
+        var parameters = new DialogParameters<AdAccountDetailsDialog>
+        {
+            { p => p.AdAccountId, _displayService.AdAccountId },
+            { p => p.AccountName, _displayService.AdAccountName }
+        };
+        await DialogService.ShowAsync<AdAccountDetailsDialog>(
+            "AD учётная запись",
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
     }
 }

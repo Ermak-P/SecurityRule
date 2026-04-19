@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<FirewallRule> FirewallRules => Set<FirewallRule>();
     public DbSet<OperatingSystemOption> OperatingSystemOptions => Set<OperatingSystemOption>();
+    public DbSet<AdAccount> AdAccounts => Set<AdAccount>();
+    public DbSet<AdAccountGroup> AdAccountGroups => Set<AdAccountGroup>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,11 @@ public class AppDbContext : DbContext
             entity.HasMany(e => e.Certificates)
                   .WithMany(c => c.Services)
                   .UsingEntity(j => j.ToTable("ServiceCertificates"));
+            entity.HasOne(e => e.AdAccount)
+                  .WithMany(a => a.Services)
+                  .HasForeignKey(e => e.AdAccountId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Certificate>(entity =>
@@ -65,6 +72,22 @@ public class AppDbContext : DbContext
                 new OperatingSystemOption { Id = 2, Name = "Windows Server 2022" }
             );
         });
-        
+
+        modelBuilder.Entity<AdAccount>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<AdAccountGroup>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.HasOne(e => e.AdAccount)
+                  .WithMany(a => a.Groups)
+                  .HasForeignKey(e => e.AdAccountId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
