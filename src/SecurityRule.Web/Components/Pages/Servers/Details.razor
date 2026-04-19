@@ -40,6 +40,13 @@ else
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Количество сервисов</MudText>
                     <MudText Typo="Typo.body1">@_server.Services.Count</MudText>
                 </MudItem>
+                @if (!string.IsNullOrWhiteSpace(_server.Description))
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
+                        <MudText Typo="Typo.body1">@_server.Description</MudText>
+                    </MudItem>
+                }
             </MudGrid>
         </MudCardContent>
     </MudCard>

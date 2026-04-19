@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.IpAddress).IsRequired().HasMaxLength(45);
             entity.Property(e => e.OperatingSystem).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(1000);
         });
 
         modelBuilder.Entity<AppService>(entity =>

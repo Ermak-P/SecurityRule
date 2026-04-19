@@ -36,6 +36,7 @@ public class ServerRepository : IServerRepository
         existing.Name = server.Name;
         existing.IpAddress = server.IpAddress;
         existing.OperatingSystem = server.OperatingSystem;
+        existing.Description = server.Description;
 
         var serviceIds = server.Services.Select(s => s.Id).ToList();
         var trackedServices = await _context.AppServices

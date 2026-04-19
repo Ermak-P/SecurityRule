@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @inject SecurityRule.Web.Services.ThemeState ThemeState
+@inject IJSRuntime JS
 @implements IDisposable
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="@ThemeState.IsDarkMode" />
@@ -16,7 +17,7 @@
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2 d-none d-sm-block">Security Management System</MudText>
         <MudTooltip Text="@(ThemeState.IsDarkMode ? "Светлая тема" : "Тёмная тема")">
             <MudIconButton Icon="@(ThemeState.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                           Color="Color.Inherit" OnClick="@ThemeState.Toggle" />
+                           Color="Color.Inherit" OnClick="@ToggleTheme" />
         </MudTooltip>
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
@@ -38,6 +39,23 @@
     protected override void OnInitialized()
     {
         ThemeState.OnChange += StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", "darkMode");
+            var isDark = stored == null || stored == "true";
+            if (isDark != ThemeState.IsDarkMode)
+                ThemeState.SetDarkMode(isDark);
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        ThemeState.Toggle();
+        await JS.InvokeVoidAsync("localStorage.setItem", "darkMode", ThemeState.IsDarkMode.ToString().ToLower());
     }
 
     public void Dispose()

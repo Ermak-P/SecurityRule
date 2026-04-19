@@ -7,7 +7,7 @@
 
 <MudText Typo="Typo.h4" GutterBottom="true">Сервисы</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
            OnClick="@(() => Navigation.NavigateTo("/services/create"))" Class="mb-4">
     Добавить сервис
 </MudButton>
@@ -24,7 +24,7 @@ else
             <MudTh>Серверы</MudTh>
             <MudTh>AD учётная запись</MudTh>
             <MudTh>Сертификаты</MudTh>
-            <MudTh></MudTh>
+            <MudTh Style="text-align:right; width:1%"></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Название">
@@ -36,7 +36,7 @@ else
             <MudTd DataLabel="Серверы">@string.Join(", ", context.Servers.Select(s => s.Name))</MudTd>
             <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
             <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
-            <MudTd>
+            <MudTd Style="text-align:right">
                 <span @onclick:stopPropagation="true">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
                                    Title="Редактировать"

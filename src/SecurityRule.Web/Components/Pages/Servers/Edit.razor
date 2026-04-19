@@ -23,6 +23,7 @@ else
             <MudAutocomplete T="string" @bind-Value="_server.OperatingSystem"
                              Label="Операционная система" Required="true" Class="mb-3"
                              SearchFunc="@SearchOs" CoerceText="true" />
+            <MudTextField @bind-Value="_server.Description" Label="Описание" Lines="3" Class="mb-3" />
             <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServiceIds"
                        Label="Сервисы" Class="mb-3">
                 @foreach (var service in _allServices)
