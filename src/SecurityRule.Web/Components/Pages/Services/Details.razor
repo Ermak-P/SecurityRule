@@ -38,8 +38,8 @@ else
                     <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
                                StartIcon="@Icons.Material.Filled.AccountCircle"
                                Style="margin-left: -6px;"
-                               OnClick="@OpenAdAccountDialog">
-                        @_displayService.AdAccountName
+                               OnClick="@OpenUserDialog">
+                        @_displayService.UserName
                     </MudButton>
                 </MudItem>
                 <MudItem xs="12" sm="3">
@@ -99,15 +99,15 @@ else
         }
     }
 
-    private async Task OpenAdAccountDialog()
+    private async Task OpenUserDialog()
     {
         if (_displayService == null) return;
-        var parameters = new DialogParameters<AdAccountDetailsDialog>
+        var parameters = new DialogParameters<UserDetailsDialog>
         {
-            { p => p.AdAccountId, _displayService.AdAccountId },
-            { p => p.AccountName, _displayService.AdAccountName }
+            { p => p.UserId, _displayService.UserId },
+            { p => p.AccountName, _displayService.UserName }
         };
-        await DialogService.ShowAsync<AdAccountDetailsDialog>(
+        await DialogService.ShowAsync<UserDetailsDialog>(
             "AD учётная запись",
             parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });

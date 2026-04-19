@@ -52,7 +52,7 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("ServerServices", (string)null);
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccount", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -72,10 +72,10 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AdAccounts");
+                    b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccountGroup", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.UserGroup", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -83,7 +83,7 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AdAccountId")
+                    b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -93,9 +93,9 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AdAccountId");
+                    b.HasIndex("UserId");
 
-                    b.ToTable("AdAccountGroups");
+                    b.ToTable("UserGroups");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
@@ -106,10 +106,10 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("AdAccountId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<string>("AdAccountName")
+                    b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -121,7 +121,7 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AdAccountId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("AppServices");
                 });
@@ -243,25 +243,25 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("Servers");
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccountGroup", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.UserGroup", b =>
                 {
-                    b.HasOne("SecurityRule.Domain.Models.AdAccount", "AdAccount")
+                    b.HasOne("SecurityRule.Domain.Models.User", "User")
                         .WithMany("Groups")
-                        .HasForeignKey("AdAccountId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("AdAccount");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
-                    b.HasOne("SecurityRule.Domain.Models.AdAccount", "AdAccount")
+                    b.HasOne("SecurityRule.Domain.Models.User", "User")
                         .WithMany("Services")
-                        .HasForeignKey("AdAccountId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("AdAccount");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AppServiceCertificate", b =>
@@ -294,7 +294,7 @@ namespace SecurityRule.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.AdAccount", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
                 {
                     b.Navigation("Groups");
                     b.Navigation("Services");

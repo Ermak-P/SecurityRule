@@ -23,7 +23,7 @@ public sealed class СервисыШаги
     {
         using var scope = _state.Services.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
-        await repo.AddAsync(new AppService { Name = name, AdAccountName = ad });
+        await repo.AddAsync(new AppService { Name = name, UserName = ad });
     }
 
     // ── When: navigation ──────────────────────────────────────────────────────

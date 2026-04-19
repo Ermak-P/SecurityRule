@@ -41,7 +41,7 @@ public class AppServiceRepositoryTests
     {
         // Arrange
         var server = await CreateServerAsync();
-        var service = new AppService { Name = "MyService", AdAccountName = "domain\\svc", Servers = [server] };
+        var service = new AppService { Name = "MyService", UserName = "domain\\svc", Servers = [server] };
 
         // Act
         await _repository.AddAsync(service);
@@ -59,8 +59,8 @@ public class AppServiceRepositoryTests
         // Arrange
         var server = await CreateServerAsync();
         _context.AppServices.AddRange(
-            new AppService { Name = "Svc1", AdAccountName = "domain\\svc1", Servers = [server] },
-            new AppService { Name = "Svc2", AdAccountName = "domain\\svc2", Servers = [server] }
+            new AppService { Name = "Svc1", UserName = "domain\\svc1", Servers = [server] },
+            new AppService { Name = "Svc2", UserName = "domain\\svc2", Servers = [server] }
         );
         await _context.SaveChangesAsync();
 
@@ -76,7 +76,7 @@ public class AppServiceRepositoryTests
     {
         // Arrange
         var server = await CreateServerAsync();
-        var service = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1", Servers = [server] };
+        var service = new AppService { Name = "Svc1", UserName = "domain\\svc1", Servers = [server] };
         _context.AppServices.Add(service);
         await _context.SaveChangesAsync();
 
@@ -105,7 +105,7 @@ public class AppServiceRepositoryTests
     {
         // Arrange
         var server = await CreateServerAsync();
-        var service = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1", Servers = [server] };
+        var service = new AppService { Name = "Svc1", UserName = "domain\\svc1", Servers = [server] };
         _context.AppServices.Add(service);
         await _context.SaveChangesAsync();
 
@@ -123,7 +123,7 @@ public class AppServiceRepositoryTests
     {
         // Arrange
         var server = await CreateServerAsync();
-        var service = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1", Servers = [server] };
+        var service = new AppService { Name = "Svc1", UserName = "domain\\svc1", Servers = [server] };
         _context.AppServices.Add(service);
         await _context.SaveChangesAsync();
 
@@ -141,7 +141,7 @@ public class AppServiceRepositoryTests
     {
         // Arrange
         var server = await CreateServerAsync();
-        var service = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1", Servers = [server] };
+        var service = new AppService { Name = "Svc1", UserName = "domain\\svc1", Servers = [server] };
         _context.AppServices.Add(service);
         await _context.SaveChangesAsync();
 
@@ -161,7 +161,7 @@ public class AppServiceRepositoryTests
         var server2 = new Server { Name = "Server2", IpAddress = "10.0.0.2", OperatingSystem = "Windows" };
         _context.Servers.AddRange(server1, server2);
         await _context.SaveChangesAsync();
-        var service = new AppService { Name = "SharedSvc", AdAccountName = "domain\\shared", Servers = [server1, server2] };
+        var service = new AppService { Name = "SharedSvc", UserName = "domain\\shared", Servers = [server1, server2] };
 
         // Act
         await _repository.AddAsync(service);
@@ -179,7 +179,7 @@ public class AppServiceRepositoryTests
         var server1 = new Server { Name = "Server1", IpAddress = "10.0.0.1", OperatingSystem = "Linux" };
         var server2 = new Server { Name = "Server2", IpAddress = "10.0.0.2", OperatingSystem = "Windows" };
         _context.Servers.AddRange(server1, server2);
-        var service = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1" };
+        var service = new AppService { Name = "Svc1", UserName = "domain\\svc1" };
         _context.AppServices.Add(service);
         await _context.SaveChangesAsync();
 
@@ -203,7 +203,7 @@ public class AppServiceRepositoryTests
         var service = new AppService
         {
             Name = "Svc1",
-            AdAccountName = "domain\\svc1",
+            UserName = "domain\\svc1",
             Servers = [server1]
         };
         _context.AppServices.Add(service);

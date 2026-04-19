@@ -19,7 +19,7 @@
                 <MudSelectItem Value="@server.Id">@server.Name</MudSelectItem>
             }
         </MudSelect>
-        <MudTextField @bind-Value="_service.AdAccountName" Label="AD учётная запись" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_service.UserName" Label="AD учётная запись" Required="true" Class="mb-3" />
     </MudCardContent>
     <MudCardActions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>

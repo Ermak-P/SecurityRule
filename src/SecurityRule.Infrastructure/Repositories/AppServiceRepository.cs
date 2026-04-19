@@ -16,8 +16,8 @@ public class AppServiceRepository : IAppServiceRepository
 
     public async Task<IEnumerable<AppService>> GetAllAsync()
         => await _context.AppServices
-            .Include(s => s.AdAccount)
-                .ThenInclude(a => a!.Groups)
+            .Include(s => s.User)
+                .ThenInclude(u => u!.Groups)
             .Include(s => s.Servers)
                 .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
@@ -25,8 +25,8 @@ public class AppServiceRepository : IAppServiceRepository
 
     public async Task<AppService?> GetByIdAsync(int id)
         => await _context.AppServices
-            .Include(s => s.AdAccount)
-                .ThenInclude(a => a!.Groups)
+            .Include(s => s.User)
+                .ThenInclude(u => u!.Groups)
             .Include(s => s.Servers)
                 .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
@@ -46,7 +46,7 @@ public class AppServiceRepository : IAppServiceRepository
         if (existing == null) return;
 
         existing.Name = service.Name;
-        existing.AdAccountName = service.AdAccountName;
+        existing.UserName = service.UserName;
 
         var serverIds = service.Servers.Select(s => s.Id).ToList();
         var trackedServers = await _context.Servers

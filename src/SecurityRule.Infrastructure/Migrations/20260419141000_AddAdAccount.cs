@@ -11,7 +11,7 @@ namespace SecurityRule.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AdAccounts",
+                name: "Users",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -21,50 +21,50 @@ namespace SecurityRule.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AdAccounts", x => x.Id);
+                    table.PrimaryKey("PK_Users", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AdAccountGroups",
+                name: "UserGroups",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    AdAccountId = table.Column<int>(type: "int", nullable: false)
+                    UserId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AdAccountGroups", x => x.Id);
+                    table.PrimaryKey("PK_UserGroups", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AdAccountGroups_AdAccounts_AdAccountId",
-                        column: x => x.AdAccountId,
-                        principalTable: "AdAccounts",
+                        name: "FK_UserGroups_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.AddColumn<int>(
-                name: "AdAccountId",
+                name: "UserId",
                 table: "AppServices",
                 type: "int",
                 nullable: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_AppServices_AdAccountId",
+                name: "IX_AppServices_UserId",
                 table: "AppServices",
-                column: "AdAccountId");
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AdAccountGroups_AdAccountId",
-                table: "AdAccountGroups",
-                column: "AdAccountId");
+                name: "IX_UserGroups_UserId",
+                table: "UserGroups",
+                column: "UserId");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_AppServices_AdAccounts_AdAccountId",
+                name: "FK_AppServices_Users_UserId",
                 table: "AppServices",
-                column: "AdAccountId",
-                principalTable: "AdAccounts",
+                column: "UserId",
+                principalTable: "Users",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.SetNull);
         }
@@ -73,22 +73,22 @@ namespace SecurityRule.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_AppServices_AdAccounts_AdAccountId",
+                name: "FK_AppServices_Users_UserId",
                 table: "AppServices");
 
             migrationBuilder.DropIndex(
-                name: "IX_AppServices_AdAccountId",
+                name: "IX_AppServices_UserId",
                 table: "AppServices");
 
             migrationBuilder.DropColumn(
-                name: "AdAccountId",
+                name: "UserId",
                 table: "AppServices");
 
             migrationBuilder.DropTable(
-                name: "AdAccountGroups");
+                name: "UserGroups");
 
             migrationBuilder.DropTable(
-                name: "AdAccounts");
+                name: "Users");
         }
     }
 }

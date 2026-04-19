@@ -137,8 +137,8 @@ public class ServerRepositoryTests
     public async Task UpdateAsync_ShouldAssociateServices()
     {
         // Arrange
-        var service1 = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1" };
-        var service2 = new AppService { Name = "Svc2", AdAccountName = "domain\\svc2" };
+        var service1 = new AppService { Name = "Svc1", UserName = "domain\\svc1" };
+        var service2 = new AppService { Name = "Svc2", UserName = "domain\\svc2" };
         _context.AppServices.AddRange(service1, service2);
         var server = new Server { Name = "Server1", IpAddress = "10.0.0.1", OperatingSystem = "Linux" };
         _context.Servers.Add(server);
@@ -158,8 +158,8 @@ public class ServerRepositoryTests
     public async Task UpdateAsync_ShouldReplaceServices()
     {
         // Arrange
-        var service1 = new AppService { Name = "Svc1", AdAccountName = "domain\\svc1" };
-        var service2 = new AppService { Name = "Svc2", AdAccountName = "domain\\svc2" };
+        var service1 = new AppService { Name = "Svc1", UserName = "domain\\svc1" };
+        var service2 = new AppService { Name = "Svc2", UserName = "domain\\svc2" };
         _context.AppServices.AddRange(service1, service2);
         var server = new Server
         {

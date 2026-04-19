@@ -15,8 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<FirewallRule> FirewallRules => Set<FirewallRule>();
     public DbSet<OperatingSystemOption> OperatingSystemOptions => Set<OperatingSystemOption>();
-    public DbSet<AdAccount> AdAccounts => Set<AdAccount>();
-    public DbSet<AdAccountGroup> AdAccountGroups => Set<AdAccountGroup>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<UserGroup> UserGroups => Set<UserGroup>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,16 +35,16 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.AdAccountName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.UserName).IsRequired().HasMaxLength(200);
             entity.HasMany(e => e.Servers)
                   .WithMany(s => s.Services)
                   .UsingEntity(j => j.ToTable("ServerServices"));
             entity.HasMany(e => e.Certificates)
                   .WithMany(c => c.Services)
                   .UsingEntity(j => j.ToTable("ServiceCertificates"));
-            entity.HasOne(e => e.AdAccount)
-                  .WithMany(a => a.Services)
-                  .HasForeignKey(e => e.AdAccountId)
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.Services)
+                  .HasForeignKey(e => e.UserId)
                   .IsRequired(false)
                   .OnDelete(DeleteBehavior.SetNull);
         });
@@ -73,20 +73,20 @@ public class AppDbContext : DbContext
             );
         });
 
-        modelBuilder.Entity<AdAccount>(entity =>
+        modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
         });
 
-        modelBuilder.Entity<AdAccountGroup>(entity =>
+        modelBuilder.Entity<UserGroup>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-            entity.HasOne(e => e.AdAccount)
-                  .WithMany(a => a.Groups)
-                  .HasForeignKey(e => e.AdAccountId)
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.Groups)
+                  .HasForeignKey(e => e.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

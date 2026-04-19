@@ -25,7 +25,7 @@ builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IFirewallRuleRepository, FirewallRuleRepository>();
 builder.Services.AddScoped<IOperatingSystemRepository, OperatingSystemRepository>();
-builder.Services.AddScoped<IAdAccountRepository, AdAccountRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ThemeState>();
 
 var app = builder.Build();

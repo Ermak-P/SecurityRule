@@ -21,8 +21,8 @@
             <span @onclick:stopPropagation="true">
                 <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
                            StartIcon="@Icons.Material.Filled.AccountCircle"
-                           OnClick="@(() => OpenAdAccountDialog(context))">
-                    @context.AdAccountName
+                           OnClick="@(() => OpenUserDialog(context))">
+                    @context.UserName
                 </MudButton>
             </span>
         </MudTd>
@@ -63,14 +63,14 @@
             _expandedRows.Add(id);
     }
 
-    private async Task OpenAdAccountDialog(AppService svc)
+    private async Task OpenUserDialog(AppService svc)
     {
-        var parameters = new DialogParameters<AdAccountDetailsDialog>
+        var parameters = new DialogParameters<UserDetailsDialog>
         {
-            { p => p.AdAccountId, svc.AdAccountId },
-            { p => p.AccountName, svc.AdAccountName }
+            { p => p.UserId, svc.UserId },
+            { p => p.AccountName, svc.UserName }
         };
-        await DialogService.ShowAsync<AdAccountDetailsDialog>(
+        await DialogService.ShowAsync<UserDetailsDialog>(
             "AD учётная запись",
             parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
