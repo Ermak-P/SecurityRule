@@ -62,41 +62,7 @@ else
     }
     else
     {
-        <MudTable T="AppService" Items="@_server.Services" Hover="true" Striped="true" Dense="true" OnRowClick="@ToggleServiceRow">
-            <HeaderContent>
-                <MudTh>Название</MudTh>
-                <MudTh>AD учётная запись</MudTh>
-                <MudTh>Сертификаты</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Название">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@(_expandedServiceRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
-                        @context.Name
-                    </MudStack>
-                </MudTd>
-                <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
-                <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
-            </RowTemplate>
-            <ChildRowContent Context="svc">
-                @if (_expandedServiceRows.Contains(svc.Id))
-                {
-                    <MudTr>
-                        <td colspan="3" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
-                            <MudText Typo="Typo.body2"><strong>AD учётная запись:</strong> @svc.AdAccountName</MudText>
-                            @if (svc.Certificates.Any())
-                            {
-                                <MudText Typo="Typo.body2" Class="mt-1"><strong>Сертификаты:</strong></MudText>
-                                @foreach (var cert in svc.Certificates)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">@cert.Description (@cert.ExpiresAt.ToString("dd.MM.yyyy"))</MudChip>
-                                }
-                            }
-                        </td>
-                    </MudTr>
-                }
-            </ChildRowContent>
-        </MudTable>
+        <ServicesTable Items="_server.Services" />
     }
 }
 
@@ -105,7 +71,6 @@ else
     private Server? _server;
 
     private List<BreadcrumbItem> _breadcrumbs = [];
-    private readonly HashSet<int> _expandedServiceRows = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,13 +80,5 @@ else
             new BreadcrumbItem("Серверы", href: "/servers"),
             new BreadcrumbItem(_server?.Name ?? Id.ToString(), href: null, disabled: true)
         ];
-    }
-
-    private void ToggleServiceRow(TableRowClickEventArgs<AppService> args)
-    {
-        if (args.Item is null) return;
-        var id = args.Item.Id;
-        if (!_expandedServiceRows.Remove(id))
-            _expandedServiceRows.Add(id);
     }
 }
