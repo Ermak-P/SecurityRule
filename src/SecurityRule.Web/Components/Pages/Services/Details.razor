@@ -99,7 +99,6 @@ else
         _service = await AppServiceRepository.GetByIdAsync(Id);
         _breadcrumbs =
         [
-            new BreadcrumbItem("Серверы и сервисы", href: "/servers-and-services"),
             new BreadcrumbItem("Сервисы", href: "/services"),
             new BreadcrumbItem(_service?.Name ?? Id.ToString(), href: null, disabled: true)
         ];

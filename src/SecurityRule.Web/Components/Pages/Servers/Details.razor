@@ -112,7 +112,6 @@ else
         _server = await ServerRepository.GetByIdAsync(Id);
         _breadcrumbs =
         [
-            new BreadcrumbItem("Серверы и сервисы", href: "/servers-and-services"),
             new BreadcrumbItem("Серверы", href: "/servers"),
             new BreadcrumbItem(_server?.Name ?? Id.ToString(), href: null, disabled: true)
         ];
