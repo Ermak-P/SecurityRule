@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 
 <PageTitle>Сервер — @(_server?.Name ?? "...")</PageTitle>
 
@@ -13,57 +12,7 @@
 else
 {
     <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
-
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
-            <MudText Typo="Typo.h4">@_server.Name</MudText>
-        </MudStack>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                   OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{_server.Id}"))">
-            Редактировать
-        </MudButton>
-    </MudStack>
-
-    <MudCard Class="mb-4">
-        <MudCardContent>
-            <MudGrid>
-                <MudItem xs="12" sm="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">IP адрес</MudText>
-                    <MudText Typo="Typo.body1">@_server.IpAddress</MudText>
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Операционная система</MudText>
-                    <MudText Typo="Typo.body1">@_server.OperatingSystem</MudText>
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Количество сервисов</MudText>
-                    <MudText Typo="Typo.body1">@_server.Services.Count</MudText>
-                </MudItem>
-                @if (!string.IsNullOrWhiteSpace(_server.Description))
-                {
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
-                        <MudText Typo="Typo.body1">@_server.Description</MudText>
-                    </MudItem>
-                }
-            </MudGrid>
-        </MudCardContent>
-    </MudCard>
-
-    <MudText Typo="Typo.h6" Class="mb-3">
-        <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Class="mr-1" />
-        Сервисы
-    </MudText>
-
-    @if (!_server.Services.Any())
-    {
-        <MudAlert Severity="Severity.Info">На этом сервере нет сервисов</MudAlert>
-    }
-    else
-    {
-        <ServicesTable Items="_server.Services" />
-    }
+    <ServerDetails Server="_server" />
 }
 
 @code {

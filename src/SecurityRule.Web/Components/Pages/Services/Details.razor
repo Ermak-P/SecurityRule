@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 
 <PageTitle>Сервис — @(_service?.Name ?? "...")</PageTitle>
 
@@ -13,50 +12,7 @@
 else
 {
     <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
-
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Color="Color.Secondary" />
-            <MudText Typo="Typo.h4">@_service.Name</MudText>
-        </MudStack>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                   OnClick="@(() => Navigation.NavigateTo($"/services/edit/{_service.Id}"))">
-            Редактировать
-        </MudButton>
-    </MudStack>
-
-    <MudCard Class="mb-4">
-        <MudCardContent>
-            <MudGrid>
-                <MudItem xs="12" sm="6">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
-                    <MudText Typo="Typo.body1">@_service.AdAccountName</MudText>
-                </MudItem>
-                <MudItem xs="12" sm="3">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>
-                    <MudText Typo="Typo.body1">@_service.Servers.Count</MudText>
-                </MudItem>
-                <MudItem xs="12" sm="3">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Сертификатов</MudText>
-                    <MudText Typo="Typo.body1">@_service.Certificates.Count</MudText>
-                </MudItem>
-            </MudGrid>
-        </MudCardContent>
-    </MudCard>
-
-    <MudText Typo="Typo.h6" Class="mb-3">
-        <MudIcon Icon="@Icons.Material.Filled.Dns" Class="mr-1" />
-        Серверы
-    </MudText>
-
-    @if (!_service.Servers.Any())
-    {
-        <MudAlert Severity="Severity.Info">Сервис не привязан ни к одному серверу</MudAlert>
-    }
-    else
-    {
-        <ServersTable Items="_service.Servers" />
-    }
+    <ServiceDetails Service="_service" />
 }
 
 @code {

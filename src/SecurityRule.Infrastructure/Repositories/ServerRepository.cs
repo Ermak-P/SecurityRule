@@ -15,10 +15,20 @@ public class ServerRepository : IServerRepository
     }
 
     public async Task<IEnumerable<Server>> GetAllAsync()
-        => await _context.Servers.Include(s => s.Services).ToListAsync();
+        => await _context.Servers
+            .Include(s => s.Services)
+                .ThenInclude(svc => svc.Servers)
+            .Include(s => s.Services)
+                .ThenInclude(svc => svc.Certificates)
+            .ToListAsync();
 
     public async Task<Server?> GetByIdAsync(int id)
-        => await _context.Servers.Include(s => s.Services).FirstOrDefaultAsync(s => s.Id == id);
+        => await _context.Servers
+            .Include(s => s.Services)
+                .ThenInclude(svc => svc.Servers)
+            .Include(s => s.Services)
+                .ThenInclude(svc => svc.Certificates)
+            .FirstOrDefaultAsync(s => s.Id == id);
 
     public async Task AddAsync(Server server)
     {

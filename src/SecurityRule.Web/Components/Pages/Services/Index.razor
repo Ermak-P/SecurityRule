@@ -3,14 +3,17 @@
 @inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
 
-<PageTitle>Сервисы</PageTitle>
+@if (!Embedded)
+{
+    <PageTitle>Сервисы</PageTitle>
 
-<MudStack Row="true" Spacing="1">
-    <MudText Typo="Typo.h4" GutterBottom="true">Сервисы</MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
-                   Title="Добавить"
-                   OnClick="@(() => Navigation.NavigateTo($"/services/create"))" />
-</MudStack>
+    <MudStack Row="true" Spacing="1">
+        <MudText Typo="Typo.h4" GutterBottom="true">Сервисы</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                       Title="Добавить"
+                       OnClick="@(() => Navigation.NavigateTo($"/services/create"))" />
+    </MudStack>
+}
 
 @if (_loading)
 {
@@ -22,12 +25,23 @@ else
 }
 
 @code {
+    [Parameter] public bool Embedded { get; set; } = false;
+    [Parameter] public IEnumerable<AppService>? Items { get; set; }
+
     private IEnumerable<AppService> _services = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        if (Items is not null)
+        {
+            _services = Items;
+            _loading = false;
+        }
+        else
+        {
+            await LoadData();
+        }
     }
 
     private async Task LoadData()

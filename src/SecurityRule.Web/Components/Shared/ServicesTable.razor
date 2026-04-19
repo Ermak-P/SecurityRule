@@ -31,28 +31,7 @@
         {
             <MudTr>
                 <td colspan="4" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
-                    @if (svc.Certificates.Any())
-                    {
-                        <MudText Typo="Typo.body2" Class="mb-2"><strong>Сертификаты:</strong></MudText>
-                        @foreach (var cert in svc.Certificates)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">
-                                @cert.Description (@cert.ExpiresAt.ToString("dd.MM.yyyy"))
-                            </MudChip>
-                        }
-                    }
-                    <MudText Typo="Typo.subtitle2" Class="mt-3 mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Class="mr-1" />
-                        Серверы (@svc.Servers.Count)
-                    </MudText>
-                    @if (!svc.Servers.Any())
-                    {
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Нет серверов</MudText>
-                    }
-                    else
-                    {
-                        <ServersTable Items="@svc.Servers" Elevation="0" />
-                    }
+                    <ServiceDetails Service="svc" Embedded="true" />
                 </td>
             </MudTr>
         }
