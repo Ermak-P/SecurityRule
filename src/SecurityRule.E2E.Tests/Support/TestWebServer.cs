@@ -56,6 +56,7 @@ public sealed class TestWebServer : IAsyncDisposable
         builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
         builder.Services.AddScoped<IFirewallRuleRepository, FirewallRuleRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IOperatingSystemRepository, SecurityRule.Infrastructure.Repositories.OperatingSystemRepository>();
+        builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IUserRepository, SecurityRule.Infrastructure.Repositories.UserRepository>();
         builder.Services.AddScoped<SecurityRule.Web.Services.ThemeState>();
 
         // Listen on a random free port; no HTTPS required for tests
@@ -99,6 +100,8 @@ public sealed class TestWebServer : IAsyncDisposable
         db.Servers.RemoveRange(db.Servers);
         db.Certificates.RemoveRange(db.Certificates);
         db.FirewallRules.RemoveRange(db.FirewallRules);
+        db.UserGroups.RemoveRange(db.UserGroups);
+        db.Users.RemoveRange(db.Users);
         await db.SaveChangesAsync();
     }
 

@@ -24,6 +24,11 @@ else
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
             <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/firewall-rules"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
         </MudCardActions>
     </MudCard>
 }
@@ -48,6 +53,20 @@ else
             await FirewallRuleRepository.UpdateAsync(_rule);
             Snackbar.Add("Правило обновлено", Severity.Success);
             Navigation.NavigateTo("/firewall-rules");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await FirewallRuleRepository.DeleteAsync(Id);
+            Snackbar.Add("Правило удалено", Severity.Success);
+            Navigation.NavigateTo("/firewall-rules");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка при удалении правила: {ex.Message}", Severity.Error);
         }
     }
 }
