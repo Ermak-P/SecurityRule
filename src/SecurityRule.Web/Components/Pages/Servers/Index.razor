@@ -3,17 +3,14 @@
 @inject IServerRepository ServerRepository
 @inject NavigationManager Navigation
 
-@if (!Embedded)
-{
-    <PageTitle>Серверы</PageTitle>
+<PageTitle>Серверы</PageTitle>
 
-    <MudStack Row="true" Spacing="1">
-        <MudText Typo="Typo.h4" GutterBottom="true">Серверы</MudText>
-        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
-                       Title="Добавить"
-                       OnClick="@(() => Navigation.NavigateTo($"/servers/create"))" />
-    </MudStack>
-}
+<MudStack Row="true" Spacing="1">
+    <MudText Typo="Typo.h4" GutterBottom="true">Серверы</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                   Title="Добавить"
+                   OnClick="@(() => Navigation.NavigateTo($"/servers/create"))" />
+</MudStack>
 
 @if (_loading)
 {
@@ -21,27 +18,16 @@
 }
 else
 {
-    <ServersTable Items="_servers" />
+    <Table Items="_servers" />
 }
 
 @code {
-    [Parameter] public bool Embedded { get; set; } = false;
-    [Parameter] public IEnumerable<Server>? Items { get; set; }
-
     private IEnumerable<Server> _servers = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        if (Items is not null)
-        {
-            _servers = Items;
-            _loading = false;
-        }
-        else
-        {
-            await LoadData();
-        }
+        await LoadData();
     }
 
     private async Task LoadData()

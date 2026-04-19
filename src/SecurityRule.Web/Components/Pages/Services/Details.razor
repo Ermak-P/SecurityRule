@@ -3,31 +3,91 @@
 @inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
 
-<PageTitle>Сервис — @(_service?.Name ?? "...")</PageTitle>
-
-@if (_service == null)
+@if (_displayService == null)
 {
+    @if (!Embedded)
+    {
+        <PageTitle>Сервис — ...</PageTitle>
+    }
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
 }
 else
 {
-    <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
-    <ServiceDetails Service="_service" />
+    @if (!Embedded)
+    {
+        <PageTitle>Сервис — @_displayService.Name</PageTitle>
+        <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Color="Color.Secondary" />
+                <MudText Typo="Typo.h4">@_displayService.Name</MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => Navigation.NavigateTo($"/services/edit/{_displayService.Id}"))">
+                Редактировать
+            </MudButton>
+        </MudStack>
+    }
+
+    <MudCard Class="mb-4" Elevation="@(Embedded ? 0 : 1)">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
+                    <MudText Typo="Typo.body1">@_displayService.AdAccountName</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>
+                    <MudText Typo="Typo.body1">@_displayService.Servers.Count</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Сертификатов</MudText>
+                    <MudText Typo="Typo.body1">@_displayService.Certificates.Count</MudText>
+                </MudItem>
+            </MudGrid>
+            @if (_displayService.Certificates.Any())
+            {
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.body2" Class="mb-2"><strong>Сертификаты:</strong></MudText>
+                @foreach (var cert in _displayService.Certificates)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">
+                        @cert.Description (@cert.ExpiresAt.ToString("dd.MM.yyyy"))
+                    </MudChip>
+                }
+            }
+        </MudCardContent>
+    </MudCard>
+
+    <MudText Typo="Typo.h6" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Class="mr-1" />
+        Серверы
+    </MudText>
+    <SecurityRule.Web.Components.Pages.Servers.Table Items="@_displayService.Servers" Elevation="0" />
 }
 
 @code {
     [Parameter] public int Id { get; set; }
-    private AppService? _service;
+    [Parameter] public AppService? Service { get; set; }
+    [Parameter] public bool Embedded { get; set; } = false;
 
+    private AppService? _displayService;
     private List<BreadcrumbItem> _breadcrumbs = [];
 
     protected override async Task OnInitializedAsync()
     {
-        _service = await AppServiceRepository.GetByIdAsync(Id);
-        _breadcrumbs =
-        [
-            new BreadcrumbItem("Сервисы", href: "/services"),
-            new BreadcrumbItem(_service?.Name ?? Id.ToString(), href: null, disabled: true)
-        ];
+        if (Service is not null)
+        {
+            _displayService = Service;
+        }
+        else
+        {
+            _displayService = await AppServiceRepository.GetByIdAsync(Id);
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Сервисы", href: "/services"),
+                new BreadcrumbItem(_displayService?.Name ?? Id.ToString(), href: null, disabled: true)
+            ];
+        }
     }
 }

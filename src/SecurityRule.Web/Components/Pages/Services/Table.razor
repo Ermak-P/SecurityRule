@@ -1,37 +1,37 @@
 @inject NavigationManager Navigation
 
-<MudTable T="Server" Items="@Items" Hover="true" Striped="true" Dense="true"
+<MudTable T="AppService" Items="@Items" Hover="true" Striped="true" Dense="true"
           Elevation="@Elevation" OnRowClick="@ToggleRow">
     <HeaderContent>
         <MudTh>Название</MudTh>
-        <MudTh>IP адрес</MudTh>
-        <MudTh>Операционная система</MudTh>
+        <MudTh>AD учётная запись</MudTh>
+        <MudTh>Сертификаты</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Название">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
-                <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Primary" />
+                <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
                 @context.Name
             </MudStack>
         </MudTd>
-        <MudTd DataLabel="IP адрес">@context.IpAddress</MudTd>
-        <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
+        <MudTd DataLabel="AD учётная запись">@context.AdAccountName</MudTd>
+        <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
                                Title="Редактировать"
-                               OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
+                               OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
             </span>
         </MudTd>
     </RowTemplate>
-    <ChildRowContent Context="server">
-        @if (_expandedRows.Contains(server.Id))
+    <ChildRowContent Context="svc">
+        @if (_expandedRows.Contains(svc.Id))
         {
             <MudTr>
                 <td colspan="4" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
-                    <ServerDetails Server="server" Embedded="true" />
+                    <Details Service="svc" Embedded="true" />
                 </td>
             </MudTr>
         }
@@ -39,12 +39,12 @@
 </MudTable>
 
 @code {
-    [Parameter] public IEnumerable<Server> Items { get; set; } = [];
+    [Parameter] public IEnumerable<AppService> Items { get; set; } = [];
     [Parameter] public int Elevation { get; set; } = 1;
 
     private readonly HashSet<int> _expandedRows = [];
 
-    private void ToggleRow(TableRowClickEventArgs<Server> args)
+    private void ToggleRow(TableRowClickEventArgs<AppService> args)
     {
         if (args.Item is null) return;
         var id = args.Item.Id;

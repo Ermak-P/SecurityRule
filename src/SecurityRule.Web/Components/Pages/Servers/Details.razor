@@ -3,31 +3,87 @@
 @inject IServerRepository ServerRepository
 @inject NavigationManager Navigation
 
-<PageTitle>Сервер — @(_server?.Name ?? "...")</PageTitle>
-
-@if (_server == null)
+@if (_displayServer == null)
 {
+    @if (!Embedded)
+    {
+        <PageTitle>Сервер — ...</PageTitle>
+    }
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
 }
 else
 {
-    <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
-    <ServerDetails Server="_server" />
+    @if (!Embedded)
+    {
+        <PageTitle>Сервер — @_displayServer.Name</PageTitle>
+        <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
+                <MudText Typo="Typo.h4">@_displayServer.Name</MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{_displayServer.Id}"))">
+                Редактировать
+            </MudButton>
+        </MudStack>
+    }
+
+    <MudCard Class="mb-4" Elevation="@(Embedded ? 0 : 1)">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">IP адрес</MudText>
+                    <MudText Typo="Typo.body1">@_displayServer.IpAddress</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Операционная система</MudText>
+                    <MudText Typo="Typo.body1">@_displayServer.OperatingSystem</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Количество сервисов</MudText>
+                    <MudText Typo="Typo.body1">@_displayServer.Services.Count</MudText>
+                </MudItem>
+                @if (!string.IsNullOrWhiteSpace(_displayServer.Description))
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
+                        <MudText Typo="Typo.body1">@_displayServer.Description</MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudText Typo="Typo.h6" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
+        Сервисы
+    </MudText>
+    <SecurityRule.Web.Components.Pages.Services.Table Items="@_displayServer.Services" Elevation="0" />
 }
 
 @code {
     [Parameter] public int Id { get; set; }
-    private Server? _server;
+    [Parameter] public Server? Server { get; set; }
+    [Parameter] public bool Embedded { get; set; } = false;
 
+    private Server? _displayServer;
     private List<BreadcrumbItem> _breadcrumbs = [];
 
     protected override async Task OnInitializedAsync()
     {
-        _server = await ServerRepository.GetByIdAsync(Id);
-        _breadcrumbs =
-        [
-            new BreadcrumbItem("Серверы", href: "/servers"),
-            new BreadcrumbItem(_server?.Name ?? Id.ToString(), href: null, disabled: true)
-        ];
+        if (Server is not null)
+        {
+            _displayServer = Server;
+        }
+        else
+        {
+            _displayServer = await ServerRepository.GetByIdAsync(Id);
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Серверы", href: "/servers"),
+                new BreadcrumbItem(_displayServer?.Name ?? Id.ToString(), href: null, disabled: true)
+            ];
+        }
     }
 }
