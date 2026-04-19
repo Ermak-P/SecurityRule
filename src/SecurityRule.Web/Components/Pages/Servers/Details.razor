@@ -59,7 +59,9 @@ else
         <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
         Сервисы
     </MudText>
-    <SecurityRule.Web.Components.Pages.Services.Table Items="@_displayServer.Services" Elevation="0" />
+    <MudPaper Elevation="2" Class="overflow-hidden">
+        <SecurityRule.Web.Components.Pages.Services.Table Items="@_displayServer.Services" Elevation="0" />
+    </MudPaper>
 }
 
 @code {

@@ -30,8 +30,10 @@
         @if (_expandedRows.Contains(svc.Id))
         {
             <MudTr>
-                <td colspan="4" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
-                    <Details Service="svc" Embedded="true" />
+                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-secondary); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        <Details Service="svc" Embedded="true" />
+                    </div>
                 </td>
             </MudTr>
         }
