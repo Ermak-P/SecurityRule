@@ -1,0 +1,68 @@
+@inject NavigationManager Navigation
+
+<MudTable T="Server" Items="@Items" Hover="true" Striped="@(!Nested)" Dense="true"
+          OnRowClick="@ToggleRow" Elevation="@(Nested ? 0 : 1)">
+    <RowTemplate>
+        <MudTd DataLabel="Название">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
+                @context.Name
+                <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.IpAddress</MudChip>
+            </MudStack>
+        </MudTd>
+        <MudTd Style="text-align:right">
+            <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                               Title="Редактировать"
+                               OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
+            </span>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="server">
+        @if (_expandedRows.Contains(server.Id))
+        {
+            <MudTr>
+                <td colspan="2" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">IP адрес</MudText>
+                        <MudText Typo="Typo.body2">@server.IpAddress</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Операционная система</MudText>
+                        <MudText Typo="Typo.body2">@server.OperatingSystem</MudText>
+                    </MudItem>
+                    @if (!Nested)
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mt-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
+                            Сервисы (@server.Services.Count)
+                        </MudText>
+                        @if (!server.Services.Any())
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Нет сервисов</MudText>
+                        }
+                        else
+                        {
+                            <ServicesTable Items="@server.Services" Nested="true" />
+                        }
+                    }
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<Server> Items { get; set; } = [];
+    [Parameter] public bool Nested { get; set; } = false;
+
+    private readonly HashSet<int> _expandedRows = [];
+
+    private void ToggleRow(TableRowClickEventArgs<Server> args)
+    {
+        if (args.Item is null) return;
+        var id = args.Item.Id;
+        if (!_expandedRows.Remove(id))
+            _expandedRows.Add(id);
+    }
+}
