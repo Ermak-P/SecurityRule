@@ -18,97 +18,12 @@
 }
 else
 {
-    <MudTable T="Server" Items="@_servers" Hover="true" Striped="true" Dense="true" OnRowClick="@ToggleServerRow">
-        <RowTemplate>
-            <MudTd DataLabel="Название">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
-                    @context.Name
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.IpAddress</MudChip>
-                </MudStack>
-            </MudTd>
-            <MudTd Style="text-align:right">
-                <span @onclick:stopPropagation="true">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
-                                   Title="Редактировать"
-                                   OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
-                </span>
-            </MudTd>
-        </RowTemplate>
-        <ChildRowContent Context="server">
-            @if (_expandedServerRows.Contains(server.Id))
-            {
-                <MudTr>
-                    <td colspan="2" style="padding: 8px 16px 16px 40px; background: var(--mud-palette-background-grey);">
-                        <MudItem xs="12" sm="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">IP адрес</MudText>
-                            <MudText Typo="Typo.body2">@server.IpAddress</MudText>
-                        </MudItem>
-                        <MudItem xs="12" sm="3">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Операционная система</MudText>
-                            <MudText Typo="Typo.body2">@server.OperatingSystem</MudText>
-                        </MudItem>
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">
-                            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1"/>
-                            Сервисы (@server.Services.Count)
-                        </MudText>
-                        @if (!server.Services.Any())
-                        {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Нет сервисов</MudText>
-                        }
-                        else
-                        {
-                            <MudTable T="AppService" Items="@server.Services" Hover="true" Dense="true" Elevation="0"
-                                      OnRowClick="@ToggleServiceRow">
-                                <HeaderContent>
-                                    <MudTh>Сервис</MudTh>
-                                    <MudTh>AD учётная запись</MudTh>
-                                    <MudTh>Сертификаты</MudTh>
-                                </HeaderContent>
-                                <RowTemplate Context="svc">
-                                    <MudTd DataLabel="Сервис">
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                            <MudIcon Icon="@(_expandedServiceRows.Contains(svc.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default"/>
-                                            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small"/>
-                                            @svc.Name
-                                        </MudStack>
-                                    </MudTd>
-                                    <MudTd DataLabel="AD учётная запись">@svc.AdAccountName</MudTd>
-                                    <MudTd DataLabel="Сертификаты">@svc.Certificates.Count</MudTd>
-                                </RowTemplate>
-                                <ChildRowContent Context="svc">
-                                    @if (_expandedServiceRows.Contains(svc.Id))
-                                    {
-                                        <MudTr>
-                                            <td colspan="3" style="padding: 8px 16px 8px 40px;">
-                                                <MudText Typo="Typo.body2"><strong>AD учётная запись:</strong> @svc.AdAccountName</MudText>
-                                                @if (svc.Certificates.Any())
-                                                {
-                                                    <MudText Typo="Typo.body2" Class="mt-1"><strong>Сертификаты:</strong></MudText>
-
-                                                    @foreach (var cert in svc.Certificates)
-                                                    {
-                                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">@cert.Description (@cert.ExpiresAt.ToString("dd.MM.yyyy"))</MudChip>
-                                                    }
-                                                }
-                                            </td>
-                                        </MudTr>
-                                    }
-                                </ChildRowContent>
-                            </MudTable>
-                        }
-                    </td>
-                </MudTr>
-            }
-        </ChildRowContent>
-    </MudTable>
+    <ServersTable Items="_servers" />
 }
 
 @code {
     private IEnumerable<Server> _servers = [];
     private bool _loading = true;
-    private readonly HashSet<int> _expandedServerRows = [];
-    private readonly HashSet<int> _expandedServiceRows = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,21 +35,5 @@ else
         _loading = true;
         _servers = await ServerRepository.GetAllAsync();
         _loading = false;
-    }
-
-    private void ToggleServerRow(TableRowClickEventArgs<Server> args)
-    {
-        if (args.Item is null) return;
-        var id = args.Item.Id;
-        if (!_expandedServerRows.Remove(id))
-            _expandedServerRows.Add(id);
-    }
-
-    private void ToggleServiceRow(TableRowClickEventArgs<AppService> args)
-    {
-        if (args.Item is null) return;
-        var id = args.Item.Id;
-        if (!_expandedServiceRows.Remove(id))
-            _expandedServiceRows.Add(id);
     }
 }
