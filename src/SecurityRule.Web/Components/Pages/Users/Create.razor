@@ -1,6 +1,7 @@
 @page "/users/create"
 @rendermode InteractiveServer
 @inject IUserRepository UserRepository
+@inject IGroupRepository GroupRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -12,24 +13,13 @@
     <MudCardContent>
         <MudTextField @bind-Value="_user.Name" Label="Название (например, domain\user)" Required="true" Class="mb-3" />
         <MudTextField @bind-Value="_user.Description" Label="Описание" Lines="3" Class="mb-3" />
-
-        <MudText Typo="Typo.subtitle2" Class="mb-1">
-            <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Class="mr-1" />
-            Группы
-        </MudText>
-        @foreach (var (group, index) in _groups.Select((g, i) => (g, i)))
-        {
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
-                <MudTextField @bind-Value="_groups[index]" Label="@($"Группа {index + 1}")"
-                              Class="flex-grow-1" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => RemoveGroup(index))" />
-            </MudStack>
-        }
-        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="@AddGroup" Class="mb-3">
-            Добавить группу
-        </MudButton>
+        <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedGroupIds"
+                   Label="Группы" Class="mb-3">
+            @foreach (var group in _allGroups)
+            {
+                <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
+            }
+        </MudSelect>
     </MudCardContent>
     <MudCardActions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -39,18 +29,17 @@
 
 @code {
     private User _user = new();
-    private List<string> _groups = [];
+    private IEnumerable<Group> _allGroups = [];
+    private IReadOnlyCollection<int> _selectedGroupIds = [];
 
-    private void AddGroup() => _groups.Add(string.Empty);
-
-    private void RemoveGroup(int index) => _groups.RemoveAt(index);
+    protected override async Task OnInitializedAsync()
+    {
+        _allGroups = await GroupRepository.GetAllAsync();
+    }
 
     private async Task Save()
     {
-        _user.Groups = _groups
-            .Where(g => !string.IsNullOrWhiteSpace(g))
-            .Select(g => new UserGroup { Name = g.Trim() })
-            .ToList();
+        _user.Groups = _allGroups.Where(g => _selectedGroupIds.Contains(g.Id)).ToList();
         await UserRepository.AddAsync(_user);
         Snackbar.Add("Пользователь добавлен", Severity.Success);
         Navigation.NavigateTo("/users");

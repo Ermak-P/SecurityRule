@@ -16,7 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<FirewallRule> FirewallRules => Set<FirewallRule>();
     public DbSet<OperatingSystemOption> OperatingSystemOptions => Set<OperatingSystemOption>();
     public DbSet<User> Users => Set<User>();
-    public DbSet<UserGroup> UserGroups => Set<UserGroup>();
+    public DbSet<Group> Groups => Set<Group>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,16 +78,19 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasMany(e => e.Groups)
+                  .WithMany(g => g.Users)
+                  .UsingEntity(j => j.ToTable("UserGroups"));
         });
 
-        modelBuilder.Entity<UserGroup>(entity =>
+        modelBuilder.Entity<Group>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-            entity.HasOne(e => e.User)
-                  .WithMany(u => u.Groups)
-                  .HasForeignKey(e => e.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasMany(e => e.ChildGroups)
+                  .WithMany(e => e.ParentGroups)
+                  .UsingEntity(j => j.ToTable("GroupChildren"));
         });
     }
 }

@@ -1,0 +1,39 @@
+@page "/groups"
+@rendermode InteractiveServer
+@inject IGroupRepository GroupRepository
+@inject NavigationManager Navigation
+
+<PageTitle>Группы</PageTitle>
+
+<MudStack Row="true" Spacing="1">
+    <MudText Typo="Typo.h4" GutterBottom="true">Группы</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                   Title="Добавить"
+                   OnClick="@(() => Navigation.NavigateTo($"/groups/create"))" />
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <Table Items="_groups" />
+}
+
+@code {
+    private IEnumerable<Group> _groups = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _groups = await GroupRepository.GetAllAsync();
+        _loading = false;
+    }
+}

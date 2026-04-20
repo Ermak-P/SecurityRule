@@ -1,0 +1,46 @@
+@page "/groups/create"
+@rendermode InteractiveServer
+@inject IGroupRepository GroupRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Добавить группу</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Добавить группу</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="_group.Name" Label="Название" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_group.Description" Label="Описание" Lines="3" Class="mb-3" />
+        <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedChildIds"
+                   Label="Дочерние группы" Class="mb-3">
+            @foreach (var group in _allGroups)
+            {
+                <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/groups"))">Отмена</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private Group _group = new();
+    private IEnumerable<Group> _allGroups = [];
+    private IReadOnlyCollection<int> _selectedChildIds = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allGroups = await GroupRepository.GetAllAsync();
+    }
+
+    private async Task Save()
+    {
+        _group.ChildGroups = _allGroups.Where(g => _selectedChildIds.Contains(g.Id)).ToList();
+        await GroupRepository.AddAsync(_group);
+        Snackbar.Add("Группа добавлена", Severity.Success);
+        Navigation.NavigateTo("/groups");
+    }
+}

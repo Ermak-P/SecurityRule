@@ -64,12 +64,12 @@ public class UserRepositoryTests
     public async Task GetAllAsync_ShouldIncludeGroups()
     {
         // Arrange
-        var user = new User
-        {
-            Name = "domain\\alice",
-            Groups = new List<UserGroup> { new() { Name = "Admins" } }
-        };
+        var group = new Group { Name = "Admins" };
+        _context.Groups.Add(group);
+        var user = new User { Name = "domain\\alice" };
         _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        user.Groups.Add(group);
         await _context.SaveChangesAsync();
 
         // Act
@@ -113,12 +113,14 @@ public class UserRepositoryTests
     public async Task GetByIdAsync_ShouldIncludeGroups()
     {
         // Arrange
-        var user = new User
-        {
-            Name = "domain\\alice",
-            Groups = new List<UserGroup> { new() { Name = "Admins" }, new() { Name = "Users" } }
-        };
+        var group1 = new Group { Name = "Admins" };
+        var group2 = new Group { Name = "Users" };
+        _context.Groups.AddRange(group1, group2);
+        var user = new User { Name = "domain\\alice" };
         _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        user.Groups.Add(group1);
+        user.Groups.Add(group2);
         await _context.SaveChangesAsync();
 
         // Act
@@ -175,30 +177,22 @@ public class UserRepositoryTests
     public async Task UpdateAsync_ShouldReplaceGroups()
     {
         // Arrange
-        var user = new User
-        {
-            Name = "domain\\alice",
-            Groups = new List<UserGroup> { new() { Name = "OldGroup" } }
-        };
+        var oldGroup = new Group { Name = "OldGroup" };
+        var newGroup = new Group { Name = "NewGroup" };
+        _context.Groups.AddRange(oldGroup, newGroup);
+        var user = new User { Name = "domain\\alice" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+        user.Groups.Add(oldGroup);
+        await _context.SaveChangesAsync();
 
-        // Detach so that UpdateAsync loads a fresh tracked entity and iterates
-        // the new groups correctly without EF's identity map collapsing both references.
-        var userId = user.Id;
-        _context.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
-
-        // Act
-        var updateDto = new User
-        {
-            Id = userId,
-            Name = "domain\\alice",
-            Groups = new List<UserGroup> { new() { Name = "NewGroup" } }
-        };
+        // Act – pass the new group by reference so UpdateAsync finds it by Id
+        var updateDto = new User { Id = user.Id, Name = "domain\\alice" };
+        updateDto.Groups.Add(newGroup);
         await _repository.UpdateAsync(updateDto);
 
         // Assert
-        var result = await _repository.GetByIdAsync(userId);
+        var result = await _repository.GetByIdAsync(user.Id);
         result!.Groups.Should().HaveCount(1);
         result.Groups.First().Name.Should().Be("NewGroup");
     }
@@ -207,24 +201,20 @@ public class UserRepositoryTests
     public async Task UpdateAsync_ShouldClearGroupsWhenEmpty()
     {
         // Arrange
-        var user = new User
-        {
-            Name = "domain\\alice",
-            Groups = new List<UserGroup> { new() { Name = "Admins" } }
-        };
+        var group = new Group { Name = "Admins" };
+        _context.Groups.Add(group);
+        var user = new User { Name = "domain\\alice" };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-
-        // Detach so that UpdateAsync loads a fresh tracked entity.
-        var userId = user.Id;
-        _context.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+        user.Groups.Add(group);
+        await _context.SaveChangesAsync();
 
         // Act
-        var updateDto = new User { Id = userId, Name = "domain\\alice", Groups = new List<UserGroup>() };
+        var updateDto = new User { Id = user.Id, Name = "domain\\alice" };
         await _repository.UpdateAsync(updateDto);
 
         // Assert
-        var result = await _repository.GetByIdAsync(userId);
+        var result = await _repository.GetByIdAsync(user.Id);
         result!.Groups.Should().BeEmpty();
     }
 
@@ -270,22 +260,24 @@ public class UserRepositoryTests
     }
 
     [Test]
-    public async Task DeleteAsync_ShouldCascadeDeleteGroups()
+    public async Task DeleteAsync_ShouldNotDeleteGroups()
     {
-        // Arrange
-        var user = new User
-        {
-            Name = "domain\\alice",
-            Groups = new List<UserGroup> { new() { Name = "Admins" } }
-        };
+        // Arrange – groups are independent entities; deleting a user only removes the join rows
+        var group = new Group { Name = "Admins" };
+        _context.Groups.Add(group);
+        var user = new User { Name = "domain\\alice" };
         _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        user.Groups.Add(group);
         await _context.SaveChangesAsync();
 
         // Act
         await _repository.DeleteAsync(user.Id);
 
-        // Assert
-        var groups = await _context.UserGroups.ToListAsync();
-        groups.Should().BeEmpty();
+        // Assert – the Group entity itself must still exist
+        var groups = await _context.Groups.ToListAsync();
+        groups.Should().HaveCount(1);
+        groups.First().Name.Should().Be("Admins");
     }
 }
+

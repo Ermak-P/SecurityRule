@@ -1,0 +1,26 @@
+@using SecurityRule.Domain.Models
+@inject NavigationManager Navigation
+
+<MudDataGrid T="Group" Items="@Items" Hover="true" Elevation="@Elevation"
+             RowClick="@(e => Navigation.NavigateTo($"/groups/{e.Item.Id}"))"
+             Style="cursor:pointer">
+    <Columns>
+        <PropertyColumn Property="x => x.Name" Title="Название" />
+        <PropertyColumn Property="x => x.Description" Title="Описание" />
+        <TemplateColumn Title="Дочерних групп">
+            <CellTemplate>
+                <MudText>@context.Item.ChildGroups.Count</MudText>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Пользователей">
+            <CellTemplate>
+                <MudText>@context.Item.Users.Count</MudText>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<Group> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+}

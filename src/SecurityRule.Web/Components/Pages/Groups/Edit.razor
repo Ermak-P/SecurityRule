@@ -1,0 +1,80 @@
+@page "/groups/edit/{Id:int}"
+@rendermode InteractiveServer
+@inject IGroupRepository GroupRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Редактировать группу</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Редактировать группу</MudText>
+
+@if (_group == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <MudTextField @bind-Value="_group.Name" Label="Название" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_group.Description" Label="Описание" Lines="3" Class="mb-3" />
+            <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedChildIds"
+                       Label="Дочерние группы" Class="mb-3">
+                @foreach (var group in _otherGroups)
+                {
+                    <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo($"/groups/{Id}"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Group? _group;
+    private IEnumerable<Group> _otherGroups = [];
+    private IReadOnlyCollection<int> _selectedChildIds = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _group = await GroupRepository.GetByIdAsync(Id);
+        var all = await GroupRepository.GetAllAsync();
+        _otherGroups = all.Where(g => g.Id != Id).ToList();
+        if (_group != null)
+            _selectedChildIds = _group.ChildGroups.Select(g => g.Id).ToList();
+    }
+
+    private async Task Save()
+    {
+        if (_group != null)
+        {
+            _group.ChildGroups = _otherGroups.Where(g => _selectedChildIds.Contains(g.Id)).ToList();
+            await GroupRepository.UpdateAsync(_group);
+            Snackbar.Add("Группа обновлена", Severity.Success);
+            Navigation.NavigateTo($"/groups/{Id}");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await GroupRepository.DeleteAsync(Id);
+            Snackbar.Add("Группа удалена", Severity.Success);
+            Navigation.NavigateTo("/groups");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка при удалении группы: {ex.Message}", Severity.Error);
+        }
+    }
+}

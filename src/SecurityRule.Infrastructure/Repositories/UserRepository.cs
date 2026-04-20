@@ -30,8 +30,18 @@ public class UserRepository : IUserRepository
 
     public async Task AddAsync(User user)
     {
+        var groupIds = user.Groups.Select(g => g.Id).ToList();
+        user.Groups.Clear();
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
+        if (groupIds.Count > 0)
+        {
+            var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+            foreach (var group in groups)
+                user.Groups.Add(group);
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task UpdateAsync(User user)
@@ -44,9 +54,12 @@ public class UserRepository : IUserRepository
         existing.Name = user.Name;
         existing.Description = user.Description;
 
+        var groupIds = user.Groups.Select(g => g.Id).ToList();
+        var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+
         existing.Groups.Clear();
-        foreach (var group in user.Groups)
-            existing.Groups.Add(new UserGroup { Name = group.Name, UserId = existing.Id });
+        foreach (var group in groups)
+            existing.Groups.Add(group);
 
         await _context.SaveChangesAsync();
     }

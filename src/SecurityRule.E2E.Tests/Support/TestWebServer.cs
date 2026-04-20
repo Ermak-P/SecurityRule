@@ -100,7 +100,7 @@ public sealed class TestWebServer : IAsyncDisposable
         db.Servers.RemoveRange(db.Servers);
         db.Certificates.RemoveRange(db.Certificates);
         db.FirewallRules.RemoveRange(db.FirewallRules);
-        db.UserGroups.RemoveRange(db.UserGroups);
+        db.Groups.RemoveRange(db.Groups);
         db.Users.RemoveRange(db.Users);
         await db.SaveChangesAsync();
     }
