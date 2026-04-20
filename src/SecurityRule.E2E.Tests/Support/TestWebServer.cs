@@ -52,6 +52,10 @@ public sealed class TestWebServer : IAsyncDisposable
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase("E2ETestDb"));
 
+        // FakeAd also uses an in-memory database for test isolation
+        builder.Services.AddDbContextFactory<FakeAdDbContext>(options =>
+            options.UseInMemoryDatabase("E2EFakeAdDb"));
+
         builder.Services.AddScoped<IServerRepository, ServerRepository>();
         builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
         builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();

@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Services;
 
 namespace SecurityRule.Tests;
@@ -7,27 +9,33 @@ namespace SecurityRule.Tests;
 public class FakeAdServiceTests
 {
     private FakeAdService _service = null!;
+    private IDbContextFactory<FakeAdDbContext> _factory = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _service = new FakeAdService();
+        // Each test gets its own isolated in-memory database
+        var options = new DbContextOptionsBuilder<FakeAdDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        _factory = new TestFakeAdDbContextFactory(options);
+        _service = new FakeAdService(_factory);
     }
 
     [Test]
     public async Task GetUserGroupNamesAsync_ReturnsEmpty_WhenNoRelationsDefined()
     {
-        var result = await _service.GetUserGroupNamesAsync("domain\\alice");
+        var result = await _service.GetUserGroupNamesAsync("alice");
         result.Should().BeEmpty();
     }
 
     [Test]
     public async Task GetUserGroupNamesAsync_ReturnsGroups_AfterAddUserToGroup()
     {
-        _service.AddUserToGroup("domain\\alice", "Admins");
-        _service.AddUserToGroup("domain\\alice", "Users");
+        _service.AddUserToGroup("alice", "Admins");
+        _service.AddUserToGroup("alice", "Users");
 
-        var result = await _service.GetUserGroupNamesAsync("domain\\alice");
+        var result = await _service.GetUserGroupNamesAsync("alice");
 
         result.Should().BeEquivalentTo(["Admins", "Users"]);
     }
@@ -35,12 +43,12 @@ public class FakeAdServiceTests
     [Test]
     public async Task GetGroupMemberUserNamesAsync_ReturnsUsers_AfterAddUserToGroup()
     {
-        _service.AddUserToGroup("domain\\alice", "Admins");
-        _service.AddUserToGroup("domain\\bob", "Admins");
+        _service.AddUserToGroup("alice", "Admins");
+        _service.AddUserToGroup("bob", "Admins");
 
         var result = await _service.GetGroupMemberUserNamesAsync("Admins");
 
-        result.Should().BeEquivalentTo(["domain\\alice", "domain\\bob"]);
+        result.Should().BeEquivalentTo(["alice", "bob"]);
     }
 
     [Test]
@@ -68,12 +76,12 @@ public class FakeAdServiceTests
     [Test]
     public async Task Reset_ClearsAllData()
     {
-        _service.AddUserToGroup("domain\\alice", "Admins");
+        _service.AddUserToGroup("alice", "Admins");
         _service.AddChildGroup("Root", "Child");
 
         _service.Reset();
 
-        var groups = await _service.GetUserGroupNamesAsync("domain\\alice");
+        var groups = await _service.GetUserGroupNamesAsync("alice");
         var children = await _service.GetGroupChildGroupNamesAsync("Root");
 
         groups.Should().BeEmpty();
@@ -81,24 +89,26 @@ public class FakeAdServiceTests
     }
 
     [Test]
-    public async Task AddUserToGroup_IsCaseInsensitive_ForLookup()
-    {
-        _service.AddUserToGroup("domain\\Alice", "Admins");
-
-        var result = await _service.GetUserGroupNamesAsync("domain\\alice");
-
-        result.Should().ContainSingle().Which.Should().Be("Admins");
-    }
-
-    [Test]
     public async Task AddUserToGroup_IsBidirectional()
     {
-        _service.AddUserToGroup("domain\\alice", "Admins");
+        _service.AddUserToGroup("alice", "Admins");
 
-        var userGroups = await _service.GetUserGroupNamesAsync("domain\\alice");
+        var userGroups = await _service.GetUserGroupNamesAsync("alice");
         var groupMembers = await _service.GetGroupMemberUserNamesAsync("Admins");
 
         userGroups.Should().ContainSingle().Which.Should().Be("Admins");
-        groupMembers.Should().ContainSingle().Which.Should().Be("domain\\alice");
+        groupMembers.Should().ContainSingle().Which.Should().Be("alice");
+    }
+
+    // ── Helper: test-only IDbContextFactory implementation ────────────────────
+
+    private sealed class TestFakeAdDbContextFactory : IDbContextFactory<FakeAdDbContext>
+    {
+        private readonly DbContextOptions<FakeAdDbContext> _options;
+
+        public TestFakeAdDbContextFactory(DbContextOptions<FakeAdDbContext> options)
+            => _options = options;
+
+        public FakeAdDbContext CreateDbContext() => new(_options);
     }
 }

@@ -16,6 +16,9 @@ builder.Services.AddMudServices();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddDbContextFactory<FakeAdDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("FakeAdConnection")));
+
 builder.Services.AddServerSideBlazor(options => 
 {
     options.DetailedErrors = true;

@@ -1,131 +1,144 @@
+using Microsoft.EntityFrameworkCore;
 using SecurityRule.Domain.Interfaces;
+using SecurityRule.Infrastructure.Data;
+using SecurityRule.Infrastructure.Data.FakeAd;
 
 namespace SecurityRule.Infrastructure.Services;
 
 /// <summary>
-/// In-memory implementation of <see cref="IAdService"/> used during development and testing
-/// when a real Active Directory is not available. The service is thread-safe and its state
-/// can be manipulated via <see cref="AddUserToGroup"/>, <see cref="AddChildGroup"/>, and
-/// <see cref="Reset"/> to support scenario-level test isolation.
+/// Database-backed implementation of <see cref="IAdService"/> used during development and
+/// testing when a real Active Directory is not available.
+/// All membership data is stored in a dedicated <see cref="FakeAdDbContext"/> (separate
+/// from the main SecurityRule database).
+/// The mutation helpers <see cref="AddUserToGroup"/>, <see cref="AddChildGroup"/> and
+/// <see cref="Reset"/> are provided for test-scenario setup and teardown.
 /// </summary>
 public class FakeAdService : IAdService
 {
-    private readonly object _lock = new();
+    private readonly IDbContextFactory<FakeAdDbContext> _dbFactory;
 
-    // userName (case-insensitive) → set of group names
-    private readonly Dictionary<string, HashSet<string>> _userGroups =
-        new(StringComparer.OrdinalIgnoreCase);
-
-    // groupName (case-insensitive) → set of member user names
-    private readonly Dictionary<string, HashSet<string>> _groupUsers =
-        new(StringComparer.OrdinalIgnoreCase);
-
-    // groupName (case-insensitive) → set of child group names
-    private readonly Dictionary<string, HashSet<string>> _groupChildren =
-        new(StringComparer.OrdinalIgnoreCase);
-
-    // groupName (case-insensitive) → set of parent group names
-    private readonly Dictionary<string, HashSet<string>> _groupParents =
-        new(StringComparer.OrdinalIgnoreCase);
+    public FakeAdService(IDbContextFactory<FakeAdDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     // ── Mutation helpers (for tests / demo data) ──────────────────────────────
 
     /// <summary>
     /// Declares that <paramref name="userName"/> is a member of <paramref name="groupName"/>.
-    /// Updates both the user→groups and group→users indexes.
+    /// Creates the user and/or group records if they do not exist.
     /// </summary>
     public void AddUserToGroup(string userName, string groupName)
     {
-        lock (_lock)
+        using var db = _dbFactory.CreateDbContext();
+
+        var user = db.AdUsers.FirstOrDefault(u => u.Name == userName);
+        if (user == null)
         {
-            GetOrAdd(_userGroups, userName).Add(groupName);
-            GetOrAdd(_groupUsers, groupName).Add(userName);
+            user = new AdUser { Name = userName };
+            db.AdUsers.Add(user);
+            db.SaveChanges();
+        }
+
+        var group = db.AdGroups.FirstOrDefault(g => g.Name == groupName);
+        if (group == null)
+        {
+            group = new AdGroup { Name = groupName };
+            db.AdGroups.Add(group);
+            db.SaveChanges();
+        }
+
+        var exists = db.AdUserGroupMemberships
+            .Any(m => m.UserId == user.Id && m.GroupId == group.Id);
+        if (!exists)
+        {
+            db.AdUserGroupMemberships.Add(
+                new AdUserGroupMembership { UserId = user.Id, GroupId = group.Id });
+            db.SaveChanges();
         }
     }
 
     /// <summary>
     /// Declares that <paramref name="childGroupName"/> is a child (member) of
-    /// <paramref name="parentGroupName"/>. Updates both parent→children and
-    /// child→parents indexes.
+    /// <paramref name="parentGroupName"/>.
+    /// Creates the group records if they do not exist.
     /// </summary>
     public void AddChildGroup(string parentGroupName, string childGroupName)
     {
-        lock (_lock)
+        using var db = _dbFactory.CreateDbContext();
+
+        var parent = db.AdGroups.FirstOrDefault(g => g.Name == parentGroupName);
+        if (parent == null)
         {
-            GetOrAdd(_groupChildren, parentGroupName).Add(childGroupName);
-            GetOrAdd(_groupParents, childGroupName).Add(parentGroupName);
+            parent = new AdGroup { Name = parentGroupName };
+            db.AdGroups.Add(parent);
+            db.SaveChanges();
+        }
+
+        var child = db.AdGroups.FirstOrDefault(g => g.Name == childGroupName);
+        if (child == null)
+        {
+            child = new AdGroup { Name = childGroupName };
+            db.AdGroups.Add(child);
+            db.SaveChanges();
+        }
+
+        var exists = db.AdGroupGroupMemberships
+            .Any(m => m.ParentGroupId == parent.Id && m.ChildGroupId == child.Id);
+        if (!exists)
+        {
+            db.AdGroupGroupMemberships.Add(
+                new AdGroupGroupMembership { ParentGroupId = parent.Id, ChildGroupId = child.Id });
+            db.SaveChanges();
         }
     }
 
     /// <summary>Removes all AD membership data (call between test scenarios).</summary>
     public void Reset()
     {
-        lock (_lock)
-        {
-            _userGroups.Clear();
-            _groupUsers.Clear();
-            _groupChildren.Clear();
-            _groupParents.Clear();
-        }
+        using var db = _dbFactory.CreateDbContext();
+        db.AdGroupGroupMemberships.RemoveRange(db.AdGroupGroupMemberships);
+        db.AdUserGroupMemberships.RemoveRange(db.AdUserGroupMemberships);
+        db.AdGroups.RemoveRange(db.AdGroups);
+        db.AdUsers.RemoveRange(db.AdUsers);
+        db.SaveChanges();
     }
 
     // ── IAdService ────────────────────────────────────────────────────────────
 
-    public Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName)
+    public async Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName)
     {
-        lock (_lock)
-        {
-            var result = _userGroups.TryGetValue(userName, out var groups)
-                ? (IEnumerable<string>)groups.ToList()
-                : [];
-            return Task.FromResult(result);
-        }
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.AdUserGroupMemberships
+            .Where(m => m.User.Name == userName)
+            .Select(m => m.Group.Name)
+            .ToListAsync();
     }
 
-    public Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName)
     {
-        lock (_lock)
-        {
-            var result = _groupUsers.TryGetValue(groupName, out var users)
-                ? (IEnumerable<string>)users.ToList()
-                : [];
-            return Task.FromResult(result);
-        }
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.AdUserGroupMemberships
+            .Where(m => m.Group.Name == groupName)
+            .Select(m => m.User.Name)
+            .ToListAsync();
     }
 
-    public Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName)
     {
-        lock (_lock)
-        {
-            var result = _groupChildren.TryGetValue(groupName, out var children)
-                ? (IEnumerable<string>)children.ToList()
-                : [];
-            return Task.FromResult(result);
-        }
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.AdGroupGroupMemberships
+            .Where(m => m.ParentGroup.Name == groupName)
+            .Select(m => m.ChildGroup.Name)
+            .ToListAsync();
     }
 
-    public Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName)
     {
-        lock (_lock)
-        {
-            var result = _groupParents.TryGetValue(groupName, out var parents)
-                ? (IEnumerable<string>)parents.ToList()
-                : [];
-            return Task.FromResult(result);
-        }
-    }
-
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    private static HashSet<string> GetOrAdd(
-        Dictionary<string, HashSet<string>> dict,
-        string key)
-    {
-        if (!dict.TryGetValue(key, out var set))
-        {
-            set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            dict[key] = set;
-        }
-        return set;
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await db.AdGroupGroupMemberships
+            .Where(m => m.ChildGroup.Name == groupName)
+            .Select(m => m.ParentGroup.Name)
+            .ToListAsync();
     }
 }
