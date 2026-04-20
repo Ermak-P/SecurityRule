@@ -1,7 +1,6 @@
 @page "/users/edit/{Id:int}"
 @rendermode InteractiveServer
 @inject IUserRepository UserRepository
-@inject IGroupRepository GroupRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -19,13 +18,6 @@ else
         <MudCardContent>
             <MudTextField @bind-Value="_user.Name" Label="Название" HelperText="например, domain\user" Required="true" Class="mb-3" />
             <MudTextField @bind-Value="_user.Description" Label="Описание" Lines="3" Class="mb-3" />
-            <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedGroupIds"
-                       Label="Группы" Class="mb-3">
-                @foreach (var group in _allGroups)
-                {
-                    <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
-                }
-            </MudSelect>
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -42,22 +34,16 @@ else
 @code {
     [Parameter] public int Id { get; set; }
     private User? _user;
-    private IEnumerable<Group> _allGroups = [];
-    private IReadOnlyCollection<int> _selectedGroupIds = [];
 
     protected override async Task OnInitializedAsync()
     {
         _user = await UserRepository.GetByIdAsync(Id);
-        _allGroups = await GroupRepository.GetAllAsync();
-        if (_user != null)
-            _selectedGroupIds = _user.Groups.Select(g => g.Id).ToList();
     }
 
     private async Task Save()
     {
         if (_user != null)
         {
-            _user.Groups = _allGroups.Where(g => _selectedGroupIds.Contains(g.Id)).ToList();
             await UserRepository.UpdateAsync(_user);
             Snackbar.Add("Пользователь обновлён", Severity.Success);
             Navigation.NavigateTo($"/users/{Id}");

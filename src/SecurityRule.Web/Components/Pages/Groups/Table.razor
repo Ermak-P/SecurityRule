@@ -7,16 +7,6 @@
     <Columns>
         <PropertyColumn Property="x => x.Name" Title="Название" />
         <PropertyColumn Property="x => x.Description" Title="Описание" />
-        <TemplateColumn Title="Дочерних групп">
-            <CellTemplate>
-                <MudText>@context.Item.ChildGroups.Count</MudText>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Пользователей">
-            <CellTemplate>
-                <MudText>@context.Item.Users.Count</MudText>
-            </CellTemplate>
-        </TemplateColumn>
     </Columns>
 </MudDataGrid>
 

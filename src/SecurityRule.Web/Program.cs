@@ -3,6 +3,7 @@ using MudBlazor.Services;
 using SecurityRule.Domain.Interfaces;
 using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Repositories;
+using SecurityRule.Infrastructure.Services;
 using SecurityRule.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,7 @@ builder.Services.AddScoped<IOperatingSystemRepository, OperatingSystemRepository
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddSingleton<IAdService, FakeAdService>();
 builder.Services.AddScoped<ThemeState>();
 
 var app = builder.Build();

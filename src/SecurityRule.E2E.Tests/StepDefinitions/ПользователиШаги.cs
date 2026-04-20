@@ -34,20 +34,11 @@ public sealed class ПользователиШаги
     }
 
     [Given("пользователь {string} входит в группу {string}")]
-    public async Task ПользовательВходитВГруппу(string userName, string groupName)
+    public void ПользовательВходитВГруппу(string userName, string groupName)
     {
-        using var scope = _state.Services.CreateScope();
-        var userRepo  = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IUserRepository>();
-        var groupRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IGroupRepository>();
-
-        var users  = await userRepo.GetAllAsync();
-        var groups = await groupRepo.GetAllAsync();
-
-        var user  = users.First(u => u.Name == userName);
-        var group = groups.First(g => g.Name == groupName);
-
-        user.Groups.Add(group);
-        await userRepo.UpdateAsync(user);
+        var fakeAd = _state.Services.GetRequiredService<SecurityRule.Domain.Interfaces.IAdService>()
+                     as SecurityRule.Infrastructure.Services.FakeAdService;
+        fakeAd?.AddUserToGroup(userName, groupName);
     }
 
     // ── When: navigation ──────────────────────────────────────────────────────

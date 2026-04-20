@@ -61,27 +61,6 @@ public class UserRepositoryTests
     }
 
     [Test]
-    public async Task GetAllAsync_ShouldIncludeGroups()
-    {
-        // Arrange
-        var group = new Group { Name = "Admins" };
-        _context.Groups.Add(group);
-        var user = new User { Name = "domain\\alice" };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        user.Groups.Add(group);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.GetAllAsync();
-
-        // Assert
-        result.Should().HaveCount(1);
-        result.First().Groups.Should().HaveCount(1);
-        result.First().Groups.First().Name.Should().Be("Admins");
-    }
-
-    [Test]
     public async Task GetByIdAsync_ShouldReturnCorrectUser()
     {
         // Arrange
@@ -107,29 +86,6 @@ public class UserRepositoryTests
 
         // Assert
         result.Should().BeNull();
-    }
-
-    [Test]
-    public async Task GetByIdAsync_ShouldIncludeGroups()
-    {
-        // Arrange
-        var group1 = new Group { Name = "Admins" };
-        var group2 = new Group { Name = "Users" };
-        _context.Groups.AddRange(group1, group2);
-        var user = new User { Name = "domain\\alice" };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        user.Groups.Add(group1);
-        user.Groups.Add(group2);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.GetByIdAsync(user.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Groups.Should().HaveCount(2);
-        result.Groups.Select(g => g.Name).Should().BeEquivalentTo(["Admins", "Users"]);
     }
 
     [Test]
@@ -171,51 +127,6 @@ public class UserRepositoryTests
         var result = await _context.Users.FindAsync(user.Id);
         result!.Name.Should().Be("domain\\alice-updated");
         result.Description.Should().Be("New description");
-    }
-
-    [Test]
-    public async Task UpdateAsync_ShouldReplaceGroups()
-    {
-        // Arrange
-        var oldGroup = new Group { Name = "OldGroup" };
-        var newGroup = new Group { Name = "NewGroup" };
-        _context.Groups.AddRange(oldGroup, newGroup);
-        var user = new User { Name = "domain\\alice" };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        user.Groups.Add(oldGroup);
-        await _context.SaveChangesAsync();
-
-        // Act – pass the new group by reference so UpdateAsync finds it by Id
-        var updateDto = new User { Id = user.Id, Name = "domain\\alice" };
-        updateDto.Groups.Add(newGroup);
-        await _repository.UpdateAsync(updateDto);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(user.Id);
-        result!.Groups.Should().HaveCount(1);
-        result.Groups.First().Name.Should().Be("NewGroup");
-    }
-
-    [Test]
-    public async Task UpdateAsync_ShouldClearGroupsWhenEmpty()
-    {
-        // Arrange
-        var group = new Group { Name = "Admins" };
-        _context.Groups.Add(group);
-        var user = new User { Name = "domain\\alice" };
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        user.Groups.Add(group);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var updateDto = new User { Id = user.Id, Name = "domain\\alice" };
-        await _repository.UpdateAsync(updateDto);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(user.Id);
-        result!.Groups.Should().BeEmpty();
     }
 
     [Test]
@@ -262,13 +173,11 @@ public class UserRepositoryTests
     [Test]
     public async Task DeleteAsync_ShouldNotDeleteGroups()
     {
-        // Arrange – groups are independent entities; deleting a user only removes the join rows
+        // Arrange – groups are independent entities; deleting a user must not affect groups
         var group = new Group { Name = "Admins" };
         _context.Groups.Add(group);
         var user = new User { Name = "domain\\alice" };
         _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        user.Groups.Add(group);
         await _context.SaveChangesAsync();
 
         // Act
@@ -280,4 +189,3 @@ public class UserRepositoryTests
         groups.First().Name.Should().Be("Admins");
     }
 }
-

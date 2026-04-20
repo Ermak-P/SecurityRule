@@ -4,7 +4,6 @@
           Elevation="@Elevation" OnRowClick="@ToggleRow">
     <HeaderContent>
         <MudTh>Название</MudTh>
-        <MudTh>Группы</MudTh>
         <MudTh>Сервисов</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
@@ -16,7 +15,6 @@
                 @context.Name
             </MudStack>
         </MudTd>
-        <MudTd DataLabel="Группы">@context.Groups.Count</MudTd>
         <MudTd DataLabel="Сервисов">@context.Services.Count</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
@@ -30,7 +28,7 @@
         @if (_expandedRows.Contains(user.Id))
         {
             <MudTr>
-                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="3" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-tertiary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         <Details User="user" Embedded="true" />
                     </div>

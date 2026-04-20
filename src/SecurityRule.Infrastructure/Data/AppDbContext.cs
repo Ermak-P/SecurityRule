@@ -78,9 +78,6 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.HasMany(e => e.Groups)
-                  .WithMany(g => g.Users)
-                  .UsingEntity(j => j.ToTable("UserGroups"));
         });
 
         modelBuilder.Entity<Group>(entity =>
@@ -88,9 +85,6 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.HasMany(e => e.ChildGroups)
-                  .WithMany(e => e.ParentGroups)
-                  .UsingEntity(j => j.ToTable("GroupChildren"));
         });
     }
 }

@@ -5,6 +5,7 @@ using MudBlazor.Services;
 using SecurityRule.Domain.Interfaces;
 using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Repositories;
+using SecurityRule.Infrastructure.Services;
 using SecurityRule.Web.Components;
 
 namespace SecurityRule.E2E.Tests.Support;
@@ -59,6 +60,7 @@ public sealed class TestWebServer : IAsyncDisposable
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IUserRepository, SecurityRule.Infrastructure.Repositories.UserRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IGroupRepository, SecurityRule.Infrastructure.Repositories.GroupRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.ISearchService, SecurityRule.Infrastructure.Repositories.SearchService>();
+        builder.Services.AddSingleton<SecurityRule.Domain.Interfaces.IAdService, FakeAdService>();
         builder.Services.AddScoped<SecurityRule.Web.Services.ThemeState>();
 
         // Listen on a random free port; no HTTPS required for tests
@@ -105,6 +107,10 @@ public sealed class TestWebServer : IAsyncDisposable
         db.Groups.RemoveRange(db.Groups);
         db.Users.RemoveRange(db.Users);
         await db.SaveChangesAsync();
+
+        // Reset fake AD state between scenarios
+        if (Services.GetRequiredService<IAdService>() is FakeAdService fakeAd)
+            fakeAd.Reset();
     }
 
     public async ValueTask DisposeAsync()

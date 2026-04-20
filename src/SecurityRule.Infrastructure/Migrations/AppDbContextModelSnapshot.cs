@@ -52,52 +52,6 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("ServerServices", (string)null);
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("SecurityRule.Domain.Models.UserGroup", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserGroups");
-                });
-
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
                     b.Property<int>("Id")
@@ -106,15 +60,15 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserName")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Name")
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -181,6 +135,29 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("FirewallRules");
                 });
 
+            modelBuilder.Entity("SecurityRule.Domain.Models.Group", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Groups");
+                });
+
             modelBuilder.Entity("SecurityRule.Domain.Models.OperatingSystemOption", b =>
                 {
                     b.Property<int>("Id")
@@ -243,15 +220,27 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("Servers");
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.UserGroup", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
                 {
-                    b.HasOne("SecurityRule.Domain.Models.User", "User")
-                        .WithMany("Groups")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Navigation("User");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
@@ -296,7 +285,6 @@ namespace SecurityRule.Infrastructure.Migrations
 
             modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
                 {
-                    b.Navigation("Groups");
                     b.Navigation("Services");
                 });
 #pragma warning restore 612, 618

@@ -1,4 +1,5 @@
 @inject IUserRepository UserRepository
+@inject IAdService AdService
 
 <MudDialog>
     <TitleContent>
@@ -39,19 +40,19 @@
 
             <MudText Typo="Typo.subtitle1" Class="mb-2">
                 <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Class="mr-1" />
-                Группы (@_user.Groups.Count)
+                Группы (AD) (@_adGroupNames.Count)
             </MudText>
-            @if (!_user.Groups.Any())
+            @if (!_adGroupNames.Any())
             {
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Нет групп</MudText>
             }
             else
             {
                 <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-2">
-                    @foreach (var group in _user.Groups)
+                    @foreach (var name in _adGroupNames)
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
-                            @group.Name
+                            @name
                         </MudChip>
                     }
                 </MudStack>
@@ -116,6 +117,7 @@
     [Parameter] public string AccountName { get; set; } = string.Empty;
 
     private User? _user;
+    private List<string> _adGroupNames = [];
     private bool _loading = true;
 
     private List<Server> AllServers => _user?.Services
@@ -127,7 +129,14 @@
     protected override async Task OnInitializedAsync()
     {
         if (UserId.HasValue)
+        {
             _user = await UserRepository.GetByIdAsync(UserId.Value);
+            if (_user != null)
+            {
+                var names = await AdService.GetUserGroupNamesAsync(_user.Name);
+                _adGroupNames = names.ToList();
+            }
+        }
         _loading = false;
     }
 }

@@ -15,13 +15,10 @@ public class UserRepository : IUserRepository
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()
-        => await _context.Users
-            .Include(u => u.Groups)
-            .ToListAsync();
+        => await _context.Users.ToListAsync();
 
     public async Task<User?> GetByIdAsync(int id)
         => await _context.Users
-            .Include(u => u.Groups)
             .Include(u => u.Services)
                 .ThenInclude(s => s.Servers)
             .Include(u => u.Services)
@@ -30,36 +27,17 @@ public class UserRepository : IUserRepository
 
     public async Task AddAsync(User user)
     {
-        var groupIds = user.Groups.Select(g => g.Id).ToList();
-        user.Groups.Clear();
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-
-        if (groupIds.Count > 0)
-        {
-            var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
-            foreach (var group in groups)
-                user.Groups.Add(group);
-            await _context.SaveChangesAsync();
-        }
     }
 
     public async Task UpdateAsync(User user)
     {
-        var existing = await _context.Users
-            .Include(u => u.Groups)
-            .FirstOrDefaultAsync(u => u.Id == user.Id);
+        var existing = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
         if (existing == null) return;
 
         existing.Name = user.Name;
         existing.Description = user.Description;
-
-        var groupIds = user.Groups.Select(g => g.Id).ToList();
-        var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
-
-        existing.Groups.Clear();
-        foreach (var group in groups)
-            existing.Groups.Add(group);
 
         await _context.SaveChangesAsync();
     }
