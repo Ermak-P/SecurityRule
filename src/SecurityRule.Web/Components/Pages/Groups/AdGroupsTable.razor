@@ -1,0 +1,43 @@
+@inject NavigationManager Navigation
+
+<MudTable T="AdGroupItem" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@OnRowClick" Style="cursor:pointer">
+    <HeaderContent>
+        <MudTh>Название</MudTh>
+        <MudTh>В базе данных</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Название">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Color="Color.Secondary" />
+                @context.Name
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="В базе данных">
+            @if (context.DbGroup != null)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" Title="Есть в БД" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.Cloud" Size="Size.Small" Color="Color.Default" Title="Только в AD" />
+            }
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<AdGroupItem> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+
+    public record AdGroupItem(string Name, Group? DbGroup);
+
+    private void OnRowClick(TableRowClickEventArgs<AdGroupItem> args)
+    {
+        if (args.Item is null) return;
+        if (args.Item.DbGroup != null)
+            Navigation.NavigateTo($"/groups/{args.Item.DbGroup.Id}");
+        else
+            Navigation.NavigateTo($"/groups/name/{Uri.EscapeDataString(args.Item.Name)}");
+    }
+}

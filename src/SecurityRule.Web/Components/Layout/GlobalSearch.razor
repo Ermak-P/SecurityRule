@@ -23,19 +23,21 @@
                   Style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10000;max-height:480px;overflow-y:auto;min-width:400px;">
             @foreach (var group in _results.GroupBy(r => r.EntityType))
             {
-                <div style="padding:4px 16px 2px;font-size:0.7rem;font-weight:700;letter-spacing:.08em;opacity:.65;text-transform:uppercase;">
-                    @group.Key
+                <div style="display:flex;align-items:center;padding:6px 16px 4px;gap:8px;">
+                    <div style="font-size:0.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.75;white-space:nowrap;">
+                        @group.Key
+                    </div>
+                    <div style="flex:1;height:1px;background:var(--mud-palette-divider);"></div>
                 </div>
                 @foreach (var result in group)
                 {
                     <MudListItem T="SearchResult"
                                  OnClick="@(() => Navigate(result))"
-                                 Style="cursor:pointer;padding:6px 16px;">
+                                 Style="cursor:pointer;padding:4px 16px 4px 24px;">
                         <span style="opacity:.7;font-size:.85rem;margin-right:4px;">@result.FieldName:</span>
                         @((MarkupString)Highlight(result.FieldValue, _query))
                     </MudListItem>
                 }
-                <MudDivider />
             }
         </MudPaper>
     }

@@ -1,0 +1,43 @@
+@inject NavigationManager Navigation
+
+<MudTable T="AdUserItem" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@OnRowClick" Style="cursor:pointer">
+    <HeaderContent>
+        <MudTh>Название</MudTh>
+        <MudTh>В базе данных</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Название">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Color="Color.Tertiary" />
+                @context.Name
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="В базе данных">
+            @if (context.DbUser != null)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" Title="Есть в БД" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.Cloud" Size="Size.Small" Color="Color.Default" Title="Только в AD" />
+            }
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<AdUserItem> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+
+    public record AdUserItem(string Name, User? DbUser);
+
+    private void OnRowClick(TableRowClickEventArgs<AdUserItem> args)
+    {
+        if (args.Item is null) return;
+        if (args.Item.DbUser != null)
+            Navigation.NavigateTo($"/users/{args.Item.DbUser.Id}");
+        else
+            Navigation.NavigateTo($"/users/name/{Uri.EscapeDataString(args.Item.Name)}");
+    }
+}
