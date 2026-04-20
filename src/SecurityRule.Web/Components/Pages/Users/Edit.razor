@@ -1,0 +1,95 @@
+@page "/users/edit/{Id:int}"
+@rendermode InteractiveServer
+@inject IUserRepository UserRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Редактировать пользователя</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Редактировать пользователя</MudText>
+
+@if (_user == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <MudTextField @bind-Value="_user.Name" Label="Название (например, domain\user)" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_user.Description" Label="Описание" Lines="3" Class="mb-3" />
+
+            <MudText Typo="Typo.subtitle2" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Class="mr-1" />
+                Группы
+            </MudText>
+            @foreach (var (group, index) in _groups.Select((g, i) => (g, i)))
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                    <MudTextField @bind-Value="_groups[index]" Label="@($"Группа {index + 1}")"
+                                  Class="flex-grow-1" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => RemoveGroup(index))" />
+                </MudStack>
+            }
+            <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@AddGroup" Class="mb-3">
+                Добавить группу
+            </MudButton>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo($"/users/{Id}"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private User? _user;
+    private List<string> _groups = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await UserRepository.GetByIdAsync(Id);
+        if (_user != null)
+            _groups = _user.Groups.Select(g => g.Name).ToList();
+    }
+
+    private void AddGroup() => _groups.Add(string.Empty);
+
+    private void RemoveGroup(int index) => _groups.RemoveAt(index);
+
+    private async Task Save()
+    {
+        if (_user != null)
+        {
+            _user.Groups = _groups
+                .Where(g => !string.IsNullOrWhiteSpace(g))
+                .Select(g => new UserGroup { Name = g.Trim() })
+                .ToList();
+            await UserRepository.UpdateAsync(_user);
+            Snackbar.Add("Пользователь обновлён", Severity.Success);
+            Navigation.NavigateTo($"/users/{Id}");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await UserRepository.DeleteAsync(Id);
+            Snackbar.Add("Пользователь удалён", Severity.Success);
+            Navigation.NavigateTo("/users");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка при удалении пользователя: {ex.Message}", Severity.Error);
+        }
+    }
+}
