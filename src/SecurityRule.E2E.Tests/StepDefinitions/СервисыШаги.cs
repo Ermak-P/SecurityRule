@@ -17,13 +17,35 @@ public sealed class СервисыШаги
 
     // ── Given: seed data directly into the in-memory database ────────────────
 
-    /// <summary>Creates a service (no linked servers) directly in the database.</summary>
-    [Given("в системе существует сервис Name {string} AD {string}")]
-    public async Task ВСистемеСуществуетСервис(string name, string ad)
+    /// <summary>Creates a service (no linked user) directly in the database.</summary>
+    [Given("в системе существует сервис {string}")]
+    public async Task ВСистемеСуществуетСервис(string name)
     {
         using var scope = _state.Services.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
-        await repo.AddAsync(new AppService { Name = name, UserName = ad });
+        await repo.AddAsync(new AppService { Name = name, UserName = string.Empty });
+    }
+
+    /// <summary>Creates a service linked to a user directly in the database.</summary>
+    [Given("в системе существует сервис с пользователем {string} и пользователем {string}")]
+    public async Task ВСистемеСуществуетСервисСПользователем(string serviceName, string userName)
+    {
+        using var scope = _state.Services.CreateScope();
+        var userRepo    = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IUserRepository>();
+        var serviceRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+
+        var users = await userRepo.GetAllAsync();
+        var user  = users.First(u => u.Name == userName);
+        await serviceRepo.AddAsync(new AppService { Name = serviceName, UserName = user.Name, UserId = user.Id });
+    }
+
+    /// <summary>Creates a user directly in the database.</summary>
+    [Given("в системе существует пользователь {string}")]
+    public async Task ВСистемеСуществуетПользователь(string name)
+    {
+        using var scope = _state.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IUserRepository>();
+        await repo.AddAsync(new User { Name = name });
     }
 
     // ── When: navigation ──────────────────────────────────────────────────────

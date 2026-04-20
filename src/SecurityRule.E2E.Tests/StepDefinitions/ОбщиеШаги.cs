@@ -57,6 +57,23 @@ public sealed class ОбщиеШаги
         await _state.Page.WaitForTimeoutAsync(300);
     }
 
+    /// <summary>Selects an option by text in a MudSelect dropdown by its label.</summary>
+    [When("я выбираю {string} в выпадающем списке {string}")]
+    public async Task ВыбратьВВыпадающемСписке(string value, string label)
+    {
+        // Find the MudSelect container by its visible label text, then click the input root to open
+        var container = _state.Page.Locator(".mud-input-control")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await container.Locator(".mud-input-root").First.ClickAsync();
+        // Wait for the popover list to appear and click the matching item
+        await _state.Page.WaitForTimeoutAsync(400);
+        var option = _state.Page.GetByRole(AriaRole.Option, new() { Name = value });
+        await option.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await option.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(200);
+    }
+
     // ── Assertions ────────────────────────────────────────────────────────────
 
     /// <summary>Asserts that a heading (h1–h4) with the given text is visible.</summary>

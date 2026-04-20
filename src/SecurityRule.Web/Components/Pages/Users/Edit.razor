@@ -17,7 +17,7 @@ else
 {
     <MudCard>
         <MudCardContent>
-            <MudTextField @bind-Value="_user.Name" Label="Название (например, domain\user)" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_user.Name" Label="Название" HelperText="например, domain\user" Required="true" Class="mb-3" />
             <MudTextField @bind-Value="_user.Description" Label="Описание" Lines="3" Class="mb-3" />
             <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedGroupIds"
                        Label="Группы" Class="mb-3">

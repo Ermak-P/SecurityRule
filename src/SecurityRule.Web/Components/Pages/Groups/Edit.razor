@@ -20,7 +20,14 @@ else
             <MudTextField @bind-Value="_group.Description" Label="Описание" Lines="3" Class="mb-3" />
             <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedChildIds"
                        Label="Дочерние группы" Class="mb-3">
-                @foreach (var group in _otherGroups)
+                @foreach (var group in _otherGroups.Where(g => !_selectedParentIds.Contains(g.Id)))
+                {
+                    <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedParentIds"
+                       Label="Входит в группы" Class="mb-3">
+                @foreach (var group in _otherGroups.Where(g => !_selectedChildIds.Contains(g.Id)))
                 {
                     <MudSelectItem Value="@group.Id">@group.Name</MudSelectItem>
                 }
@@ -43,6 +50,7 @@ else
     private Group? _group;
     private IEnumerable<Group> _otherGroups = [];
     private IReadOnlyCollection<int> _selectedChildIds = [];
+    private IReadOnlyCollection<int> _selectedParentIds = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -50,7 +58,10 @@ else
         var all = await GroupRepository.GetAllAsync();
         _otherGroups = all.Where(g => g.Id != Id).ToList();
         if (_group != null)
+        {
             _selectedChildIds = _group.ChildGroups.Select(g => g.Id).ToList();
+            _selectedParentIds = _group.ParentGroups.Select(g => g.Id).ToList();
+        }
     }
 
     private async Task Save()
@@ -58,6 +69,7 @@ else
         if (_group != null)
         {
             _group.ChildGroups = _otherGroups.Where(g => _selectedChildIds.Contains(g.Id)).ToList();
+            _group.ParentGroups = _otherGroups.Where(g => _selectedParentIds.Contains(g.Id)).ToList();
             await GroupRepository.UpdateAsync(_group);
             Snackbar.Add("Группа обновлена", Severity.Success);
             Navigation.NavigateTo($"/groups/{Id}");

@@ -35,12 +35,19 @@ else
             <MudGrid>
                 <MudItem xs="12" sm="6">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
-                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
-                               StartIcon="@Icons.Material.Filled.AccountCircle"
-                               Style="margin-left: -6px;"
-                               OnClick="@OpenUserDialog">
-                        @_displayService.UserName
-                    </MudButton>
+                    @if (!string.IsNullOrWhiteSpace(_displayService.UserName))
+                    {
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
+                                   StartIcon="@Icons.Material.Filled.AccountCircle"
+                                   Style="margin-left: -6px;"
+                                   OnClick="@OpenUserDialog">
+                            @_displayService.UserName
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">—</MudText>
+                    }
                 </MudItem>
                 <MudItem xs="12" sm="3">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>

@@ -18,19 +18,19 @@ namespace SecurityRule.E2E.Tests.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Управление сервисами")]
+    [global::NUnit.Framework.DescriptionAttribute("Управление пользователями")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    public partial class УправлениеСервисамиFeature
+    public partial class УправлениеПользователямиFeature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("ru"), "Features", "Управление сервисами", "  Как администратор системы\n  Я хочу управлять сервисами\n  Чтобы отслеживать прил" +
-                "ожения в инфраструктуре", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("ru"), "Features", "Управление пользователями", "  Как администратор системы\n  Я хочу управлять пользователями (AD учётными запися" +
+                "ми)\n  Чтобы связывать их с группами и сервисами", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
-#line 1 "Сервисы.feature"
+#line 1 "Пользователи.feature"
 #line hidden
         
         [global::NUnit.Framework.OneTimeSetUpAttribute()]
@@ -106,17 +106,17 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сервисы.feature.ndjson", 8);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Пользователи.feature.ndjson", 8);
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Просмотр страницы со списком сервисов")]
-        public async global::System.Threading.Tasks.Task ПросмотрСтраницыСоСпискомСервисов()
+        [global::NUnit.Framework.DescriptionAttribute("Просмотр страницы со списком пользователей")]
+        public async global::System.Threading.Tasks.Task ПросмотрСтраницыСоСпискомПользователей()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр страницы со списком сервисов", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр страницы со списком пользователей", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 7
@@ -130,23 +130,23 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 8
-    await testRunner.WhenAsync("я перехожу на страницу сервисов", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.WhenAsync("я перехожу на страницу пользователей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 9
-    await testRunner.ThenAsync("я вижу заголовок \"Сервисы\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.ThenAsync("я вижу заголовок \"Пользователи\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Добавление нового сервиса")]
-        public async global::System.Threading.Tasks.Task ДобавлениеНовогоСервиса()
+        [global::NUnit.Framework.DescriptionAttribute("Добавление нового пользователя")]
+        public async global::System.Threading.Tasks.Task ДобавлениеНовогоПользователя()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление нового сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление нового пользователя", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 11
@@ -160,32 +160,32 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 12
-    await testRunner.WhenAsync("я перехожу на страницу добавления сервиса", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.WhenAsync("я перехожу на страницу добавления пользователя", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 13
-    await testRunner.AndAsync("я заполняю поле \"Название\" значением \"AuthService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("я заполняю поле \"Название\" значением \"domain\\admin\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 14
     await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 15
-    await testRunner.ThenAsync("я нахожусь на странице \"/services\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.ThenAsync("я нахожусь на странице \"/users\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
 #line 16
-    await testRunner.AndAsync("я вижу текст \"AuthService\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("я вижу текст \"domain\\admin\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Просмотр деталей сервиса")]
-        public async global::System.Threading.Tasks.Task ПросмотрДеталейСервиса()
+        [global::NUnit.Framework.DescriptionAttribute("Просмотр деталей пользователя")]
+        public async global::System.Threading.Tasks.Task ПросмотрДеталейПользователя()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр деталей сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр деталей пользователя", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 18
@@ -199,29 +199,33 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 19
-    await testRunner.GivenAsync("в системе существует сервис \"PayService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+    await testRunner.GivenAsync("в системе существует пользователь с именем \"svc_account\" и описанием \"Service acc" +
+                        "ount\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 20
-    await testRunner.WhenAsync("я открываю страницу деталей сервиса \"PayService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.WhenAsync("я открываю страницу деталей пользователя \"svc_account\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 21
-    await testRunner.ThenAsync("я вижу текст \"PayService\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.ThenAsync("я вижу текст \"svc_account\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 22
+    await testRunner.AndAsync("я вижу текст \"Service account\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Редактирование сервиса")]
-        public async global::System.Threading.Tasks.Task РедактированиеСервиса()
+        [global::NUnit.Framework.DescriptionAttribute("Редактирование пользователя")]
+        public async global::System.Threading.Tasks.Task РедактированиеПользователя()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Редактирование сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Редактирование пользователя", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 23
+#line 24
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -231,36 +235,36 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 24
-    await testRunner.GivenAsync("в системе существует сервис \"OldService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
-#line hidden
 #line 25
-    await testRunner.WhenAsync("я открываю страницу редактирования сервиса \"OldService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.GivenAsync("в системе существует пользователь с именем \"old_user\" и описанием \"\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 26
-    await testRunner.AndAsync("я заменяю значение поля \"Название\" на \"UpdatedService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.WhenAsync("я открываю страницу редактирования пользователя \"old_user\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 27
-    await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("я заменяю значение поля \"Название\" на \"new_user\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 28
-    await testRunner.ThenAsync("я вижу текст \"UpdatedService\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 29
+    await testRunner.ThenAsync("я вижу текст \"new_user\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Удаление сервиса")]
-        public async global::System.Threading.Tasks.Task УдалениеСервиса()
+        [global::NUnit.Framework.DescriptionAttribute("Удаление пользователя")]
+        public async global::System.Threading.Tasks.Task УдалениеПользователя()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "4";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Удаление сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Удаление пользователя", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 30
+#line 31
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -270,38 +274,36 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 31
-    await testRunner.GivenAsync("в системе существует сервис \"TempService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
-#line hidden
 #line 32
-    await testRunner.WhenAsync("я открываю страницу редактирования сервиса \"TempService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.GivenAsync("в системе существует пользователь с именем \"temp_user\" и описанием \"\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 33
-    await testRunner.AndAsync("я нажимаю кнопку \"Удалить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.WhenAsync("я открываю страницу редактирования пользователя \"temp_user\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 34
-    await testRunner.ThenAsync("я нахожусь на странице \"/services\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.AndAsync("я нажимаю кнопку \"Удалить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 35
-    await testRunner.AndAsync("на странице нет текста \"TempService\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.ThenAsync("я нахожусь на странице \"/users\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 36
+    await testRunner.AndAsync("на странице нет текста \"temp_user\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Добавление сервиса с привязкой к пользователю отображает имя пользователя в детал" +
-            "ях")]
-        public async global::System.Threading.Tasks.Task ДобавлениеСервисаСПривязкойКПользователюОтображаетИмяПользователяВДеталях()
+        [global::NUnit.Framework.DescriptionAttribute("Просмотр пользователя с группами отображается как таблица")]
+        public async global::System.Threading.Tasks.Task ПросмотрПользователяСГруппамиОтображаетсяКакТаблица()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "5";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление сервиса с привязкой к пользователю отображает имя пользователя в детал" +
-                    "ях", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр пользователя с группами отображается как таблица", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 37
+#line 38
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -311,18 +313,23 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 38
-    await testRunner.GivenAsync("в системе существует пользователь \"svc_user\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
-#line hidden
 #line 39
-    await testRunner.AndAsync("в системе существует сервис с пользователем \"SvcWithUser\" и пользователем \"svc_us" +
-                        "er\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.GivenAsync("в системе существует группа с именем \"Admins\" и описанием \"Администраторы\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 40
-    await testRunner.WhenAsync("я открываю страницу деталей сервиса \"SvcWithUser\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.AndAsync("в системе существует пользователь с именем \"admin_user\" и описанием \"\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 41
-    await testRunner.ThenAsync("я вижу текст \"svc_user\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.AndAsync("пользователь \"admin_user\" входит в группу \"Admins\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 42
+    await testRunner.WhenAsync("я открываю страницу деталей пользователя \"admin_user\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 43
+    await testRunner.ThenAsync("я вижу текст \"Группы\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 44
+    await testRunner.AndAsync("я вижу текст \"Admins\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

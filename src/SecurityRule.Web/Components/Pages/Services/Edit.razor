@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IAppServiceRepository AppServiceRepository
 @inject IServerRepository ServerRepository
+@inject IUserRepository UserRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -25,7 +26,13 @@ else
                     <MudSelectItem Value="@server.Id">@server.Name</MudSelectItem>
                 }
             </MudSelect>
-            <MudTextField @bind-Value="_service.UserName" Label="AD учётная запись" Required="true" Class="mb-3" />
+            <MudSelect T="int?" @bind-Value="_selectedUserId" Label="AD учётная запись" Clearable="true" Class="mb-3">
+                <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                @foreach (var user in _allUsers)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)user.Id)">@user.Name</MudSelectItem>
+                }
+            </MudSelect>
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -43,15 +50,19 @@ else
     [Parameter] public int Id { get; set; }
     private AppService? _service;
     private IEnumerable<Server> _allServers = [];
+    private IEnumerable<User> _allUsers = [];
     private IReadOnlyCollection<int> _selectedServerIds = [];
+    private int? _selectedUserId;
 
     protected override async Task OnInitializedAsync()
     {
         _service = await AppServiceRepository.GetByIdAsync(Id);
         _allServers = await ServerRepository.GetAllAsync();
+        _allUsers = await UserRepository.GetAllAsync();
         if (_service != null)
         {
             _selectedServerIds = _service.Servers.Select(s => s.Id).ToList();
+            _selectedUserId = _service.UserId;
         }
     }
 
@@ -60,6 +71,9 @@ else
         if (_service != null)
         {
             _service.Servers = _allServers.Where(s => _selectedServerIds.Contains(s.Id)).ToList();
+            var selectedUser = _allUsers.FirstOrDefault(u => u.Id == _selectedUserId);
+            _service.UserId = selectedUser?.Id;
+            _service.UserName = selectedUser?.Name ?? string.Empty;
             await AppServiceRepository.UpdateAsync(_service);
             Snackbar.Add("Сервис обновлён", Severity.Success);
             Navigation.NavigateTo($"/services/{Id}");

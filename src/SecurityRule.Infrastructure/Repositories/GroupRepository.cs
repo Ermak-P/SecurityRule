@@ -47,6 +47,7 @@ public class GroupRepository : IGroupRepository
     {
         var existing = await _context.Groups
             .Include(g => g.ChildGroups)
+            .Include(g => g.ParentGroups)
             .FirstOrDefaultAsync(g => g.Id == group.Id);
         if (existing == null) return;
 
@@ -59,6 +60,13 @@ public class GroupRepository : IGroupRepository
         existing.ChildGroups.Clear();
         foreach (var child in children)
             existing.ChildGroups.Add(child);
+
+        var parentIds = group.ParentGroups.Select(p => p.Id).ToList();
+        var parents = await _context.Groups.Where(g => parentIds.Contains(g.Id)).ToListAsync();
+
+        existing.ParentGroups.Clear();
+        foreach (var parent in parents)
+            existing.ParentGroups.Add(parent);
 
         await _context.SaveChangesAsync();
     }
