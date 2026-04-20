@@ -58,6 +58,7 @@ public sealed class TestWebServer : IAsyncDisposable
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IOperatingSystemRepository, SecurityRule.Infrastructure.Repositories.OperatingSystemRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IUserRepository, SecurityRule.Infrastructure.Repositories.UserRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IGroupRepository, SecurityRule.Infrastructure.Repositories.GroupRepository>();
+        builder.Services.AddScoped<SecurityRule.Domain.Interfaces.ISearchService, SecurityRule.Infrastructure.Repositories.SearchService>();
         builder.Services.AddScoped<SecurityRule.Web.Services.ThemeState>();
 
         // Listen on a random free port; no HTTPS required for tests

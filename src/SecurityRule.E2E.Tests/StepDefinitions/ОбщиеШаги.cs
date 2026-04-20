@@ -108,6 +108,16 @@ public sealed class ОбщиеШаги
             .ToBeHiddenAsync(new() { Timeout = 15_000 });
     }
 
+    /// <summary>Asserts that the current URL contains the given path segment.</summary>
+    [Then("URL страницы содержит {string}")]
+    public async Task URLСодержит(string path)
+    {
+        await Assertions
+            .Expect(_state.Page)
+            .ToHaveURLAsync(new System.Text.RegularExpressions.Regex(System.Text.RegularExpressions.Regex.Escape(path)),
+                new() { Timeout = 15_000 });
+    }
+
     /// <summary>Asserts that the current URL ends with the given path.</summary>
     [Then("я нахожусь на странице {string}")]
     public async Task НаходитьсяНаСтранице(string path)
