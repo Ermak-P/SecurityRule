@@ -21,9 +21,12 @@
         <MudPaper data-testid="search-results"
                   Elevation="8"
                   Style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10000;max-height:480px;overflow-y:auto;min-width:400px;">
-            @foreach (var group in _results.GroupBy(r => r.EntityType))
+            @{var groups = _results.GroupBy(r => r.EntityType).ToList();}
+            @for (int gi = 0; gi < groups.Count; gi++)
             {
-                <div style="display:flex;align-items:center;padding:6px 16px 4px;gap:8px;">
+                var group = groups[gi];
+                var topPad = gi == 0 ? "6px" : "14px";
+                <div style="display:flex;align-items:center;padding:@topPad 16px 4px;gap:8px;border-top:@(gi == 0 ? "none" : "1px solid var(--mud-palette-divider)");">
                     <div style="font-size:0.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.75;white-space:nowrap;">
                         @group.Key
                     </div>

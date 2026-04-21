@@ -69,7 +69,7 @@ else
             Входит в группы (AD)
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4">
-            <AdGroupsTable Items="@_parentGroups" Elevation="0" />
+            <AdGroupsTable Items="@_parentGroups" Elevation="0" Nested="@Embedded" />
         </MudPaper>
     }
 
@@ -80,7 +80,7 @@ else
             Дочерние группы (AD)
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4">
-            <AdGroupsTable Items="@_childGroups" Elevation="0" />
+            <AdGroupsTable Items="@_childGroups" Elevation="0" Nested="@Embedded" />
         </MudPaper>
     }
 
@@ -91,7 +91,7 @@ else
             Пользователи (AD)
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4">
-            <SecurityRule.Web.Components.Pages.Users.AdUsersTable Items="@_memberUsers" Elevation="0" />
+            <SecurityRule.Web.Components.Pages.Users.AdUsersTable Items="@_memberUsers" Elevation="0" Nested="@Embedded" />
         </MudPaper>
     }
 }

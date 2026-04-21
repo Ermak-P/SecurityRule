@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
-@inject IDialogService DialogService
 
 @if (_displayService == null)
 {
@@ -37,10 +36,11 @@ else
                     <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
                     @if (!string.IsNullOrWhiteSpace(_displayService.UserName))
                     {
-                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
+                        <MudButton Variant="Variant.Text" Size="Size.Small"
+                                   Color="@(_userExpanded ? Color.Primary : Color.Default)"
                                    StartIcon="@Icons.Material.Filled.AccountCircle"
                                    Style="margin-left: -6px;"
-                                   OnClick="@OpenUserDialog">
+                                   OnClick="@ToggleUser">
                             @_displayService.UserName
                         </MudButton>
                     }
@@ -72,6 +72,24 @@ else
         </MudCardContent>
     </MudCard>
 
+    @if (_userExpanded && !string.IsNullOrWhiteSpace(_displayService.UserName))
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Class="mr-1" />
+            AD учётная запись
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden mb-4" style="border-left: 3px solid var(--mud-palette-tertiary);">
+            @if (_displayService.UserId.HasValue)
+            {
+                <SecurityRule.Web.Components.Pages.Users.Details Id="@_displayService.UserId.Value" Embedded="true" />
+            }
+            else
+            {
+                <SecurityRule.Web.Components.Pages.Users.Details UserName="@_displayService.UserName" Embedded="true" />
+            }
+        </MudPaper>
+    }
+
     <MudText Typo="Typo.h6" Class="mb-2">
         <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Class="mr-1" />
         Серверы
@@ -88,6 +106,7 @@ else
 
     private AppService? _displayService;
     private List<BreadcrumbItem> _breadcrumbs = [];
+    private bool _userExpanded;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,17 +125,5 @@ else
         }
     }
 
-    private async Task OpenUserDialog()
-    {
-        if (_displayService == null) return;
-        var parameters = new DialogParameters<UserDetailsDialog>
-        {
-            { p => p.UserId, _displayService.UserId },
-            { p => p.AccountName, _displayService.UserName }
-        };
-        await DialogService.ShowAsync<UserDetailsDialog>(
-            "AD учётная запись",
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
-    }
+    private void ToggleUser() => _userExpanded = !_userExpanded;
 }
