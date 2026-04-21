@@ -1,0 +1,101 @@
+@page "/firewall-rules/{Id:int}"
+@rendermode InteractiveServer
+@inject IFirewallRuleRepository FirewallRuleRepository
+@inject NavigationManager Navigation
+
+@if (_displayRule == null)
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Правило фаервола — ...</PageTitle>
+    }
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Правило фаервола — @_displayRule.SourceIp → @_displayRule.DestinationIp</PageTitle>
+        <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" />
+                <MudText Typo="Typo.h4">@_displayRule.SourceIp → @_displayRule.DestinationIp</MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => Navigation.NavigateTo($"/firewall-rules/edit/{_displayRule.Id}"))">
+                Редактировать
+            </MudButton>
+        </MudStack>
+    }
+
+    <MudCard Class="mb-4" Elevation="@(Embedded ? 0 : 1)">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Исходящий IP</MudText>
+                    <MudText Typo="Typo.body1">@_displayRule.SourceIp</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Входящий IP</MudText>
+                    <MudText Typo="Typo.body1">@_displayRule.DestinationIp</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Истекает</MudText>
+                    <MudText Typo="Typo.body1">
+                        @_displayRule.ExpiresAt.ToString("dd.MM.yyyy")
+                        @if (_displayRule.ExpiresAt < DateTime.Now)
+                        {
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ml-1">Истёк</MudChip>
+                        }
+                        else if (_displayRule.ExpiresAt < DateTime.Now.AddDays(30))
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="ml-1">Скоро истекает</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="ml-1">Активен</MudChip>
+                        }
+                    </MudText>
+                </MudItem>
+                @if (!string.IsNullOrWhiteSpace(_displayRule.Description))
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
+                        <MudText Typo="Typo.body1">@_displayRule.Description</MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public FirewallRule? Rule { get; set; }
+    [Parameter] public bool Embedded { get; set; } = false;
+
+    private FirewallRule? _displayRule;
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Rule is not null)
+        {
+            _displayRule = Rule;
+        }
+        else
+        {
+            _displayRule = await FirewallRuleRepository.GetByIdAsync(Id);
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Правила фаервола", href: "/firewall-rules"),
+                new BreadcrumbItem(
+                    _displayRule is not null
+                        ? $"{_displayRule.SourceIp} → {_displayRule.DestinationIp}"
+                        : Id.ToString(),
+                    href: null, disabled: true)
+            ];
+        }
+    }
+}

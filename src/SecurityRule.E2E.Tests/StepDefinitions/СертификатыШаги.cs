@@ -45,6 +45,13 @@ public sealed class СертификатыШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/create");
     }
 
+    [When("я открываю страницу деталей сертификата {string}")]
+    public async Task ОткрытьСтраницуДеталейСертификата(string description)
+    {
+        var id = await GetCertificateIdAsync(description);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/{id}");
+    }
+
     [When("я открываю страницу редактирования сертификата {string}")]
     public async Task ОткрытьСтраницуРедактированияСертификата(string description)
     {

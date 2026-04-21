@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 6);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 7);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -140,13 +140,13 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Добавление нового правила фаервола")]
-        public async global::System.Threading.Tasks.Task ДобавлениеНовогоПравилаФаервола()
+        [global::NUnit.Framework.DescriptionAttribute("Просмотр деталей правила фаервола")]
+        public async global::System.Threading.Tasks.Task ПросмотрДеталейПравилаФаервола()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление нового правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр деталей правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 11
@@ -160,21 +160,58 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 12
-    await testRunner.WhenAsync("я перехожу на страницу добавления правила фаервола", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.GivenAsync("в системе существует правило фаервола SourceIp \"10.1.1.1\" DestIp \"10.1.1.2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 13
-    await testRunner.AndAsync("я заполняю поле \"Исходящий IP адрес\" значением \"192.168.1.100\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.WhenAsync("я открываю страницу деталей правила фаервола SourceIp \"10.1.1.1\" DestIp \"10.1.1.2" +
+                        "\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 14
-    await testRunner.AndAsync("я заполняю поле \"Входящий IP адрес\" значением \"10.10.10.10\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.ThenAsync("я вижу текст \"10.1.1.1\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
 #line 15
+    await testRunner.AndAsync("я вижу текст \"10.1.1.2\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Добавление нового правила фаервола")]
+        public async global::System.Threading.Tasks.Task ДобавлениеНовогоПравилаФаервола()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "2";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление нового правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 17
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 18
+    await testRunner.WhenAsync("я перехожу на страницу добавления правила фаервола", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 19
+    await testRunner.AndAsync("я заполняю поле \"Исходящий IP адрес\" значением \"192.168.1.100\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 20
+    await testRunner.AndAsync("я заполняю поле \"Входящий IP адрес\" значением \"10.10.10.10\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 21
     await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 16
+#line 22
     await testRunner.ThenAsync("я нахожусь на странице \"/firewall-rules\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 17
+#line 23
     await testRunner.AndAsync("я вижу текст \"192.168.1.100\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
@@ -187,11 +224,11 @@ namespace SecurityRule.E2E.Tests.Features
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
-            string pickleIndex = "2";
+            string pickleIndex = "3";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Редактирование правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 19
+#line 25
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -201,20 +238,20 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 20
+#line 26
     await testRunner.GivenAsync("в системе существует правило фаервола SourceIp \"10.0.0.1\" DestIp \"10.0.0.2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 21
+#line 27
     await testRunner.WhenAsync("я открываю страницу редактирования правила фаервола SourceIp \"10.0.0.1\" DestIp \"1" +
                         "0.0.0.2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 22
+#line 28
     await testRunner.AndAsync("я заменяю значение поля \"Исходящий IP адрес\" на \"172.16.0.1\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 23
+#line 29
     await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 24
+#line 30
     await testRunner.ThenAsync("я вижу текст \"172.16.0.1\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
@@ -227,11 +264,11 @@ namespace SecurityRule.E2E.Tests.Features
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
-            string pickleIndex = "3";
+            string pickleIndex = "4";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Удаление правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 26
+#line 32
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -241,20 +278,20 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 27
+#line 33
     await testRunner.GivenAsync("в системе существует правило фаервола SourceIp \"10.0.5.1\" DestIp \"10.0.5.2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 28
+#line 34
     await testRunner.WhenAsync("я открываю страницу редактирования правила фаервола SourceIp \"10.0.5.1\" DestIp \"1" +
                         "0.0.5.2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 29
+#line 35
     await testRunner.AndAsync("я нажимаю кнопку \"Удалить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 30
+#line 36
     await testRunner.ThenAsync("я нахожусь на странице \"/firewall-rules\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 31
+#line 37
     await testRunner.AndAsync("на странице нет текста \"10.0.5.1\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }

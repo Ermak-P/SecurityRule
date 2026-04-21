@@ -46,6 +46,13 @@ public sealed class ПравилаБрандмауэраШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/firewall-rules/create");
     }
 
+    [When("я открываю страницу деталей правила фаервола SourceIp {string} DestIp {string}")]
+    public async Task ОткрытьСтраницуДеталейПравилаФаервола(string sourceIp, string destIp)
+    {
+        var id = await GetFirewallRuleIdAsync(sourceIp, destIp);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/firewall-rules/{id}");
+    }
+
     [When("я открываю страницу редактирования правила фаервола SourceIp {string} DestIp {string}")]
     public async Task ОткрытьСтраницуРедактированияПравилаФаервола(string sourceIp, string destIp)
     {

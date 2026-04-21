@@ -1,0 +1,102 @@
+@page "/certificates/{Id:int}"
+@rendermode InteractiveServer
+@inject ICertificateRepository CertificateRepository
+@inject NavigationManager Navigation
+
+@if (_displayCertificate == null)
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Сертификат — ...</PageTitle>
+    }
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Сертификат — @_displayCertificate.Description</PageTitle>
+        <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.CardMembership" Color="Color.Warning" />
+                <MudText Typo="Typo.h4">@_displayCertificate.Description</MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => Navigation.NavigateTo($"/certificates/edit/{_displayCertificate.Id}"))">
+                Редактировать
+            </MudButton>
+        </MudStack>
+    }
+
+    <MudCard Class="mb-4" Elevation="@(Embedded ? 0 : 1)">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
+                    <MudText Typo="Typo.body1">@_displayCertificate.Description</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Выдан</MudText>
+                    <MudText Typo="Typo.body1">@_displayCertificate.IssuedAt.ToString("dd.MM.yyyy")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Истекает</MudText>
+                    <MudText Typo="Typo.body1">
+                        @_displayCertificate.ExpiresAt.ToString("dd.MM.yyyy")
+                        @if (_displayCertificate.ExpiresAt < DateTime.Now)
+                        {
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ml-1">Истёк</MudChip>
+                        }
+                        else if (_displayCertificate.ExpiresAt < DateTime.Now.AddDays(30))
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="ml-1">Скоро истекает</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="ml-1">Активен</MudChip>
+                        }
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Количество сервисов</MudText>
+                    <MudText Typo="Typo.body1">@_displayCertificate.Services.Count</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <MudText Typo="Typo.h6" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
+        Сервисы
+    </MudText>
+    <MudPaper Elevation="2" Class="overflow-hidden">
+        <SecurityRule.Web.Components.Pages.Services.Table Items="@_displayCertificate.Services" Elevation="0" />
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public Certificate? Certificate { get; set; }
+    [Parameter] public bool Embedded { get; set; } = false;
+
+    private Certificate? _displayCertificate;
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Certificate is not null)
+        {
+            _displayCertificate = Certificate;
+        }
+        else
+        {
+            _displayCertificate = await CertificateRepository.GetByIdAsync(Id);
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Сертификаты", href: "/certificates"),
+                new BreadcrumbItem(_displayCertificate?.Description ?? Id.ToString(), href: null, disabled: true)
+            ];
+        }
+    }
+}

@@ -1,0 +1,73 @@
+@inject NavigationManager Navigation
+
+<MudTable T="FirewallRule" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@ToggleRow">
+    <HeaderContent>
+        <MudTh>Исходящий IP</MudTh>
+        <MudTh>Входящий IP</MudTh>
+        <MudTh>Истекает</MudTh>
+        <MudTh>Статус</MudTh>
+        <MudTh>Описание</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Исходящий IP">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Color="Color.Primary" />
+                @context.SourceIp
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="Входящий IP">@context.DestinationIp</MudTd>
+        <MudTd DataLabel="Истекает">@context.ExpiresAt.ToString("dd.MM.yyyy")</MudTd>
+        <MudTd DataLabel="Статус">
+            @if (context.ExpiresAt < DateTime.Now)
+            {
+                <MudChip T="string" Color="Color.Error" Size="Size.Small">Истёк</MudChip>
+            }
+            else if (context.ExpiresAt < DateTime.Now.AddDays(30))
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small">Скоро истекает</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">Активен</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="Описание">@context.Description</MudTd>
+        <MudTd Style="text-align:right">
+            <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                               Title="Редактировать"
+                               OnClick="@(() => Navigation.NavigateTo($"/firewall-rules/edit/{context.Id}"))" />
+            </span>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="rule">
+        @if (_expandedRows.Contains(rule.Id))
+        {
+            <MudTr>
+                <td colspan="6" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-primary); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        <Details Rule="rule" Embedded="true" />
+                    </div>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<FirewallRule> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+
+    private readonly HashSet<int> _expandedRows = [];
+
+    private void ToggleRow(TableRowClickEventArgs<FirewallRule> args)
+    {
+        if (args.Item is null) return;
+        var id = args.Item.Id;
+        if (!_expandedRows.Remove(id))
+            _expandedRows.Add(id);
+    }
+}
