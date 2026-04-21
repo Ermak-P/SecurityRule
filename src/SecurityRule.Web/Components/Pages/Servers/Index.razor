@@ -2,16 +2,15 @@
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 
 <PageTitle>Серверы</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Серверы</MudText>
-
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-           OnClick="@(() => Navigation.NavigateTo("/servers/create"))" Class="mb-4">
-    Добавить сервер
-</MudButton>
+<MudStack Row="true" Spacing="1">
+    <MudText Typo="Typo.h4" GutterBottom="true">Серверы</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                   Title="Добавить"
+                   OnClick="@(() => Navigation.NavigateTo($"/servers/create"))" />
+</MudStack>
 
 @if (_loading)
 {
@@ -19,27 +18,7 @@
 }
 else
 {
-    <MudTable Items="@_servers" Hover="true" Striped="true" Dense="true">
-        <HeaderContent>
-            <MudTh>Название</MudTh>
-            <MudTh>IP адрес</MudTh>
-            <MudTh>Операционная система</MudTh>
-            <MudTh>Сервисы</MudTh>
-            <MudTh>Действия</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Название">@context.Name</MudTd>
-            <MudTd DataLabel="IP адрес">@context.IpAddress</MudTd>
-            <MudTd DataLabel="Операционная система">@context.OperatingSystem</MudTd>
-            <MudTd DataLabel="Сервисы">@context.Services.Count</MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
-                               OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{context.Id}"))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                               OnClick="@(() => DeleteServer(context.Id))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    <Table Items="_servers" />
 }
 
 @code {
@@ -56,12 +35,5 @@ else
         _loading = true;
         _servers = await ServerRepository.GetAllAsync();
         _loading = false;
-    }
-
-    private async Task DeleteServer(int id)
-    {
-        await ServerRepository.DeleteAsync(id);
-        Snackbar.Add("Сервер удалён", Severity.Success);
-        await LoadData();
     }
 }

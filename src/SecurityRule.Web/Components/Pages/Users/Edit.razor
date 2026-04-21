@@ -1,0 +1,66 @@
+@page "/users/edit/{Id:int}"
+@rendermode InteractiveServer
+@inject IUserRepository UserRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Редактировать пользователя</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Редактировать пользователя</MudText>
+
+@if (_user == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard>
+        <MudCardContent>
+            <MudTextField @bind-Value="_user.Name" Label="Название" HelperText="например, domain\user" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_user.Description" Label="Описание" Lines="3" Class="mb-3" />
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo($"/users/{Id}"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private User? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await UserRepository.GetByIdAsync(Id);
+    }
+
+    private async Task Save()
+    {
+        if (_user != null)
+        {
+            await UserRepository.UpdateAsync(_user);
+            Snackbar.Add("Пользователь обновлён", Severity.Success);
+            Navigation.NavigateTo($"/users/{Id}");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await UserRepository.DeleteAsync(Id);
+            Snackbar.Add("Пользователь удалён", Severity.Success);
+            Navigation.NavigateTo("/users");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка при удалении пользователя: {ex.Message}", Severity.Error);
+        }
+    }
+}

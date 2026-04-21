@@ -1,0 +1,165 @@
+@page "/groups/{Id:int}"
+@page "/groups/name/{GroupName}"
+@rendermode InteractiveServer
+@using SecurityRule.Web.Components.Pages.Users
+@inject IGroupRepository GroupRepository
+@inject IUserRepository UserRepository
+@inject IAdService AdService
+@inject NavigationManager Navigation
+
+@if (!_loaded)
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Группа — ...</PageTitle>
+    }
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Группа — @_displayName</PageTitle>
+        <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Tertiary" />
+                <MudText Typo="Typo.h4">@_displayName</MudText>
+            </MudStack>
+            @if (_group != null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => Navigation.NavigateTo($"/groups/edit/{_group.Id}"))">
+                    Редактировать
+                </MudButton>
+            }
+        </MudStack>
+    }
+
+    <MudCard Class="mb-4" Elevation="@(Embedded ? 0 : 1)">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Название</MudText>
+                    <MudText Typo="Typo.body1">@_displayName</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Дочерних групп (AD)</MudText>
+                    <MudText Typo="Typo.body1">@_childGroups.Count</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Пользователей (AD)</MudText>
+                    <MudText Typo="Typo.body1">@_memberUsers.Count</MudText>
+                </MudItem>
+                @if (!string.IsNullOrWhiteSpace(_group?.Description))
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
+                        <MudText Typo="Typo.body1">@_group!.Description</MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    @if (_parentGroups.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" Class="mr-1" />
+            Входит в группы (AD)
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden mb-4">
+            <AdGroupsTable Items="@_parentGroups" Elevation="0" Nested="@Embedded" />
+        </MudPaper>
+    }
+
+    @if (_childGroups.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Small" Class="mr-1" />
+            Дочерние группы (AD)
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden mb-4">
+            <AdGroupsTable Items="@_childGroups" Elevation="0" Nested="@Embedded" />
+        </MudPaper>
+    }
+
+    @if (_memberUsers.Count > 0)
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-1" />
+            Пользователи (AD)
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden mb-4">
+            <SecurityRule.Web.Components.Pages.Users.AdUsersTable Items="@_memberUsers" Elevation="0" Nested="@Embedded" />
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public string? GroupName { get; set; }
+    [Parameter] public Group? Group { get; set; }
+    [Parameter] public bool Embedded { get; set; } = false;
+
+    private Group? _group;
+    private string _displayName = string.Empty;
+    private List<AdGroupsTable.AdGroupItem> _parentGroups = [];
+    private List<AdGroupsTable.AdGroupItem> _childGroups = [];
+    private List<SecurityRule.Web.Components.Pages.Users.AdUsersTable.AdUserItem> _memberUsers = [];
+    private List<BreadcrumbItem> _breadcrumbs = [];
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Group is not null)
+        {
+            _group = Group;
+        }
+        else if (GroupName is not null)
+        {
+            var all = await GroupRepository.GetAllAsync();
+            _group = all.FirstOrDefault(g =>
+                string.Equals(g.Name, GroupName, StringComparison.OrdinalIgnoreCase));
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Группы", href: "/groups"),
+                new BreadcrumbItem(GroupName, href: null, disabled: true)
+            ];
+        }
+        else
+        {
+            _group = await GroupRepository.GetByIdAsync(Id);
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Группы", href: "/groups"),
+                new BreadcrumbItem(_group?.Name ?? Id.ToString(), href: null, disabled: true)
+            ];
+        }
+
+        _displayName = _group?.Name ?? GroupName ?? Id.ToString();
+
+        var allDbGroups = await GroupRepository.GetAllAsync();
+        var allDbUsers = await UserRepository.GetAllAsync();
+        var dbGroupsByName = allDbGroups.ToDictionary(g => g.Name, StringComparer.OrdinalIgnoreCase);
+        var dbUsersByName = allDbUsers.ToDictionary(u => u.Name, StringComparer.OrdinalIgnoreCase);
+
+        var parentNames = await AdService.GetGroupParentGroupNamesAsync(_displayName);
+        _parentGroups = parentNames
+            .Select(n => new AdGroupsTable.AdGroupItem(n, dbGroupsByName.TryGetValue(n, out var g) ? g : null))
+            .ToList();
+
+        var childNames = await AdService.GetGroupChildGroupNamesAsync(_displayName);
+        _childGroups = childNames
+            .Select(n => new AdGroupsTable.AdGroupItem(n, dbGroupsByName.TryGetValue(n, out var g) ? g : null))
+            .ToList();
+
+        var memberNames = await AdService.GetGroupMemberUserNamesAsync(_displayName);
+        _memberUsers = memberNames
+            .Select(n => new SecurityRule.Web.Components.Pages.Users.AdUsersTable.AdUserItem(
+                n, dbUsersByName.TryGetValue(n, out var u) ? u : null))
+            .ToList();
+
+        _loaded = true;
+    }
+}

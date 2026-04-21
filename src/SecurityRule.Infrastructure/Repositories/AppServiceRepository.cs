@@ -16,13 +16,17 @@ public class AppServiceRepository : IAppServiceRepository
 
     public async Task<IEnumerable<AppService>> GetAllAsync()
         => await _context.AppServices
-            .Include(s => s.Server)
+            .Include(s => s.User)
+            .Include(s => s.Servers)
+                .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
             .ToListAsync();
 
     public async Task<AppService?> GetByIdAsync(int id)
         => await _context.AppServices
-            .Include(s => s.Server)
+            .Include(s => s.User)
+            .Include(s => s.Servers)
+                .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
             .FirstOrDefaultAsync(s => s.Id == id);
 
@@ -34,7 +38,23 @@ public class AppServiceRepository : IAppServiceRepository
 
     public async Task UpdateAsync(AppService service)
     {
-        _context.AppServices.Update(service);
+        var existing = await _context.AppServices
+            .Include(s => s.Servers)
+            .FirstOrDefaultAsync(s => s.Id == service.Id);
+        if (existing == null) return;
+
+        existing.Name = service.Name;
+        existing.UserName = service.UserName;
+
+        var serverIds = service.Servers.Select(s => s.Id).ToList();
+        var trackedServers = await _context.Servers
+            .Where(s => serverIds.Contains(s.Id))
+            .ToListAsync();
+
+        existing.Servers.Clear();
+        foreach (var server in trackedServers)
+            existing.Servers.Add(server);
+
         await _context.SaveChangesAsync();
     }
 

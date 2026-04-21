@@ -1,57 +1,248 @@
 @page "/"
+@rendermode InteractiveServer
+@inject IServerRepository ServerRepository
+@inject IAppServiceRepository AppServiceRepository
+@inject ICertificateRepository CertificateRepository
+@inject IFirewallRuleRepository FirewallRuleRepository
+@inject NavigationManager Navigation
 
-<PageTitle>SecurityRule - Главная</PageTitle>
+<PageTitle>SecurityRule — Дашборд</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Добро пожаловать в SecurityRule</MudText>
-<MudText Typo="Typo.body1">Система управления информацией безопасности.</MudText>
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+}
 
-<MudGrid Class="mt-4">
+<MudText Typo="Typo.h4" Class="mb-0">Дашборд</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Обзор состояния инфраструктуры безопасности</MudText>
+
+<MudGrid Spacing="2" Class="mb-4">
     <MudItem xs="12" sm="6" md="3">
-        <MudCard>
-            <MudCardContent>
-                <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Large" Color="Color.Primary" />
-                <MudText Typo="Typo.h6">Серверы</MudText>
-                <MudText Typo="Typo.body2">Управление серверами и их сервисами</MudText>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/servers" Variant="Variant.Text" Color="Color.Primary">Перейти</MudButton>
-            </MudCardActions>
-        </MudCard>
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/servers"))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined">
+                    <MudIcon Icon="@Icons.Material.Filled.Dns" />
+                </MudAvatar>
+                <div>
+                    <MudText Class="stat-number">@_serverCount</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>
+                </div>
+            </MudStack>
+        </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudCard>
-            <MudCardContent>
-                <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Typo="Typo.h6">Сервисы</MudText>
-                <MudText Typo="Typo.body2">Управление сервисами и учётными записями AD</MudText>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/services" Variant="Variant.Text" Color="Color.Secondary">Перейти</MudButton>
-            </MudCardActions>
-        </MudCard>
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/services"))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
+                <MudAvatar Color="Color.Secondary" Variant="Variant.Outlined">
+                    <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" />
+                </MudAvatar>
+                <div>
+                    <MudText Class="stat-number">@_serviceCount</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Сервисов</MudText>
+                </div>
+            </MudStack>
+        </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudCard>
-            <MudCardContent>
-                <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Large" Color="Color.Success" />
-                <MudText Typo="Typo.h6">Сертификаты</MudText>
-                <MudText Typo="Typo.body2">Управление сертификатами и сроками их действия</MudText>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/certificates" Variant="Variant.Text" Color="Color.Success">Перейти</MudButton>
-            </MudCardActions>
-        </MudCard>
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/certificates"))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
+                <MudAvatar Color="@(_expiredCertCount > 0 ? Color.Error : Color.Success)" Variant="Variant.Outlined">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" />
+                </MudAvatar>
+                <div>
+                    <MudText Class="stat-number">@_certCount</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Сертификатов</MudText>
+                </div>
+            </MudStack>
+        </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudCard>
-            <MudCardContent>
-                <MudIcon Icon="@Icons.Material.Filled.Shield" Size="Size.Large" Color="Color.Warning" />
-                <MudText Typo="Typo.h6">Правила фаервола</MudText>
-                <MudText Typo="Typo.body2">Управление правилами фаервола</MudText>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/firewall-rules" Variant="Variant.Text" Color="Color.Warning">Перейти</MudButton>
-            </MudCardActions>
-        </MudCard>
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/firewall-rules"))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
+                <MudAvatar Color="@(_expiredRuleCount > 0 ? Color.Error : Color.Warning)" Variant="Variant.Outlined">
+                    <MudIcon Icon="@Icons.Material.Filled.Shield" />
+                </MudAvatar>
+                <div>
+                    <MudText Class="stat-number">@_ruleCount</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Правил фаервола</MudText>
+                </div>
+            </MudStack>
+        </MudPaper>
     </MudItem>
 </MudGrid>
+
+@if (!_loading && (_expiredCertCount > 0 || _soonCertCount > 0 || _expiredRuleCount > 0 || _soonRuleCount > 0))
+{
+    <div class="section-label mb-2">ТРЕБУЮТ ВНИМАНИЯ</div>
+    <MudGrid Spacing="2" Class="mb-4">
+        @if (_expiredCertCount > 0)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudAlert Severity="Severity.Error" Class="py-2">
+                    <strong>@_expiredCertCount</strong> сертификат(ов) истёк
+                </MudAlert>
+            </MudItem>
+        }
+        @if (_soonCertCount > 0)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudAlert Severity="Severity.Warning" Class="py-2">
+                    <strong>@_soonCertCount</strong> сертификат(ов) истекает в ближайшие 30 дней
+                </MudAlert>
+            </MudItem>
+        }
+        @if (_expiredRuleCount > 0)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudAlert Severity="Severity.Error" Class="py-2">
+                    <strong>@_expiredRuleCount</strong> правил(о) фаервола истёкло
+                </MudAlert>
+            </MudItem>
+        }
+        @if (_soonRuleCount > 0)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudAlert Severity="Severity.Warning" Class="py-2">
+                    <strong>@_soonRuleCount</strong> правил(о) фаервола истекает в ближайшие 30 дней
+                </MudAlert>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+<MudGrid Spacing="2">
+    <MudItem xs="12" md="6">
+        <MudPaper Outlined="true" Class="panel-card">
+            <div class="panel-header">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle2">Серверы</MudText>
+                </MudStack>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                           OnClick="@(() => Navigation.NavigateTo("/servers"))">Все →</MudButton>
+            </div>
+            @if (_recentServers.Any())
+            {
+                <MudSimpleTable Dense="true" Hover="true" Style="background:transparent;">
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>IP адрес</th>
+                            <th>ОС</th>
+                            <th>Сервисы</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var server in _recentServers)
+                        {
+                            <tr class="clickable-row" @onclick="@(() => Navigation.NavigateTo($"/servers/{server.Id}"))">
+                                <td>@server.Name</td>
+                                <td class="text-secondary">@server.IpAddress</td>
+                                <td class="text-secondary">@server.OperatingSystem</td>
+                                <td>
+                                    @if (server.Services.Any())
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@server.Services.Count</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else if (!_loading)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-3">Серверы не найдены</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Outlined="true" Class="panel-card">
+            <div class="panel-header">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Color="Color.Success" />
+                    <MudText Typo="Typo.subtitle2">Сертификаты</MudText>
+                </MudStack>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                           OnClick="@(() => Navigation.NavigateTo("/certificates"))">Все →</MudButton>
+            </div>
+            @if (_recentCerts.Any())
+            {
+                <MudSimpleTable Dense="true" Hover="true" Style="background:transparent;">
+                    <thead>
+                        <tr>
+                            <th>Описание</th>
+                            <th>Истекает</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cert in _recentCerts)
+                        {
+                            <tr>
+                                <td>@cert.Description</td>
+                                <td class="text-secondary">@cert.ExpiresAt.ToString("dd.MM.yyyy")</td>
+                                <td>
+                                    @if (cert.ExpiresAt < DateTime.Now)
+                                    {
+                                        <MudChip T="string" Color="Color.Error" Size="Size.Small">Истёк</MudChip>
+                                    }
+                                    else if (cert.ExpiresAt < DateTime.Now.AddDays(30))
+                                    {
+                                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">Скоро</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Активен</MudChip>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else if (!_loading)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-3">Сертификаты не найдены</MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private bool _loading = true;
+    private int _serverCount, _serviceCount, _certCount, _ruleCount;
+    private int _expiredCertCount, _soonCertCount, _expiredRuleCount, _soonRuleCount;
+    private IList<Server> _recentServers = [];
+    private IList<Certificate> _recentCerts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var now = DateTime.Now;
+
+        var servers  = (await ServerRepository.GetAllAsync()).ToList();
+        var services = (await AppServiceRepository.GetAllAsync()).ToList();
+        var certs    = (await CertificateRepository.GetAllAsync()).ToList();
+        var rules    = (await FirewallRuleRepository.GetAllAsync()).ToList();
+
+        _serverCount  = servers.Count;
+        _serviceCount = services.Count;
+        _certCount    = certs.Count;
+        _ruleCount    = rules.Count;
+
+        _expiredCertCount = certs.Count(c => c.ExpiresAt < now);
+        _soonCertCount    = certs.Count(c => c.ExpiresAt >= now && c.ExpiresAt < now.AddDays(30));
+        _expiredRuleCount = rules.Count(r => r.ExpiresAt < now);
+        _soonRuleCount    = rules.Count(r => r.ExpiresAt >= now && r.ExpiresAt < now.AddDays(30));
+
+        _recentServers = servers.Take(6).ToList();
+        _recentCerts   = certs.OrderBy(c => c.ExpiresAt).Take(6).ToList();
+
+        _loading = false;
+    }
+}

@@ -1,0 +1,31 @@
+@page "/groups/create"
+@rendermode InteractiveServer
+@inject IGroupRepository GroupRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Добавить группу</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Добавить группу</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="_group.Name" Label="Название" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_group.Description" Label="Описание" Lines="3" Class="mb-3" />
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/groups"))">Отмена</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private Group _group = new();
+
+    private async Task Save()
+    {
+        await GroupRepository.AddAsync(_group);
+        Snackbar.Add("Группа добавлена", Severity.Success);
+        Navigation.NavigateTo("/groups");
+    }
+}

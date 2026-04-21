@@ -23,6 +23,11 @@ else
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
             <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/certificates"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
         </MudCardActions>
     </MudCard>
 }
@@ -52,6 +57,20 @@ else
             await CertificateRepository.UpdateAsync(_certificate);
             Snackbar.Add("Сертификат обновлён", Severity.Success);
             Navigation.NavigateTo("/certificates");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await CertificateRepository.DeleteAsync(Id);
+            Snackbar.Add("Сертификат удалён", Severity.Success);
+            Navigation.NavigateTo("/certificates");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка при удалении сертификата: {ex.Message}", Severity.Error);
         }
     }
 }

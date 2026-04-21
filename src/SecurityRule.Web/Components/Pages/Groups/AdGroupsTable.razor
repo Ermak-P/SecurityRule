@@ -1,0 +1,77 @@
+@inject NavigationManager Navigation
+
+<MudTable T="AdGroupItem" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@OnRowClick" Style="cursor:pointer">
+    <HeaderContent>
+        <MudTh>Название</MudTh>
+        <MudTh>В базе данных</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Название">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                @if (!Nested)
+                {
+                    <MudIcon Icon="@(_expandedRows.Contains(context.Name) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                }
+                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Color="Color.Secondary" />
+                @context.Name
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="В базе данных">
+            @if (context.DbGroup != null)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" Title="Есть в БД" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.Cloud" Size="Size.Small" Color="Color.Default" Title="Только в AD" />
+            }
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="item">
+        @if (!Nested && _expandedRows.Contains(item.Name))
+        {
+            <MudTr>
+                <td colspan="2" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-secondary); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        @if (item.DbGroup != null)
+                        {
+                            <Details Group="item.DbGroup" Embedded="true" />
+                        }
+                        else
+                        {
+                            <Details GroupName="item.Name" Embedded="true" />
+                        }
+                    </div>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<AdGroupItem> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+    [Parameter] public bool Nested { get; set; } = false;
+
+    public record AdGroupItem(string Name, Group? DbGroup);
+
+    private readonly HashSet<string> _expandedRows = [];
+
+    private void OnRowClick(TableRowClickEventArgs<AdGroupItem> args)
+    {
+        if (args.Item is null) return;
+        if (Nested)
+        {
+            if (args.Item.DbGroup != null)
+                Navigation.NavigateTo($"/groups/{args.Item.DbGroup.Id}");
+            else
+                Navigation.NavigateTo($"/groups/name/{Uri.EscapeDataString(args.Item.Name)}");
+        }
+        else
+        {
+            if (!_expandedRows.Remove(args.Item.Name))
+                _expandedRows.Add(args.Item.Name);
+        }
+    }
+}

@@ -1,6 +1,8 @@
 @page "/servers/edit/{Id:int}"
 @rendermode InteractiveServer
 @inject IServerRepository ServerRepository
+@inject IAppServiceRepository AppServiceRepository
+@inject IOperatingSystemRepository OperatingSystemRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -18,11 +20,26 @@ else
         <MudCardContent>
             <MudTextField @bind-Value="_server.Name" Label="Название" Required="true" Class="mb-3" />
             <MudTextField @bind-Value="_server.IpAddress" Label="IP адрес" Required="true" Class="mb-3" />
-            <MudTextField @bind-Value="_server.OperatingSystem" Label="Операционная система" Required="true" Class="mb-3" />
+            <MudAutocomplete T="string" @bind-Value="_server.OperatingSystem"
+                             Label="Операционная система" Required="true" Class="mb-3"
+                             SearchFunc="@SearchOs" CoerceText="true" />
+            <MudTextField @bind-Value="_server.Description" Label="Описание" Lines="3" Class="mb-3" />
+            <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServiceIds"
+                       Label="Сервисы" Class="mb-3">
+                @foreach (var service in _allServices)
+                {
+                    <MudSelectItem Value="@service.Id">@service.Name</MudSelectItem>
+                }
+            </MudSelect>
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
-            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/servers"))">Отмена</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo($"/servers/{Id}"))">Отмена</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@Delete">
+                Удалить
+            </MudButton>
         </MudCardActions>
     </MudCard>
 }
@@ -30,19 +47,50 @@ else
 @code {
     [Parameter] public int Id { get; set; }
     private Server? _server;
+    private IEnumerable<AppService> _allServices = [];
+    private IReadOnlyCollection<int> _selectedServiceIds = [];
+    private IEnumerable<string> _osOptions = [];
 
     protected override async Task OnInitializedAsync()
     {
         _server = await ServerRepository.GetByIdAsync(Id);
+        _allServices = await AppServiceRepository.GetAllAsync();
+        _osOptions = (await OperatingSystemRepository.GetAllAsync()).Select(o => o.Name);
+        if (_server != null)
+        {
+            _selectedServiceIds = _server.Services.Select(s => s.Id).ToArray();
+        }
+    }
+
+    private Task<IEnumerable<string>> SearchOs(string value, CancellationToken _)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(_osOptions);
+        return Task.FromResult(_osOptions.Where(o => o.Contains(value, StringComparison.OrdinalIgnoreCase)));
     }
 
     private async Task Save()
     {
         if (_server != null)
         {
+            _server.Services = _allServices.Where(s => _selectedServiceIds.Contains(s.Id)).ToList();
             await ServerRepository.UpdateAsync(_server);
             Snackbar.Add("Сервер обновлён", Severity.Success);
+            Navigation.NavigateTo($"/servers/{Id}");
+        }
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            await ServerRepository.DeleteAsync(Id);
+            Snackbar.Add("Сервер удалён", Severity.Success);
             Navigation.NavigateTo("/servers");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка при удалении сервера: {ex.Message}", Severity.Error);
         }
     }
 }

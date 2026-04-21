@@ -1,0 +1,126 @@
+@rendermode InteractiveServer
+@inject ISearchService SearchService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div style="position:relative;min-width:300px;">
+    <MudTextField T="string"
+                  Value="@_query"
+                  ValueChanged="@OnQueryChanged"
+                  Placeholder="Поиск по всем записям..."
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Immediate="true"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  Style="background:transparent;"
+                  Class="mud-search-field" />
+
+    @if (_query.Length >= 2 && _results.Count > 0)
+    {
+        <MudPaper data-testid="search-results"
+                  Elevation="8"
+                  Style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10000;max-height:480px;overflow-y:auto;min-width:400px;">
+            @{var groups = _results.GroupBy(r => r.EntityType).ToList();}
+            @for (int gi = 0; gi < groups.Count; gi++)
+            {
+                var group = groups[gi];
+                var topPad = gi == 0 ? "6px" : "14px";
+                <div style="display:flex;align-items:center;padding:@topPad 16px 4px;gap:8px;border-top:@(gi == 0 ? "none" : "1px solid var(--mud-palette-divider)");">
+                    <div style="font-size:0.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.75;white-space:nowrap;">
+                        @group.Key
+                    </div>
+                    <div style="flex:1;height:1px;background:var(--mud-palette-divider);"></div>
+                </div>
+                @foreach (var result in group)
+                {
+                    <MudListItem T="SearchResult"
+                                 OnClick="@(() => Navigate(result))"
+                                 Style="cursor:pointer;padding:4px 16px 4px 24px;">
+                        <span style="opacity:.7;font-size:.85rem;margin-right:4px;">@result.FieldName:</span>
+                        @((MarkupString)Highlight(result.FieldValue, _query))
+                    </MudListItem>
+                }
+            }
+        </MudPaper>
+    }
+    else if (_query.Length >= 2 && !_searching)
+    {
+        <MudPaper data-testid="search-no-results"
+                  Elevation="8"
+                  Style="position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10000;padding:12px 16px;min-width:300px;">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Ничего не найдено</MudText>
+        </MudPaper>
+    }
+</div>
+
+@code {
+    private string _query = string.Empty;
+    private List<SearchResult> _results = [];
+    private bool _searching;
+    private CancellationTokenSource? _cts;
+
+    private async Task OnQueryChanged(string value)
+    {
+        _query = value;
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        if (_query.Length < 2)
+        {
+            _results = [];
+            _searching = false;
+            return;
+        }
+
+        _searching = true;
+
+        try
+        {
+            await Task.Delay(300, token);
+            var results = await SearchService.SearchAsync(_query);
+            if (!token.IsCancellationRequested)
+            {
+                _results = results.ToList();
+                _searching = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private void Navigate(SearchResult result)
+    {
+        _query = string.Empty;
+        _results = [];
+        Navigation.NavigateTo(result.NavigateUrl);
+    }
+
+    private static string Highlight(string text, string query)
+    {
+        if (string.IsNullOrEmpty(query) || string.IsNullOrEmpty(text))
+            return Encode(text ?? string.Empty);
+
+        var sb = new System.Text.StringBuilder();
+        int start = 0;
+
+        while (start < text.Length)
+        {
+            int index = text.IndexOf(query, start, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                sb.Append(Encode(text[start..]));
+                break;
+            }
+            sb.Append(Encode(text[start..index]));
+            sb.Append($"<mark style=\"background:#FFD700;color:#000;border-radius:2px;padding:0 1px;\">{Encode(text[index..(index + query.Length)])}</mark>");
+            start = index + query.Length;
+        }
+        return sb.ToString();
+    }
+
+    private static string Encode(string s) => System.Net.WebUtility.HtmlEncode(s);
+
+    public void Dispose() => _cts?.Dispose();
+}

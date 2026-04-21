@@ -1,0 +1,92 @@
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+@inject IAppServiceRepository AppServiceRepository
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Color="Color.Secondary" />
+            <MudText Typo="Typo.h6">@_service?.Name</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_service == null)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="4"><MudText Color="Color.Secondary">AD учётная запись</MudText></MudItem>
+                <MudItem xs="8"><MudText>@_service.UserName</MudText></MudItem>
+                <MudItem xs="4"><MudText Color="Color.Secondary">Сертификаты</MudText></MudItem>
+                <MudItem xs="8"><MudText>@_service.Certificates.Count</MudText></MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-3" />
+
+            <MudText Typo="Typo.subtitle1" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Class="mr-1" />
+                Серверы (@_service.Servers.Count)
+            </MudText>
+
+            @if (!_service.Servers.Any())
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Нет серверов</MudText>
+            }
+            else
+            {
+                @foreach (var srv in _service.Servers)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Secondary" />
+                        <MudText Style="flex:1">@srv.Name</MudText>
+                        <MudTooltip Text="Открыть в новом окне">
+                            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                           OnClick="@(() => OpenServerNewTab(srv.Id))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Открыть в модальном окне">
+                            <MudIconButton Icon="@Icons.Material.Filled.Pageview" Size="Size.Small"
+                                           OnClick="@(() => OpenServerModal(srv.Id))" />
+                        </MudTooltip>
+                    </MudStack>
+                }
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Close">Закрыть</MudButton>
+        @if (_service != null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="@(() => OpenNewTab($"/services/{_service.Id}"))">
+                Открыть страницу
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int ServiceId { get; set; }
+
+    private AppService? _service;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _service = await AppServiceRepository.GetByIdAsync(ServiceId);
+    }
+
+    void Close() => MudDialog.Close();
+
+    async Task OpenNewTab(string url) => await JS.InvokeVoidAsync("open", url, "_blank");
+
+    async Task OpenServerNewTab(int id) => await JS.InvokeVoidAsync("open", $"/servers/{id}", "_blank");
+
+    async Task OpenServerModal(int id)
+    {
+        var parameters = new DialogParameters<ServerDetailsDialog> { { p => p.ServerId, id } };
+        await DialogService.ShowAsync<ServerDetailsDialog>("Сервер", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+    }
+}

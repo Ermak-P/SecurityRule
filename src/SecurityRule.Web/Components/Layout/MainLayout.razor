@@ -1,19 +1,33 @@
 ﻿@inherits LayoutComponentBase
+@inject SecurityRule.Web.Services.ThemeState ThemeState
+@inject IJSRuntime JS
+@implements IDisposable
 
-<MudThemeProvider />
+<MudThemeProvider Theme="@_theme" IsDarkMode="@ThemeState.IsDarkMode" />
+<MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar Elevation="0" Dense="true" Style="border-bottom:1px solid rgba(128,128,128,0.12);">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h6" Class="ml-3">SecurityRule</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" Size="Size.Small" Class="ml-1 mr-1" />
+        <MudText Typo="Typo.h6" Style="font-weight:600;letter-spacing:.4px;">SecurityRule</MudText>
+        <MudSpacer />
+        <GlobalSearch />
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2 d-none d-sm-block">Security Management System</MudText>
+        <MudTooltip Text="@(ThemeState.IsDarkMode ? "Светлая тема" : "Тёмная тема")">
+            <MudIconButton Icon="@(ThemeState.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit" OnClick="@ToggleTheme" />
+        </MudTooltip>
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
+               Style="border-right:1px solid rgba(128,128,128,0.12);">
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -21,5 +35,97 @@
 
 @code {
     private bool _drawerOpen = true;
+
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    protected override void OnInitialized()
+    {
+        ThemeState.OnChange += StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", "darkMode");
+            var isDark = stored == null || stored == "true";
+            if (isDark != ThemeState.IsDarkMode)
+                ThemeState.SetDarkMode(isDark);
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        ThemeState.Toggle();
+        await JS.InvokeVoidAsync("localStorage.setItem", "darkMode", ThemeState.IsDarkMode.ToString().ToLower());
+    }
+
+    public void Dispose()
+    {
+        ThemeState.OnChange -= StateHasChanged;
+    }
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary          = "#58A6FF",
+            Secondary        = "#BC8CFF",
+            Success          = "#3FB950",
+            Warning          = "#D29922",
+            Error            = "#F85149",
+            Info             = "#58A6FF",
+            Background       = "#0D1117",
+            BackgroundGray   = "#161B22",
+            Surface          = "#161B22",
+            DrawerBackground = "#0D1117",
+            DrawerText       = "#C9D1D9",
+            DrawerIcon       = "#8B949E",
+            AppbarBackground = "#161B22",
+            AppbarText       = "#C9D1D9",
+            TextPrimary      = "#C9D1D9",
+            TextSecondary    = "#8B949E",
+            TextDisabled     = "#484F58",
+            ActionDefault    = "#8B949E",
+            ActionDisabled   = "#484F58",
+            ActionDisabledBackground = "#21262D",
+            Divider          = "#21262D",
+            DividerLight     = "#161B22",
+            TableLines       = "#21262D",
+            LinesDefault     = "#21262D",
+            LinesInputs      = "#30363D",
+            TableStriped     = "rgba(255,255,255,0.02)",
+            TableHover       = "rgba(88,166,255,0.06)",
+            OverlayDark      = "rgba(1,4,9,0.8)"
+        },
+        PaletteLight = new PaletteLight
+        {
+            Primary          = "#0969DA",
+            Secondary        = "#8250DF",
+            Success          = "#1A7F37",
+            Warning          = "#9A6700",
+            Error            = "#CF222E",
+            Info             = "#0969DA",
+            Background       = "#F6F8FA",
+            BackgroundGray   = "#FFFFFF",
+            Surface          = "#FFFFFF",
+            DrawerBackground = "#F6F8FA",
+            DrawerText       = "#24292F",
+            DrawerIcon       = "#57606A",
+            AppbarBackground = "#FFFFFF",
+            AppbarText       = "#24292F",
+            TextPrimary      = "#24292F",
+            TextSecondary    = "#57606A",
+            TextDisabled     = "#8C959F",
+            ActionDefault    = "#57606A",
+            Divider          = "#D0D7DE",
+            DividerLight     = "#EAEEF2",
+            TableLines       = "#D0D7DE",
+            LinesDefault     = "#D0D7DE",
+            LinesInputs      = "#D0D7DE",
+            TableStriped     = "rgba(0,0,0,0.02)",
+            TableHover       = "rgba(9,105,218,0.04)",
+            OverlayDark      = "rgba(1,4,9,0.5)"
+        }
+    };
 }

@@ -1,0 +1,31 @@
+@page "/users/create"
+@rendermode InteractiveServer
+@inject IUserRepository UserRepository
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Добавить пользователя</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Добавить пользователя</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="_user.Name" Label="Название" HelperText="например, domain\user" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_user.Description" Label="Описание" Lines="3" Class="mb-3" />
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/users"))">Отмена</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private User _user = new();
+
+    private async Task Save()
+    {
+        await UserRepository.AddAsync(_user);
+        Snackbar.Add("Пользователь добавлен", Severity.Success);
+        Navigation.NavigateTo("/users");
+    }
+}

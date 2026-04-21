@@ -1,0 +1,92 @@
+@inject NavigationManager Navigation
+
+<MudTable T="AppService" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@ToggleRow">
+    <HeaderContent>
+        <MudTh>Название</MudTh>
+        <MudTh>AD учётная запись</MudTh>
+        <MudTh>Сертификаты</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Название">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
+                @context.Name
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="AD учётная запись">
+            @if (!string.IsNullOrWhiteSpace(context.UserName))
+            {
+                <span @onclick:stopPropagation="true">
+                    <MudButton Variant="Variant.Text" Size="Size.Small"
+                               Color="@(_expandedUserRows.Contains(context.Id) ? Color.Primary : Color.Default)"
+                               StartIcon="@Icons.Material.Filled.AccountCircle"
+                               OnClick="@(() => ToggleUserRow(context))">
+                        @context.UserName
+                    </MudButton>
+                </span>
+            }
+        </MudTd>
+        <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
+        <MudTd Style="text-align:right">
+            <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                               Title="Редактировать"
+                               OnClick="@(() => Navigation.NavigateTo($"/services/edit/{context.Id}"))" />
+            </span>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="svc">
+        @if (_expandedRows.Contains(svc.Id))
+        {
+            <MudTr>
+                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-secondary); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        <Details Service="svc" Embedded="true" />
+                    </div>
+                </td>
+            </MudTr>
+        }
+        @if (_expandedUserRows.Contains(svc.Id) && !string.IsNullOrWhiteSpace(svc.UserName))
+        {
+            <MudTr>
+                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-tertiary); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        @if (svc.UserId.HasValue)
+                        {
+                            <SecurityRule.Web.Components.Pages.Users.Details Id="@svc.UserId.Value" Embedded="true" />
+                        }
+                        else
+                        {
+                            <SecurityRule.Web.Components.Pages.Users.Details UserName="@svc.UserName" Embedded="true" />
+                        }
+                    </div>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<AppService> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+
+    private readonly HashSet<int> _expandedRows = [];
+    private readonly HashSet<int> _expandedUserRows = [];
+
+    private void ToggleRow(TableRowClickEventArgs<AppService> args)
+    {
+        if (args.Item is null) return;
+        var id = args.Item.Id;
+        if (!_expandedRows.Remove(id))
+            _expandedRows.Add(id);
+    }
+
+    private void ToggleUserRow(AppService svc)
+    {
+        if (!_expandedUserRows.Remove(svc.Id))
+            _expandedUserRows.Add(svc.Id);
+    }
+}

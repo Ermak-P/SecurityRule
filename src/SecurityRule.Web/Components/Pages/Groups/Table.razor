@@ -1,0 +1,16 @@
+@using SecurityRule.Domain.Models
+@inject NavigationManager Navigation
+
+<MudDataGrid T="Group" Items="@Items" Hover="true" Elevation="@Elevation"
+             RowClick="@(e => Navigation.NavigateTo($"/groups/{e.Item.Id}"))"
+             Style="cursor:pointer">
+    <Columns>
+        <PropertyColumn Property="x => x.Name" Title="Название" />
+        <PropertyColumn Property="x => x.Description" Title="Описание" />
+    </Columns>
+</MudDataGrid>
+
+@code {
+    [Parameter] public IEnumerable<Group> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+}

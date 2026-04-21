@@ -6,5 +6,6 @@ public class Server
     public string Name { get; set; } = string.Empty;
     public string IpAddress { get; set; } = string.Empty;
     public string OperatingSystem { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public ICollection<AppService> Services { get; set; } = new List<AppService>();
 }

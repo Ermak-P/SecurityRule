@@ -1,5 +1,5 @@
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using NUnit.Framework;
 using SecurityRule.Domain.Models;
 using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Repositories;
@@ -31,6 +31,7 @@ public class FirewallRuleRepositoryTests
     [Test]
     public async Task AddAsync_ShouldAddRule()
     {
+        // Arrange
         var rule = new FirewallRule
         {
             SourceIp = "192.168.1.1",
@@ -39,78 +40,97 @@ public class FirewallRuleRepositoryTests
             Description = "Test rule"
         };
 
+        // Act
         await _repository.AddAsync(rule);
 
+        // Assert
         var result = await _context.FirewallRules.ToListAsync();
-        Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(result[0].SourceIp, Is.EqualTo("192.168.1.1"));
+        result.Should().HaveCount(1);
+        result[0].SourceIp.Should().Be("192.168.1.1");
     }
 
     [Test]
     public async Task GetAllAsync_ShouldReturnAllRules()
     {
+        // Arrange
         _context.FirewallRules.AddRange(
             new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" },
             new FirewallRule { SourceIp = "10.0.0.3", DestinationIp = "10.0.0.4", ExpiresAt = DateTime.Now.AddYears(2), Description = "Rule2" }
         );
         await _context.SaveChangesAsync();
 
+        // Act
         var result = await _repository.GetAllAsync();
 
-        Assert.That(result.Count(), Is.EqualTo(2));
+        // Assert
+        result.Should().HaveCount(2);
     }
 
     [Test]
     public async Task GetByIdAsync_ShouldReturnCorrectRule()
     {
+        // Arrange
         var rule = new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" };
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
+        // Act
         var result = await _repository.GetByIdAsync(rule.Id);
 
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.SourceIp, Is.EqualTo("10.0.0.1"));
+        // Assert
+        result.Should().NotBeNull();
+        result!.SourceIp.Should().Be("10.0.0.1");
     }
 
     [Test]
     public async Task GetByIdAsync_ShouldReturnNull_WhenNotFound()
     {
+        // Arrange – empty database
+
+        // Act
         var result = await _repository.GetByIdAsync(999);
 
-        Assert.That(result, Is.Null);
+        // Assert
+        result.Should().BeNull();
     }
 
     [Test]
     public async Task UpdateAsync_ShouldUpdateRule()
     {
+        // Arrange
         var rule = new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" };
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
+        // Act
         rule.Description = "UpdatedRule";
         await _repository.UpdateAsync(rule);
 
+        // Assert
         var result = await _context.FirewallRules.FindAsync(rule.Id);
-        Assert.That(result!.Description, Is.EqualTo("UpdatedRule"));
+        result!.Description.Should().Be("UpdatedRule");
     }
 
     [Test]
     public async Task DeleteAsync_ShouldRemoveRule()
     {
+        // Arrange
         var rule = new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" };
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
+        // Act
         await _repository.DeleteAsync(rule.Id);
 
+        // Assert
         var result = await _context.FirewallRules.ToListAsync();
-        Assert.That(result, Is.Empty);
+        result.Should().BeEmpty();
     }
 
     [Test]
     public async Task IsExpired_WhenExpiresAtIsInPast()
     {
+        // Arrange
         var rule = new FirewallRule
         {
             SourceIp = "10.0.0.1",
@@ -121,8 +141,10 @@ public class FirewallRuleRepositoryTests
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
+        // Act
         var result = await _repository.GetByIdAsync(rule.Id);
 
-        Assert.That(result!.ExpiresAt, Is.LessThan(DateTime.Now));
+        // Assert
+        result!.ExpiresAt.Should().BeBefore(DateTime.Now);
     }
 }

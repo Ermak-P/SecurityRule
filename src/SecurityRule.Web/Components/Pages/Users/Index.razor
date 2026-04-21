@@ -1,0 +1,39 @@
+@page "/users"
+@rendermode InteractiveServer
+@inject IUserRepository UserRepository
+@inject NavigationManager Navigation
+
+<PageTitle>Пользователи</PageTitle>
+
+<MudStack Row="true" Spacing="1">
+    <MudText Typo="Typo.h4" GutterBottom="true">Пользователи</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                   Title="Добавить"
+                   OnClick="@(() => Navigation.NavigateTo($"/users/create"))" />
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <Table Items="_users" />
+}
+
+@code {
+    private IEnumerable<User> _users = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _users = await UserRepository.GetAllAsync();
+        _loading = false;
+    }
+}
