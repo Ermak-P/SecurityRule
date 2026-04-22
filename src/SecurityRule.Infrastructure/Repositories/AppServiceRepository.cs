@@ -28,6 +28,7 @@ public class AppServiceRepository : IAppServiceRepository
             .Include(s => s.Servers)
                 .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
+            .Include(s => s.FirewallRules)
             .FirstOrDefaultAsync(s => s.Id == id);
 
     public async Task AddAsync(AppService service)

@@ -11,4 +11,8 @@ public class FirewallRule
     public string Direction { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
     public string Description { get; set; } = string.Empty;
+    public int? ServerId { get; set; }
+    public Server? Server { get; set; }
+    public int? ServiceId { get; set; }
+    public AppService? Service { get; set; }
 }

@@ -1,6 +1,8 @@
 @page "/firewall-rules/edit/{Id:int}"
 @rendermode InteractiveServer
 @inject IFirewallRuleRepository FirewallRuleRepository
+@inject IServerRepository ServerRepository
+@inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -16,10 +18,29 @@ else
 {
     <MudCard>
         <MudCardContent>
-            <MudTextField @bind-Value="_rule.SourceIp" Label="Исходящий IP адрес" Required="true" Class="mb-3" />
-            <MudTextField @bind-Value="_rule.DestinationIp" Label="Входящий IP адрес" Required="true" Class="mb-3" />
+            <MudSelect T="int?" Value="@_selectedServerId" Label="Сервер (источник)" Clearable="true" Class="mb-3"
+                       ValueChanged="@OnServerChanged">
+                <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                @foreach (var server in _allServers)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)server.Id)">@server.Name (@server.IpAddress)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_rule.SourceIp" Label="Исходящий IP адрес" Class="mb-3"
+                          HelperText="Заполняется автоматически при выборе сервера" />
+            <MudSelect T="int?" Value="@_selectedServiceId" Label="Сервис (назначение)" Clearable="true" Class="mb-3"
+                       ValueChanged="@OnServiceChanged">
+                <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                @foreach (var svc in _allServices)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)svc.Id)">@svc.Name@(svc.Port.HasValue ? $" (:{svc.Port})" : "")</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_rule.DestinationIp" Label="Входящий IP адрес" Class="mb-3"
+                          HelperText="Заполняется автоматически при выборе сервиса или укажите вручную" />
             <MudTextField @bind-Value="_portText" Label="Порт назначения" Class="mb-3"
-                          InputType="InputType.Number" />
+                          InputType="InputType.Number"
+                          HelperText="Заполняется автоматически при выборе сервиса или укажите вручную" />
             <MudSelect @bind-Value="_rule.Protocol" Label="Протокол" Required="true" Class="mb-3">
                 <MudSelectItem Value="@("TCP")">TCP</MudSelectItem>
                 <MudSelectItem Value="@("UDP")">UDP</MudSelectItem>
@@ -54,15 +75,39 @@ else
     private FirewallRule? _rule;
     private DateTime? _expiresAt;
     private string _portText = string.Empty;
+    private int? _selectedServerId;
+    private int? _selectedServiceId;
+    private IEnumerable<Server> _allServers = [];
+    private IEnumerable<AppService> _allServices = [];
 
     protected override async Task OnInitializedAsync()
     {
+        _allServers = await ServerRepository.GetAllAsync();
+        _allServices = await AppServiceRepository.GetAllAsync();
         _rule = await FirewallRuleRepository.GetByIdAsync(Id);
         if (_rule != null)
         {
             _expiresAt = _rule.ExpiresAt;
             _portText = _rule.DestinationPort?.ToString() ?? string.Empty;
+            _selectedServerId = _rule.ServerId;
+            _selectedServiceId = _rule.ServiceId;
         }
+    }
+
+    private void OnServerChanged(int? serverId)
+    {
+        _selectedServerId = serverId;
+        var server = _allServers.FirstOrDefault(s => s.Id == serverId);
+        if (_rule != null && server != null)
+            _rule.SourceIp = server.IpAddress;
+    }
+
+    private void OnServiceChanged(int? serviceId)
+    {
+        _selectedServiceId = serviceId;
+        var service = _allServices.FirstOrDefault(s => s.Id == serviceId);
+        if (service?.Port.HasValue == true)
+            _portText = service.Port.Value.ToString();
     }
 
     private async Task Save()
@@ -71,6 +116,8 @@ else
         {
             _rule.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
             _rule.DestinationPort = int.TryParse(_portText, out var p) ? p : null;
+            _rule.ServerId = _selectedServerId;
+            _rule.ServiceId = _selectedServiceId;
             await FirewallRuleRepository.UpdateAsync(_rule);
             Snackbar.Add("Правило обновлено", Severity.Success);
             Navigation.NavigateTo("/firewall-rules");

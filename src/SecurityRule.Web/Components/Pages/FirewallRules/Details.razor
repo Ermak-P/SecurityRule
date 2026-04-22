@@ -15,12 +15,12 @@ else
 {
     @if (!Embedded)
     {
-        <PageTitle>Правило фаервола — @_displayRule.SourceIp → @_displayRule.DestinationIp</PageTitle>
+        <PageTitle>Правило фаервола — @(_displayRule.SourceIp ?? _displayRule.Server?.Name ?? "?") → @(_displayRule.DestinationIp ?? _displayRule.Service?.Name ?? "?")</PageTitle>
         <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" />
-                <MudText Typo="Typo.h4">@_displayRule.SourceIp → @_displayRule.DestinationIp</MudText>
+                <MudText Typo="Typo.h4">@(_displayRule.SourceIp ?? _displayRule.Server?.Name ?? "?") → @(_displayRule.DestinationIp ?? _displayRule.Service?.Name ?? "?")</MudText>
             </MudStack>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
                        OnClick="@(() => Navigation.NavigateTo($"/firewall-rules/edit/{_displayRule.Id}"))">
@@ -32,13 +32,35 @@ else
     <MudCard Class="mb-4" Elevation="@(Embedded ? 0 : 1)">
         <MudCardContent>
             <MudGrid>
+                @if (_displayRule.Server != null)
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Сервер</MudText>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Dns"
+                                   Style="margin-left: -6px;"
+                                   OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayRule.Server.Id}"))">
+                            @_displayRule.Server.Name
+                        </MudButton>
+                    </MudItem>
+                }
+                @if (_displayRule.Service != null)
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Сервис</MudText>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.MiscellaneousServices"
+                                   Style="margin-left: -6px;"
+                                   OnClick="@(() => Navigation.NavigateTo($"/services/{_displayRule.Service.Id}"))">
+                            @_displayRule.Service.Name
+                        </MudButton>
+                    </MudItem>
+                }
                 <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Исходящий IP</MudText>
-                    <MudText Typo="Typo.body1">@_displayRule.SourceIp</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.SourceIp) ? "—" : _displayRule.SourceIp)</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Входящий IP</MudText>
-                    <MudText Typo="Typo.body1">@_displayRule.DestinationIp</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.DestinationIp) ? "—" : _displayRule.DestinationIp)</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Порт назначения</MudText>
@@ -130,7 +152,7 @@ else
                 new BreadcrumbItem("Правила фаервола", href: "/firewall-rules"),
                 new BreadcrumbItem(
                     _displayRule is not null
-                        ? $"{_displayRule.SourceIp} → {_displayRule.DestinationIp}"
+                        ? $"{_displayRule.SourceIp ?? _displayRule.Server?.Name ?? "?"} → {_displayRule.DestinationIp ?? _displayRule.Service?.Name ?? "?"}"
                         : Id.ToString(),
                     href: null, disabled: true)
             ];

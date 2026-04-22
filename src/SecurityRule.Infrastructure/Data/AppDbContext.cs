@@ -58,12 +58,22 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FirewallRule>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.SourceIp).IsRequired().HasMaxLength(45);
-            entity.Property(e => e.DestinationIp).IsRequired().HasMaxLength(45);
+            entity.Property(e => e.SourceIp).IsRequired(false).HasMaxLength(45);
+            entity.Property(e => e.DestinationIp).IsRequired(false).HasMaxLength(45);
             entity.Property(e => e.Protocol).IsRequired().HasMaxLength(10);
             entity.Property(e => e.Action).IsRequired().HasMaxLength(10);
             entity.Property(e => e.Direction).IsRequired().HasMaxLength(20);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasOne(e => e.Server)
+                  .WithMany(s => s.FirewallRules)
+                  .HasForeignKey(e => e.ServerId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Service)
+                  .WithMany(s => s.FirewallRules)
+                  .HasForeignKey(e => e.ServiceId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<OperatingSystemOption>(entity =>

@@ -98,9 +98,20 @@ else
         <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Class="mr-1" />
         Серверы
     </MudText>
-    <MudPaper Elevation="2" Class="overflow-hidden">
+    <MudPaper Elevation="2" Class="overflow-hidden mb-4">
         <SecurityRule.Web.Components.Pages.Servers.Table Items="@_displayService.Servers" Elevation="0" />
     </MudPaper>
+
+    @if (_displayService.FirewallRules.Any())
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Class="mr-1" />
+            Правила фаервола
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden">
+            <SecurityRule.Web.Components.Pages.FirewallRules.Table Items="@_displayService.FirewallRules" Elevation="0" />
+        </MudPaper>
+    }
 }
 
 @code {

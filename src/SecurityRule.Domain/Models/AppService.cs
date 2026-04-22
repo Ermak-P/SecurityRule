@@ -10,4 +10,5 @@ public class AppService
     public User? User { get; set; }
     public ICollection<Server> Servers { get; set; } = new List<Server>();
     public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
+    public ICollection<FirewallRule> FirewallRules { get; set; } = new List<FirewallRule>();
 }

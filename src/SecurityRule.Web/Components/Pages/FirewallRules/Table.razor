@@ -20,10 +20,26 @@
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
                 <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Color="Color.Primary" />
-                @context.SourceIp
+                @if (context.Server != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Dns">@context.Server.Name</MudChip>
+                }
+                else
+                {
+                    @(string.IsNullOrWhiteSpace(context.SourceIp) ? "—" : context.SourceIp)
+                }
             </MudStack>
         </MudTd>
-        <MudTd DataLabel="Входящий IP">@context.DestinationIp</MudTd>
+        <MudTd DataLabel="Входящий IP">
+            @if (context.Service != null)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.MiscellaneousServices">@context.Service.Name</MudChip>
+            }
+            else
+            {
+                @(string.IsNullOrWhiteSpace(context.DestinationIp) ? "—" : context.DestinationIp)
+            }
+        </MudTd>
         <MudTd DataLabel="Порт">@(context.DestinationPort.HasValue ? context.DestinationPort.Value.ToString() : "—")</MudTd>
         <MudTd DataLabel="Протокол">@(string.IsNullOrWhiteSpace(context.Protocol) ? "—" : context.Protocol)</MudTd>
         <MudTd DataLabel="Действие">

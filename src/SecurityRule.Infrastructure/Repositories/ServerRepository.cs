@@ -28,6 +28,7 @@ public class ServerRepository : IServerRepository
                 .ThenInclude(svc => svc.Servers)
             .Include(s => s.Services)
                 .ThenInclude(svc => svc.Certificates)
+            .Include(s => s.FirewallRules)
             .FirstOrDefaultAsync(s => s.Id == id);
 
     public async Task AddAsync(Server server)

@@ -129,7 +129,6 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("DestinationIp")
-                        .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("nvarchar(45)");
 
@@ -146,12 +145,21 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<int?>("ServerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ServiceId")
+                        .HasColumnType("int");
+
                     b.Property<string>("SourceIp")
-                        .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("nvarchar(45)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ServerId");
+
+                    b.HasIndex("ServiceId");
 
                     b.ToTable("FirewallRules");
                 });
@@ -264,6 +272,22 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("SecurityRule.Domain.Models.FirewallRule", b =>
+                {
+                    b.HasOne("SecurityRule.Domain.Models.Server", "Server")
+                        .WithMany("FirewallRules")
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SecurityRule.Domain.Models.AppService", "Service")
+                        .WithMany("FirewallRules")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Server");
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
                     b.HasOne("SecurityRule.Domain.Models.User", "User")
@@ -307,6 +331,16 @@ namespace SecurityRule.Infrastructure.Migrations
             modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
                 {
                     b.Navigation("Services");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.Server", b =>
+                {
+                    b.Navigation("FirewallRules");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
+                {
+                    b.Navigation("FirewallRules");
                 });
 #pragma warning restore 612, 618
         }
