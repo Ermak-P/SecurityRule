@@ -1,4 +1,5 @@
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <MudTable T="FirewallRule" Items="@Items" Hover="true" Striped="true" Dense="true"
           Elevation="@Elevation" OnRowClick="@ToggleRow">
@@ -11,7 +12,7 @@
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Исходящий IP">
+        <MudTd DataLabel="Исходящий IP" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
                 <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Color="Color.Primary" />
@@ -63,11 +64,22 @@
 
     private readonly HashSet<int> _expandedRows = [];
 
-    private void ToggleRow(TableRowClickEventArgs<FirewallRule> args)
+    private async Task ToggleRow(TableRowClickEventArgs<FirewallRule> args)
     {
         if (args.Item is null) return;
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            await JS.InvokeVoidAsync("open", $"/firewall-rules/{args.Item.Id}", "_blank");
+            return;
+        }
         var id = args.Item.Id;
         if (!_expandedRows.Remove(id))
             _expandedRows.Add(id);
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e, int id)
+    {
+        if (e.Button == 1)
+            await JS.InvokeVoidAsync("open", $"/firewall-rules/{id}", "_blank");
     }
 }

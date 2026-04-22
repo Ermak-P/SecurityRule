@@ -1,5 +1,6 @@
 @using SecurityRule.Domain.Models
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <MudTable T="Group" Items="@Items" Hover="true" Striped="true" Dense="true"
           Elevation="@Elevation" OnRowClick="@ToggleRow">
@@ -9,7 +10,7 @@
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Название">
+        <MudTd DataLabel="Название" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
                 <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Color="Color.Secondary" />
@@ -45,11 +46,22 @@
 
     private readonly HashSet<int> _expandedRows = [];
 
-    private void ToggleRow(TableRowClickEventArgs<Group> args)
+    private async Task ToggleRow(TableRowClickEventArgs<Group> args)
     {
         if (args.Item is null) return;
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            await JS.InvokeVoidAsync("open", $"/groups/{args.Item.Id}", "_blank");
+            return;
+        }
         var id = args.Item.Id;
         if (!_expandedRows.Remove(id))
             _expandedRows.Add(id);
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e, int id)
+    {
+        if (e.Button == 1)
+            await JS.InvokeVoidAsync("open", $"/groups/{id}", "_blank");
     }
 }

@@ -1,4 +1,5 @@
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <MudTable T="AdGroupItem" Items="@Items" Hover="true" Striped="true" Dense="true"
           Elevation="@Elevation" OnRowClick="@OnRowClick" Style="cursor:pointer">
@@ -7,7 +8,7 @@
         <MudTh>В базе данных</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Название">
+        <MudTd DataLabel="Название" @onmousedown="@(e => HandleMouseDown(e, context))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 @if (!Nested)
                 {
@@ -58,20 +59,33 @@
 
     private readonly HashSet<string> _expandedRows = [];
 
-    private void OnRowClick(TableRowClickEventArgs<AdGroupItem> args)
+    private static string GetUrl(AdGroupItem item) =>
+        item.DbGroup != null
+            ? $"/groups/{item.DbGroup.Id}"
+            : $"/groups/name/{Uri.EscapeDataString(item.Name)}";
+
+    private async Task OnRowClick(TableRowClickEventArgs<AdGroupItem> args)
     {
         if (args.Item is null) return;
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            await JS.InvokeVoidAsync("open", GetUrl(args.Item), "_blank");
+            return;
+        }
         if (Nested)
         {
-            if (args.Item.DbGroup != null)
-                Navigation.NavigateTo($"/groups/{args.Item.DbGroup.Id}");
-            else
-                Navigation.NavigateTo($"/groups/name/{Uri.EscapeDataString(args.Item.Name)}");
+            Navigation.NavigateTo(GetUrl(args.Item));
         }
         else
         {
             if (!_expandedRows.Remove(args.Item.Name))
                 _expandedRows.Add(args.Item.Name);
         }
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e, AdGroupItem item)
+    {
+        if (e.Button == 1)
+            await JS.InvokeVoidAsync("open", GetUrl(item), "_blank");
     }
 }
