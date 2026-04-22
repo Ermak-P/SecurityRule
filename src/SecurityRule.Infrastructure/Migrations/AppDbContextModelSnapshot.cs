@@ -125,19 +125,18 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<int?>("DestinationPort")
+                    b.Property<int>("DestinationServiceId")
                         .HasColumnType("int");
 
-                    b.Property<string>("DestinationIp")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
+                    b.Property<int>("DestinationServerId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Direction")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<DateTime>("ExpiresAt")
+                    b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Protocol")
@@ -145,21 +144,21 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<int?>("ServerId")
+                    b.Property<int>("SourceServiceId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ServiceId")
+                    b.Property<int>("SourceServerId")
                         .HasColumnType("int");
-
-                    b.Property<string>("SourceIp")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ServerId");
+                    b.HasIndex("DestinationServiceId");
 
-                    b.HasIndex("ServiceId");
+                    b.HasIndex("DestinationServerId");
+
+                    b.HasIndex("SourceServiceId");
+
+                    b.HasIndex("SourceServerId");
 
                     b.ToTable("FirewallRules");
                 });
@@ -274,18 +273,34 @@ namespace SecurityRule.Infrastructure.Migrations
 
             modelBuilder.Entity("SecurityRule.Domain.Models.FirewallRule", b =>
                 {
-                    b.HasOne("SecurityRule.Domain.Models.Server", "Server")
-                        .WithMany("FirewallRules")
-                        .HasForeignKey("ServerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("SecurityRule.Domain.Models.Server", "SourceServer")
+                        .WithMany("SourceFirewallRules")
+                        .HasForeignKey("SourceServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.HasOne("SecurityRule.Domain.Models.AppService", "Service")
-                        .WithMany("FirewallRules")
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("SecurityRule.Domain.Models.AppService", "SourceService")
+                        .WithMany("SourceFirewallRules")
+                        .HasForeignKey("SourceServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.Navigation("Server");
-                    b.Navigation("Service");
+                    b.HasOne("SecurityRule.Domain.Models.Server", "DestinationServer")
+                        .WithMany("DestinationFirewallRules")
+                        .HasForeignKey("DestinationServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SecurityRule.Domain.Models.AppService", "DestinationService")
+                        .WithMany("DestinationFirewallRules")
+                        .HasForeignKey("DestinationServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SourceServer");
+                    b.Navigation("SourceService");
+                    b.Navigation("DestinationServer");
+                    b.Navigation("DestinationService");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
@@ -335,12 +350,14 @@ namespace SecurityRule.Infrastructure.Migrations
 
             modelBuilder.Entity("SecurityRule.Domain.Models.Server", b =>
                 {
-                    b.Navigation("FirewallRules");
+                    b.Navigation("SourceFirewallRules");
+                    b.Navigation("DestinationFirewallRules");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
-                    b.Navigation("FirewallRules");
+                    b.Navigation("SourceFirewallRules");
+                    b.Navigation("DestinationFirewallRules");
                 });
 #pragma warning restore 612, 618
         }
