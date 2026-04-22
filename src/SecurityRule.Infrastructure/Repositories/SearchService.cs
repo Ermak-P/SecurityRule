@@ -88,19 +88,18 @@ public class SearchService : ISearchService
         }
 
         var rules = await _context.FirewallRules
-            .Where(r => r.SourceIp.Contains(query) || r.DestinationIp.Contains(query) ||
-                        r.Description.Contains(query))
+            .Include(r => r.SourceServer)
+            .Include(r => r.SourceService)
+            .Include(r => r.DestinationServer)
+            .Include(r => r.DestinationService)
+            .Where(r => r.Description.Contains(query))
             .Take(50)
             .ToListAsync();
 
         foreach (var r in rules)
         {
-            if (r.SourceIp.Contains(query, StringComparison.OrdinalIgnoreCase))
-                results.Add(new SearchResult("Правило фаервола", r.Id, "IP источника", r.SourceIp, $"/firewall-rules/edit/{r.Id}"));
-            if (r.DestinationIp.Contains(query, StringComparison.OrdinalIgnoreCase))
-                results.Add(new SearchResult("Правило фаервола", r.Id, "IP назначения", r.DestinationIp, $"/firewall-rules/edit/{r.Id}"));
             if (!string.IsNullOrEmpty(r.Description) && r.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
-                results.Add(new SearchResult("Правило фаервола", r.Id, "Описание", r.Description, $"/firewall-rules/edit/{r.Id}"));
+                results.Add(new SearchResult("Правило фаервола", r.Id, "Описание", r.Description, $"/firewall-rules/{r.Id}"));
         }
 
         return results;

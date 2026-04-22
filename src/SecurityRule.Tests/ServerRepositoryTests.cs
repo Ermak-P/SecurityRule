@@ -182,14 +182,26 @@ public class ServerRepositoryTests
     }
 
     [Test]
-    public async Task GetByIdAsync_ShouldIncludeFirewallRules()
+    public async Task GetByIdAsync_ShouldIncludeSourceFirewallRules()
     {
         // Arrange
         var server = new Server { Name = "FW-Server", IpAddress = "10.0.9.1", OperatingSystem = "Linux" };
-        _context.Servers.Add(server);
+        var dstSrv = new Server { Name = "Dst-Server", IpAddress = "10.0.9.2", OperatingSystem = "Linux" };
+        var srcSvc = new AppService { Name = "Src-Service", UserName = "domain\\src" };
+        var dstSvc = new AppService { Name = "Dst-Service", UserName = "domain\\dst" };
+        _context.Servers.AddRange(server, dstSrv);
+        _context.AppServices.AddRange(srcSvc, dstSvc);
         await _context.SaveChangesAsync();
 
-        var rule = new FirewallRule { ServerId = server.Id, ExpiresAt = DateTime.Now.AddYears(1), Description = "ServerFWRule" };
+        var rule = new FirewallRule
+        {
+            SourceServerId       = server.Id,
+            SourceServiceId      = srcSvc.Id,
+            DestinationServerId  = dstSrv.Id,
+            DestinationServiceId = dstSvc.Id,
+            Protocol = "TCP", Action = "Allow", Direction = "Inbound",
+            Description = "ServerFWRule"
+        };
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
@@ -198,7 +210,40 @@ public class ServerRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.FirewallRules.Should().HaveCount(1);
-        result.FirewallRules.First().Description.Should().Be("ServerFWRule");
+        result!.SourceFirewallRules.Should().HaveCount(1);
+        result.SourceFirewallRules.First().Description.Should().Be("ServerFWRule");
+    }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeDestinationFirewallRules()
+    {
+        // Arrange
+        var srcSrv = new Server { Name = "Src-Server", IpAddress = "10.0.8.1", OperatingSystem = "Linux" };
+        var server = new Server { Name = "Dst-FW-Server", IpAddress = "10.0.8.2", OperatingSystem = "Linux" };
+        var srcSvc = new AppService { Name = "Src-Service", UserName = "domain\\src" };
+        var dstSvc = new AppService { Name = "Dst-Service", UserName = "domain\\dst" };
+        _context.Servers.AddRange(srcSrv, server);
+        _context.AppServices.AddRange(srcSvc, dstSvc);
+        await _context.SaveChangesAsync();
+
+        var rule = new FirewallRule
+        {
+            SourceServerId       = srcSrv.Id,
+            SourceServiceId      = srcSvc.Id,
+            DestinationServerId  = server.Id,
+            DestinationServiceId = dstSvc.Id,
+            Protocol = "TCP", Action = "Deny", Direction = "Inbound",
+            Description = "DstFWRule"
+        };
+        _context.FirewallRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(server.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.DestinationFirewallRules.Should().HaveCount(1);
+        result.DestinationFirewallRules.First().Description.Should().Be("DstFWRule");
     }
 }

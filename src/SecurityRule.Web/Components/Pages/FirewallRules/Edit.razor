@@ -18,45 +18,85 @@ else
 {
     <MudCard>
         <MudCardContent>
-            <MudSelect T="int?" Value="@_selectedServerId" Label="Сервер (источник)" Clearable="true" Class="mb-3"
-                       ValueChanged="@OnServerChanged">
-                <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
-                @foreach (var server in _allServers)
-                {
-                    <MudSelectItem T="int?" Value="@((int?)server.Id)">@server.Name (@server.IpAddress)</MudSelectItem>
-                }
-            </MudSelect>
-            <MudTextField @bind-Value="_rule.SourceIp" Label="Исходящий IP адрес" Class="mb-3"
-                          HelperText="Заполняется автоматически при выборе сервера" />
-            <MudSelect T="int?" Value="@_selectedServiceId" Label="Сервис (назначение)" Clearable="true" Class="mb-3"
-                       ValueChanged="@OnServiceChanged">
-                <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
-                @foreach (var svc in _allServices)
-                {
-                    <MudSelectItem T="int?" Value="@((int?)svc.Id)">@svc.Name@(svc.Port.HasValue ? $" (:{svc.Port})" : "")</MudSelectItem>
-                }
-            </MudSelect>
-            <MudTextField @bind-Value="_rule.DestinationIp" Label="Входящий IP адрес" Class="mb-3"
-                          HelperText="Заполняется автоматически при выборе сервиса или укажите вручную" />
-            <MudTextField @bind-Value="_portText" Label="Порт назначения" Class="mb-3"
-                          InputType="InputType.Number"
-                          HelperText="Заполняется автоматически при выборе сервиса или укажите вручную" />
-            <MudSelect @bind-Value="_rule.Protocol" Label="Протокол" Required="true" Class="mb-3">
-                <MudSelectItem Value="@("TCP")">TCP</MudSelectItem>
-                <MudSelectItem Value="@("UDP")">UDP</MudSelectItem>
-                <MudSelectItem Value="@("ICMP")">ICMP</MudSelectItem>
-                <MudSelectItem Value="@("Any")">Any</MudSelectItem>
-            </MudSelect>
-            <MudSelect @bind-Value="_rule.Action" Label="Действие" Required="true" Class="mb-3">
-                <MudSelectItem Value="@("Allow")">Разрешить</MudSelectItem>
-                <MudSelectItem Value="@("Deny")">Запретить</MudSelectItem>
-            </MudSelect>
-            <MudSelect @bind-Value="_rule.Direction" Label="Направление" Required="true" Class="mb-3">
-                <MudSelectItem Value="@("Inbound")">Входящее</MudSelectItem>
-                <MudSelectItem Value="@("Outbound")">Исходящее</MudSelectItem>
-            </MudSelect>
-            <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
-            <MudTextField @bind-Value="_rule.Description" Label="Описание" Class="mb-3" Lines="3" />
+            <MudText Typo="Typo.subtitle1" Class="mb-3" Color="Color.Secondary">Источник</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Value="@_srcServerId" Label="Сервер (источник)" Required="true"
+                               ValueChanged="@(id => _srcServerId = id)">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var s in _allServers)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name (@s.IpAddress)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Value="@_srcServiceId" Label="Сервис (источник)" Required="true"
+                               ValueChanged="@(id => _srcServiceId = id)">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var svc in _allServices)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)svc.Id)">@svc.Name@(svc.Port.HasValue ? $" (:{svc.Port})" : "")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-3" />
+            <MudText Typo="Typo.subtitle1" Class="mb-3" Color="Color.Secondary">Назначение</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Value="@_dstServerId" Label="Сервер (назначение)" Required="true"
+                               ValueChanged="@(id => _dstServerId = id)">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var s in _allServers)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name (@s.IpAddress)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" Value="@_dstServiceId" Label="Сервис (назначение)" Required="true"
+                               ValueChanged="@(id => _dstServiceId = id)">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var svc in _allServices)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)svc.Id)">@svc.Name@(svc.Port.HasValue ? $" (:{svc.Port})" : "")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-3" />
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudSelect @bind-Value="_rule.Protocol" Label="Протокол" Required="true">
+                        <MudSelectItem Value="@("TCP")">TCP</MudSelectItem>
+                        <MudSelectItem Value="@("UDP")">UDP</MudSelectItem>
+                        <MudSelectItem Value="@("ICMP")">ICMP</MudSelectItem>
+                        <MudSelectItem Value="@("Any")">Any</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect @bind-Value="_rule.Action" Label="Действие" Required="true">
+                        <MudSelectItem Value="@("Allow")">Разрешить</MudSelectItem>
+                        <MudSelectItem Value="@("Deny")">Запретить</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect @bind-Value="_rule.Direction" Label="Направление" Required="true">
+                        <MudSelectItem Value="@("Inbound")">Входящее</MudSelectItem>
+                        <MudSelectItem Value="@("Outbound")">Исходящее</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения"
+                                   HelperText="Оставьте пустым — без ограничения срока" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_rule.Description" Label="Описание" Lines="3" />
+                </MudItem>
+            </MudGrid>
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -74,54 +114,47 @@ else
     [Parameter] public int Id { get; set; }
     private FirewallRule? _rule;
     private DateTime? _expiresAt;
-    private string _portText = string.Empty;
-    private int? _selectedServerId;
-    private int? _selectedServiceId;
+    private int? _srcServerId;
+    private int? _srcServiceId;
+    private int? _dstServerId;
+    private int? _dstServiceId;
     private IEnumerable<Server> _allServers = [];
     private IEnumerable<AppService> _allServices = [];
 
     protected override async Task OnInitializedAsync()
     {
-        _allServers = await ServerRepository.GetAllAsync();
+        _allServers  = await ServerRepository.GetAllAsync();
         _allServices = await AppServiceRepository.GetAllAsync();
         _rule = await FirewallRuleRepository.GetByIdAsync(Id);
         if (_rule != null)
         {
-            _expiresAt = _rule.ExpiresAt;
-            _portText = _rule.DestinationPort?.ToString() ?? string.Empty;
-            _selectedServerId = _rule.ServerId;
-            _selectedServiceId = _rule.ServiceId;
+            _expiresAt    = _rule.ExpiresAt;
+            _srcServerId  = _rule.SourceServerId;
+            _srcServiceId = _rule.SourceServiceId;
+            _dstServerId  = _rule.DestinationServerId;
+            _dstServiceId = _rule.DestinationServiceId;
         }
-    }
-
-    private void OnServerChanged(int? serverId)
-    {
-        _selectedServerId = serverId;
-        var server = _allServers.FirstOrDefault(s => s.Id == serverId);
-        if (_rule != null && server != null)
-            _rule.SourceIp = server.IpAddress;
-    }
-
-    private void OnServiceChanged(int? serviceId)
-    {
-        _selectedServiceId = serviceId;
-        var service = _allServices.FirstOrDefault(s => s.Id == serviceId);
-        if (service?.Port.HasValue == true)
-            _portText = service.Port.Value.ToString();
     }
 
     private async Task Save()
     {
-        if (_rule != null)
+        if (_rule == null) return;
+
+        if (_srcServerId is null || _srcServiceId is null || _dstServerId is null || _dstServiceId is null)
         {
-            _rule.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
-            _rule.DestinationPort = int.TryParse(_portText, out var p) ? p : null;
-            _rule.ServerId = _selectedServerId;
-            _rule.ServiceId = _selectedServiceId;
-            await FirewallRuleRepository.UpdateAsync(_rule);
-            Snackbar.Add("Правило обновлено", Severity.Success);
-            Navigation.NavigateTo("/firewall-rules");
+            Snackbar.Add("Все четыре поля (серверы и сервисы) обязательны", Severity.Warning);
+            return;
         }
+
+        _rule.SourceServerId       = _srcServerId.Value;
+        _rule.SourceServiceId      = _srcServiceId.Value;
+        _rule.DestinationServerId  = _dstServerId.Value;
+        _rule.DestinationServiceId = _dstServiceId.Value;
+        _rule.ExpiresAt            = _expiresAt;
+
+        await FirewallRuleRepository.UpdateAsync(_rule);
+        Snackbar.Add("Правило обновлено", Severity.Success);
+        Navigation.NavigateTo("/firewall-rules");
     }
 
     private async Task Delete()

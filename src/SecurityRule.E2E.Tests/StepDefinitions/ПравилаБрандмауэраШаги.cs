@@ -17,56 +17,43 @@ public sealed class ПравилаБрандмауэраШаги
 
     // ── Given: seed data directly into the in-memory database ────────────────
 
-    /// <summary>Creates a firewall rule directly in the database.</summary>
-    [Given("в системе существует правило фаервола SourceIp {string} DestIp {string}")]
-    public async Task ВСистемеСуществуетПравилоФаервола(string sourceIp, string destIp)
+    /// <summary>Creates a service directly in the database.</summary>
+    [Given("в системе существует сервис Name {string} UserName {string}")]
+    public async Task ВСистемеСуществуетСервис(string name, string userName)
     {
         using var scope = _state.Services.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IFirewallRuleRepository>();
-        await repo.AddAsync(new FirewallRule
-        {
-            SourceIp = sourceIp,
-            DestinationIp = destIp,
-            ExpiresAt = DateTime.Now.AddYears(1),
-            Description = $"{sourceIp} -> {destIp}"
-        });
+        var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+        await repo.AddAsync(new AppService { Name = name, UserName = userName });
     }
 
-    /// <summary>Creates a firewall rule linked to a server (by name) directly in the database.</summary>
-    [Given("в системе существует правило фаервола для сервера {string} с описанием {string}")]
-    public async Task ВСистемеСуществуетПравилоФаерволаДляСервера(string serverName, string description)
+    /// <summary>Creates a firewall rule linked to 4 entities by name.</summary>
+    [Given("в системе существует правило фаервола от сервера {string} сервиса {string} до сервера {string} сервиса {string}")]
+    public async Task ВСистемеСуществуетПравилоФаервола(
+        string srcServerName, string srcServiceName, string dstServerName, string dstServiceName)
     {
         using var scope = _state.Services.CreateScope();
-        var serverRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IServerRepository>();
-        var ruleRepo   = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IFirewallRuleRepository>();
-
-        var servers = await serverRepo.GetAllAsync();
-        var server  = servers.First(s => s.Name == serverName);
-
-        await ruleRepo.AddAsync(new FirewallRule
-        {
-            ServerId    = server.Id,
-            ExpiresAt   = DateTime.Now.AddYears(1),
-            Description = description
-        });
-    }
-
-    /// <summary>Creates a firewall rule linked to a service (by name) directly in the database.</summary>
-    [Given("в системе существует правило фаервола для сервиса {string} с описанием {string}")]
-    public async Task ВСистемеСуществуетПравилоФаерволаДляСервиса(string serviceName, string description)
-    {
-        using var scope = _state.Services.CreateScope();
+        var serverRepo  = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IServerRepository>();
         var serviceRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
         var ruleRepo    = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IFirewallRuleRepository>();
 
-        var services = await serviceRepo.GetAllAsync();
-        var service  = services.First(s => s.Name == serviceName);
+        var servers  = (await serverRepo.GetAllAsync()).ToList();
+        var services = (await serviceRepo.GetAllAsync()).ToList();
+
+        var srcSrv = servers.First(s => s.Name == srcServerName);
+        var dstSrv = servers.First(s => s.Name == dstServerName);
+        var srcSvc = services.First(s => s.Name == srcServiceName);
+        var dstSvc = services.First(s => s.Name == dstServiceName);
 
         await ruleRepo.AddAsync(new FirewallRule
         {
-            ServiceId   = service.Id,
-            ExpiresAt   = DateTime.Now.AddYears(1),
-            Description = description
+            SourceServerId       = srcSrv.Id,
+            SourceServiceId      = srcSvc.Id,
+            DestinationServerId  = dstSrv.Id,
+            DestinationServiceId = dstSvc.Id,
+            Protocol  = "TCP",
+            Action    = "Allow",
+            Direction = "Inbound",
+            Description = $"{srcServerName}/{srcServiceName} -> {dstServerName}/{dstServiceName}"
         });
     }
 
@@ -84,28 +71,34 @@ public sealed class ПравилаБрандмауэраШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/firewall-rules/create");
     }
 
-    [When("я открываю страницу деталей правила фаервола SourceIp {string} DestIp {string}")]
-    public async Task ОткрытьСтраницуДеталейПравилаФаервола(string sourceIp, string destIp)
+    [When("я открываю страницу деталей правила фаервола от {string} до {string}")]
+    public async Task ОткрытьСтраницуДеталейПравилаФаервола(string srcServerName, string dstServerName)
     {
-        var id = await GetFirewallRuleIdAsync(sourceIp, destIp);
+        var id = await GetFirewallRuleIdAsync(srcServerName, dstServerName);
         await NavigateAndWaitAsync($"{_state.BaseUrl}/firewall-rules/{id}");
     }
 
-    [When("я открываю страницу редактирования правила фаервола SourceIp {string} DestIp {string}")]
-    public async Task ОткрытьСтраницуРедактированияПравилаФаервола(string sourceIp, string destIp)
+    [When("я открываю страницу редактирования правила фаервола от {string} до {string}")]
+    public async Task ОткрытьСтраницуРедактированияПравилаФаервола(string srcServerName, string dstServerName)
     {
-        var id = await GetFirewallRuleIdAsync(sourceIp, destIp);
+        var id = await GetFirewallRuleIdAsync(srcServerName, dstServerName);
         await NavigateAndWaitAsync($"{_state.BaseUrl}/firewall-rules/edit/{id}");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<int> GetFirewallRuleIdAsync(string sourceIp, string destIp)
+    private async Task<int> GetFirewallRuleIdAsync(string srcServerName, string dstServerName)
     {
         using var scope = _state.Services.CreateScope();
-        var repo  = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IFirewallRuleRepository>();
-        var rules = await repo.GetAllAsync();
-        return rules.First(r => r.SourceIp == sourceIp && r.DestinationIp == destIp).Id;
+        var ruleRepo   = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IFirewallRuleRepository>();
+        var serverRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IServerRepository>();
+
+        var servers = (await serverRepo.GetAllAsync()).ToList();
+        var srcSrv  = servers.First(s => s.Name == srcServerName);
+        var dstSrv  = servers.First(s => s.Name == dstServerName);
+
+        var rules = await ruleRepo.GetAllAsync();
+        return rules.First(r => r.SourceServerId == srcSrv.Id && r.DestinationServerId == dstSrv.Id).Id;
     }
 
     private async Task NavigateAndWaitAsync(string url)
@@ -117,3 +110,4 @@ public sealed class ПравилаБрандмауэраШаги
         await _state.Page.WaitForTimeoutAsync(500);
     }
 }
+

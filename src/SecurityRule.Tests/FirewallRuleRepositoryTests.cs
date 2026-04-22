@@ -28,39 +28,72 @@ public class FirewallRuleRepositoryTests
         _context.Dispose();
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private async Task<(Server srcSrv, AppService srcSvc, Server dstSrv, AppService dstSvc)> SeedEntitiesAsync(
+        string srcSrvName = "Src-Server", string srcSvcName = "Src-Service",
+        string dstSrvName = "Dst-Server", string dstSvcName = "Dst-Service")
+    {
+        var srcSrv = new Server { Name = srcSrvName, IpAddress = "10.0.0.1", OperatingSystem = "Linux" };
+        var srcSvc = new AppService { Name = srcSvcName, UserName = "domain\\src" };
+        var dstSrv = new Server { Name = dstSrvName, IpAddress = "10.0.0.2", OperatingSystem = "Linux" };
+        var dstSvc = new AppService { Name = dstSvcName, UserName = "domain\\dst" };
+        _context.Servers.AddRange(srcSrv, dstSrv);
+        _context.AppServices.AddRange(srcSvc, dstSvc);
+        await _context.SaveChangesAsync();
+        return (srcSrv, srcSvc, dstSrv, dstSvc);
+    }
+
+    private FirewallRule BuildRule(Server srcSrv, AppService srcSvc, Server dstSrv, AppService dstSvc,
+        string description = "Test rule", DateTime? expiresAt = null)
+        => new FirewallRule
+        {
+            SourceServerId       = srcSrv.Id,
+            SourceServiceId      = srcSvc.Id,
+            DestinationServerId  = dstSrv.Id,
+            DestinationServiceId = dstSvc.Id,
+            Protocol    = "TCP",
+            Action      = "Allow",
+            Direction   = "Inbound",
+            ExpiresAt   = expiresAt,
+            Description = description
+        };
+
+    // ── Tests ─────────────────────────────────────────────────────────────────
+
     [Test]
     public async Task AddAsync_ShouldAddRule()
     {
         // Arrange
-        var rule = new FirewallRule
-        {
-            SourceIp = "192.168.1.1",
-            DestinationIp = "10.0.0.1",
-            ExpiresAt = DateTime.Now.AddYears(1),
-            Description = "Test rule"
-        };
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "AddTest");
 
         // Act
         await _repository.AddAsync(rule);
 
         // Assert
-        var result = await _context.FirewallRules.ToListAsync();
-        result.Should().HaveCount(1);
-        result[0].SourceIp.Should().Be("192.168.1.1");
+        var stored = await _context.FirewallRules.ToListAsync();
+        stored.Should().HaveCount(1);
+        stored[0].Description.Should().Be("AddTest");
+        stored[0].SourceServerId.Should().Be(srcSrv.Id);
+        stored[0].SourceServiceId.Should().Be(srcSvc.Id);
+        stored[0].DestinationServerId.Should().Be(dstSrv.Id);
+        stored[0].DestinationServiceId.Should().Be(dstSvc.Id);
     }
 
     [Test]
     public async Task GetAllAsync_ShouldReturnAllRules()
     {
         // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
         _context.FirewallRules.AddRange(
-            new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" },
-            new FirewallRule { SourceIp = "10.0.0.3", DestinationIp = "10.0.0.4", ExpiresAt = DateTime.Now.AddYears(2), Description = "Rule2" }
+            BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Rule1"),
+            BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Rule2")
         );
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = (await _repository.GetAllAsync()).ToList();
 
         // Assert
         result.Should().HaveCount(2);
@@ -70,7 +103,8 @@ public class FirewallRuleRepositoryTests
     public async Task GetByIdAsync_ShouldReturnCorrectRule()
     {
         // Arrange
-        var rule = new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" };
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "FindMe");
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
@@ -79,14 +113,12 @@ public class FirewallRuleRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.SourceIp.Should().Be("10.0.0.1");
+        result!.Description.Should().Be("FindMe");
     }
 
     [Test]
     public async Task GetByIdAsync_ShouldReturnNull_WhenNotFound()
     {
-        // Arrange – empty database
-
         // Act
         var result = await _repository.GetByIdAsync(999);
 
@@ -95,27 +127,169 @@ public class FirewallRuleRepositoryTests
     }
 
     [Test]
-    public async Task UpdateAsync_ShouldUpdateRule()
+    public async Task GetByIdAsync_ShouldIncludeAllNavigationProperties()
     {
         // Arrange
-        var rule = new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" };
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync("SrcS", "SrcSvc", "DstS", "DstSvc");
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "NavTest");
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
         // Act
-        rule.Description = "UpdatedRule";
+        var result = await _repository.GetByIdAsync(rule.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.SourceServer.Should().NotBeNull();
+        result.SourceServer!.Name.Should().Be("SrcS");
+        result.SourceService.Should().NotBeNull();
+        result.SourceService!.Name.Should().Be("SrcSvc");
+        result.DestinationServer.Should().NotBeNull();
+        result.DestinationServer!.Name.Should().Be("DstS");
+        result.DestinationService.Should().NotBeNull();
+        result.DestinationService!.Name.Should().Be("DstSvc");
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldIncludeAllNavigationProperties()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        _context.FirewallRules.Add(BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "NavAll"));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _repository.GetAllAsync()).ToList();
+
+        // Assert
+        result.Should().HaveCount(1);
+        var r = result[0];
+        r.SourceServer.Should().NotBeNull();
+        r.SourceService.Should().NotBeNull();
+        r.DestinationServer.Should().NotBeNull();
+        r.DestinationService.Should().NotBeNull();
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldUpdateDescription()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "OldDesc");
+        _context.FirewallRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // Act
+        rule.Description = "NewDesc";
         await _repository.UpdateAsync(rule);
 
         // Assert
         var result = await _context.FirewallRules.FindAsync(rule.Id);
-        result!.Description.Should().Be("UpdatedRule");
+        result!.Description.Should().Be("NewDesc");
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldChangeSourceServer()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var newSrcSrv = new Server { Name = "NewSrc", IpAddress = "10.0.9.1", OperatingSystem = "Linux" };
+        _context.Servers.Add(newSrcSrv);
+        await _context.SaveChangesAsync();
+
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "ChangeSrc");
+        _context.FirewallRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // Act
+        rule.SourceServerId = newSrcSrv.Id;
+        await _repository.UpdateAsync(rule);
+
+        // Assert
+        var result = await _repository.GetByIdAsync(rule.Id);
+        result!.SourceServerId.Should().Be(newSrcSrv.Id);
+        result.SourceServer!.Name.Should().Be("NewSrc");
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldChangeDestinationService()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var newDstSvc = new AppService { Name = "NewDstSvc", UserName = "domain\\new" };
+        _context.AppServices.Add(newDstSvc);
+        await _context.SaveChangesAsync();
+
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "ChangeDst");
+        _context.FirewallRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // Act
+        rule.DestinationServiceId = newDstSvc.Id;
+        await _repository.UpdateAsync(rule);
+
+        // Assert
+        var result = await _repository.GetByIdAsync(rule.Id);
+        result!.DestinationServiceId.Should().Be(newDstSvc.Id);
+        result.DestinationService!.Name.Should().Be("NewDstSvc");
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldUpdateExpiresAt_ToNull()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Expiring", expiresAt: DateTime.Now.AddYears(1));
+        _context.FirewallRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // Act — set unlimited
+        rule.ExpiresAt = null;
+        await _repository.UpdateAsync(rule);
+
+        // Assert
+        var result = await _context.FirewallRules.FindAsync(rule.Id);
+        result!.ExpiresAt.Should().BeNull();
+    }
+
+    [Test]
+    public async Task AddAsync_WithNullExpiresAt_ShouldPersist_AsUnlimited()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Unlimited", expiresAt: null);
+
+        // Act
+        await _repository.AddAsync(rule);
+
+        // Assert
+        var result = await _repository.GetByIdAsync(rule.Id);
+        result.Should().NotBeNull();
+        result!.ExpiresAt.Should().BeNull();
+    }
+
+    [Test]
+    public async Task AddAsync_WithExpiresAtInPast_ShouldStoreExpiredRule()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var pastDate = DateTime.Now.AddDays(-1);
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Expired", expiresAt: pastDate);
+
+        // Act
+        await _repository.AddAsync(rule);
+
+        // Assert
+        var result = await _repository.GetByIdAsync(rule.Id);
+        result!.ExpiresAt.Should().BeBefore(DateTime.Now);
     }
 
     [Test]
     public async Task DeleteAsync_ShouldRemoveRule()
     {
         // Arrange
-        var rule = new FirewallRule { SourceIp = "10.0.0.1", DestinationIp = "10.0.0.2", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule1" };
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "ToDelete");
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
@@ -128,235 +302,34 @@ public class FirewallRuleRepositoryTests
     }
 
     [Test]
-    public async Task IsExpired_WhenExpiresAtIsInPast()
+    public async Task DeleteAsync_ShouldNotThrow_WhenNotFound()
+    {
+        // Act
+        var act = async () => await _repository.DeleteAsync(999);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldUpdateProtocolActionDirection()
     {
         // Arrange
-        var rule = new FirewallRule
-        {
-            SourceIp = "10.0.0.1",
-            DestinationIp = "10.0.0.2",
-            ExpiresAt = DateTime.Now.AddDays(-1),
-            Description = "Expired rule"
-        };
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Protocol");
         _context.FirewallRules.Add(rule);
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(rule.Id);
-
-        // Assert
-        result!.ExpiresAt.Should().BeBefore(DateTime.Now);
-    }
-
-    [Test]
-    public async Task AddAsync_WithServerId_ShouldLinkToServer()
-    {
-        // Arrange
-        var server = new Server { Name = "GW-01", IpAddress = "10.0.1.1", OperatingSystem = "Linux" };
-        _context.Servers.Add(server);
-        await _context.SaveChangesAsync();
-
-        var rule = new FirewallRule
-        {
-            ServerId = server.Id,
-            ExpiresAt = DateTime.Now.AddYears(1),
-            Description = "Server-linked rule"
-        };
-
-        // Act
-        await _repository.AddAsync(rule);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result.Should().NotBeNull();
-        result!.ServerId.Should().Be(server.Id);
-        result.Server.Should().NotBeNull();
-        result.Server!.Name.Should().Be("GW-01");
-    }
-
-    [Test]
-    public async Task AddAsync_WithServiceId_ShouldLinkToService()
-    {
-        // Arrange
-        var service = new AppService { Name = "AuthApi", UserName = "domain\\svc" };
-        _context.AppServices.Add(service);
-        await _context.SaveChangesAsync();
-
-        var rule = new FirewallRule
-        {
-            ServiceId = service.Id,
-            ExpiresAt = DateTime.Now.AddYears(1),
-            Description = "Service-linked rule"
-        };
-
-        // Act
-        await _repository.AddAsync(rule);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result.Should().NotBeNull();
-        result!.ServiceId.Should().Be(service.Id);
-        result.Service.Should().NotBeNull();
-        result.Service!.Name.Should().Be("AuthApi");
-    }
-
-    [Test]
-    public async Task GetByIdAsync_ShouldIncludeServerNavigation()
-    {
-        // Arrange
-        var server = new Server { Name = "DB-01", IpAddress = "10.0.2.1", OperatingSystem = "Windows" };
-        _context.Servers.Add(server);
-        await _context.SaveChangesAsync();
-
-        var rule = new FirewallRule { ServerId = server.Id, ExpiresAt = DateTime.Now.AddYears(1), Description = "R1" };
-        _context.FirewallRules.Add(rule);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.GetByIdAsync(rule.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Server.Should().NotBeNull();
-        result.Server!.Name.Should().Be("DB-01");
-        result.Server.IpAddress.Should().Be("10.0.2.1");
-    }
-
-    [Test]
-    public async Task GetByIdAsync_ShouldIncludeServiceNavigation()
-    {
-        // Arrange
-        var service = new AppService { Name = "PaymentSvc", UserName = "domain\\pay" };
-        _context.AppServices.Add(service);
-        await _context.SaveChangesAsync();
-
-        var rule = new FirewallRule { ServiceId = service.Id, ExpiresAt = DateTime.Now.AddYears(1), Description = "R2" };
-        _context.FirewallRules.Add(rule);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _repository.GetByIdAsync(rule.Id);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Service.Should().NotBeNull();
-        result.Service!.Name.Should().Be("PaymentSvc");
-    }
-
-    [Test]
-    public async Task GetAllAsync_ShouldIncludeServerNavigation()
-    {
-        // Arrange
-        var server = new Server { Name = "App-01", IpAddress = "10.0.3.1", OperatingSystem = "Linux" };
-        _context.Servers.Add(server);
-        await _context.SaveChangesAsync();
-
-        _context.FirewallRules.AddRange(
-            new FirewallRule { ServerId = server.Id, ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule A" },
-            new FirewallRule { SourceIp = "1.2.3.4", ExpiresAt = DateTime.Now.AddYears(1), Description = "Rule B" }
-        );
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = (await _repository.GetAllAsync()).ToList();
-
-        // Assert
-        result.Should().HaveCount(2);
-        result.Single(r => r.Description == "Rule A").Server.Should().NotBeNull();
-        result.Single(r => r.Description == "Rule B").Server.Should().BeNull();
-    }
-
-    [Test]
-    public async Task UpdateAsync_ShouldUpdateServerId()
-    {
-        // Arrange
-        var server = new Server { Name = "Proxy-01", IpAddress = "10.0.4.1", OperatingSystem = "Linux" };
-        _context.Servers.Add(server);
-        var rule = new FirewallRule { ExpiresAt = DateTime.Now.AddYears(1), Description = "NoServer" };
-        _context.FirewallRules.Add(rule);
-        await _context.SaveChangesAsync();
-
-        // Act — link the rule to the server
-        rule.ServerId = server.Id;
-        await _repository.UpdateAsync(rule);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result!.ServerId.Should().Be(server.Id);
-        result.Server.Should().NotBeNull();
-        result.Server!.Name.Should().Be("Proxy-01");
-    }
-
-    [Test]
-    public async Task UpdateAsync_ShouldClearServerId()
-    {
-        // Arrange
-        var server = new Server { Name = "Cache-01", IpAddress = "10.0.5.1", OperatingSystem = "Linux" };
-        _context.Servers.Add(server);
-        await _context.SaveChangesAsync();
-
-        var rule = new FirewallRule { ServerId = server.Id, ExpiresAt = DateTime.Now.AddYears(1), Description = "Linked" };
-        _context.FirewallRules.Add(rule);
-        await _context.SaveChangesAsync();
-
-        // Act — unlink from server
-        rule.ServerId = null;
+        rule.Protocol  = "UDP";
+        rule.Action    = "Deny";
+        rule.Direction = "Outbound";
         await _repository.UpdateAsync(rule);
 
         // Assert
         var result = await _context.FirewallRules.FindAsync(rule.Id);
-        result!.ServerId.Should().BeNull();
-    }
-
-    [Test]
-    public async Task UpdateAsync_ShouldUpdateServiceId()
-    {
-        // Arrange
-        var service = new AppService { Name = "MailSvc", UserName = "domain\\mail" };
-        _context.AppServices.Add(service);
-        var rule = new FirewallRule { ExpiresAt = DateTime.Now.AddYears(1), Description = "NoService" };
-        _context.FirewallRules.Add(rule);
-        await _context.SaveChangesAsync();
-
-        // Act — link to service
-        rule.ServiceId = service.Id;
-        await _repository.UpdateAsync(rule);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result!.ServiceId.Should().Be(service.Id);
-        result.Service.Should().NotBeNull();
-        result.Service!.Name.Should().Be("MailSvc");
-    }
-
-    [Test]
-    public async Task AddAsync_WithNullServerAndService_ShouldStoreManualIp()
-    {
-        // Arrange — rule with manual IP (no server/service links)
-        var rule = new FirewallRule
-        {
-            SourceIp      = "192.168.0.10",
-            DestinationIp = "192.168.0.20",
-            DestinationPort = 443,
-            Protocol      = "TCP",
-            Action        = "Allow",
-            Direction     = "Inbound",
-            ExpiresAt     = DateTime.Now.AddYears(1),
-            Description   = "Manual IP rule"
-        };
-
-        // Act
-        await _repository.AddAsync(rule);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result.Should().NotBeNull();
-        result!.SourceIp.Should().Be("192.168.0.10");
-        result.DestinationIp.Should().Be("192.168.0.20");
-        result.DestinationPort.Should().Be(443);
-        result.ServerId.Should().BeNull();
-        result.ServiceId.Should().BeNull();
-        result.Server.Should().BeNull();
-        result.Service.Should().BeNull();
+        result!.Protocol.Should().Be("UDP");
+        result.Action.Should().Be("Deny");
+        result.Direction.Should().Be("Outbound");
     }
 }

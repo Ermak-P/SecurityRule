@@ -323,14 +323,23 @@ namespace SecurityRule.E2E.Tests.Features
     await testRunner.GivenAsync("в системе существует сервер Name \"Web-Firewall\" IP \"10.10.0.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 42
-    await testRunner.AndAsync("в системе существует правило фаервола для сервера \"Web-Firewall\" с описанием \"All" +
-                        "ow HTTPS\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("в системе существует сервер Name \"FW-Dst-Srv\" IP \"10.10.0.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 43
-    await testRunner.WhenAsync("я открываю страницу деталей сервера \"Web-Firewall\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.AndAsync("в системе существует сервис Name \"FW-SrcSvc\" UserName \"domain\\fwsrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 44
-    await testRunner.ThenAsync("я вижу текст \"Allow HTTPS\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.AndAsync("в системе существует сервис Name \"FW-DstSvc\" UserName \"domain\\fwdst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 45
+    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"Web-Firewall\" сервиса \"FW-SrcSv" +
+                        "c\" до сервера \"FW-Dst-Srv\" сервиса \"FW-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 46
+    await testRunner.WhenAsync("я открываю страницу деталей сервера \"Web-Firewall\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 47
+    await testRunner.ThenAsync("я вижу текст \"FW-SrcSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

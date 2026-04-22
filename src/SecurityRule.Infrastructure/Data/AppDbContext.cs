@@ -58,22 +58,34 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<FirewallRule>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.SourceIp).IsRequired(false).HasMaxLength(45);
-            entity.Property(e => e.DestinationIp).IsRequired(false).HasMaxLength(45);
             entity.Property(e => e.Protocol).IsRequired().HasMaxLength(10);
             entity.Property(e => e.Action).IsRequired().HasMaxLength(10);
             entity.Property(e => e.Direction).IsRequired().HasMaxLength(20);
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.HasOne(e => e.Server)
-                  .WithMany(s => s.FirewallRules)
-                  .HasForeignKey(e => e.ServerId)
-                  .IsRequired(false)
-                  .OnDelete(DeleteBehavior.SetNull);
-            entity.HasOne(e => e.Service)
-                  .WithMany(s => s.FirewallRules)
-                  .HasForeignKey(e => e.ServiceId)
-                  .IsRequired(false)
-                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.SourceServer)
+                  .WithMany(s => s.SourceFirewallRules)
+                  .HasForeignKey(e => e.SourceServerId)
+                  .IsRequired()
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.SourceService)
+                  .WithMany(s => s.SourceFirewallRules)
+                  .HasForeignKey(e => e.SourceServiceId)
+                  .IsRequired()
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.DestinationServer)
+                  .WithMany(s => s.DestinationFirewallRules)
+                  .HasForeignKey(e => e.DestinationServerId)
+                  .IsRequired()
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.DestinationService)
+                  .WithMany(s => s.DestinationFirewallRules)
+                  .HasForeignKey(e => e.DestinationServiceId)
+                  .IsRequired()
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<OperatingSystemOption>(entity =>

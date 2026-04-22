@@ -349,17 +349,26 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 44
-    await testRunner.GivenAsync("в системе существует сервис \"BackendApi\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+    await testRunner.GivenAsync("в системе существует сервис Name \"BackendApi\" UserName \"domain\\backend\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 45
-    await testRunner.AndAsync("в системе существует правило фаервола для сервиса \"BackendApi\" с описанием \"Allow" +
-                        " port 8080\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("в системе существует сервер Name \"BA-SrcSrv\" IP \"10.20.0.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 46
-    await testRunner.WhenAsync("я открываю страницу деталей сервиса \"BackendApi\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.AndAsync("в системе существует сервер Name \"BA-DstSrv\" IP \"10.20.0.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 47
-    await testRunner.ThenAsync("я вижу текст \"Allow port 8080\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.AndAsync("в системе существует сервис Name \"BA-DstSvc\" UserName \"domain\\badst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 48
+    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"BA-SrcSrv\" сервиса \"BackendApi\"" +
+                        " до сервера \"BA-DstSrv\" сервиса \"BA-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 49
+    await testRunner.WhenAsync("я открываю страницу деталей сервиса \"BackendApi\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 50
+    await testRunner.ThenAsync("я вижу текст \"BA-SrcSrv\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

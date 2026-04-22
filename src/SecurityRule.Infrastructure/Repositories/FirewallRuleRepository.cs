@@ -16,14 +16,18 @@ public class FirewallRuleRepository : IFirewallRuleRepository
 
     public async Task<IEnumerable<FirewallRule>> GetAllAsync()
         => await _context.FirewallRules
-            .Include(r => r.Server)
-            .Include(r => r.Service)
+            .Include(r => r.SourceServer)
+            .Include(r => r.SourceService)
+            .Include(r => r.DestinationServer)
+            .Include(r => r.DestinationService)
             .ToListAsync();
 
     public async Task<FirewallRule?> GetByIdAsync(int id)
         => await _context.FirewallRules
-            .Include(r => r.Server)
-            .Include(r => r.Service)
+            .Include(r => r.SourceServer)
+            .Include(r => r.SourceService)
+            .Include(r => r.DestinationServer)
+            .Include(r => r.DestinationService)
             .FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task AddAsync(FirewallRule rule)
@@ -37,16 +41,15 @@ public class FirewallRuleRepository : IFirewallRuleRepository
         var existing = await _context.FirewallRules.FindAsync(rule.Id);
         if (existing == null) return;
 
-        existing.SourceIp = rule.SourceIp;
-        existing.DestinationIp = rule.DestinationIp;
-        existing.DestinationPort = rule.DestinationPort;
-        existing.Protocol = rule.Protocol;
-        existing.Action = rule.Action;
-        existing.Direction = rule.Direction;
-        existing.ExpiresAt = rule.ExpiresAt;
+        existing.SourceServerId      = rule.SourceServerId;
+        existing.SourceServiceId     = rule.SourceServiceId;
+        existing.DestinationServerId = rule.DestinationServerId;
+        existing.DestinationServiceId = rule.DestinationServiceId;
+        existing.Protocol    = rule.Protocol;
+        existing.Action      = rule.Action;
+        existing.Direction   = rule.Direction;
+        existing.ExpiresAt   = rule.ExpiresAt;
         existing.Description = rule.Description;
-        existing.ServerId = rule.ServerId;
-        existing.ServiceId = rule.ServiceId;
 
         await _context.SaveChangesAsync();
     }

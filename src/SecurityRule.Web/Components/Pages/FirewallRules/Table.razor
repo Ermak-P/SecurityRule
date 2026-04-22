@@ -4,43 +4,50 @@
 <MudTable T="FirewallRule" Items="@Items" Hover="true" Striped="true" Dense="true"
           Elevation="@Elevation" OnRowClick="@ToggleRow">
     <HeaderContent>
-        <MudTh>Исходящий IP</MudTh>
-        <MudTh>Входящий IP</MudTh>
-        <MudTh>Порт</MudTh>
+        <MudTh Style="width:35%">Источник</MudTh>
+        <MudTh Style="width:5%; text-align:center;"></MudTh>
+        <MudTh Style="width:35%">Назначение</MudTh>
         <MudTh>Протокол</MudTh>
         <MudTh>Действие</MudTh>
-        <MudTh>Направление</MudTh>
         <MudTh>Истекает</MudTh>
-        <MudTh>Статус</MudTh>
-        <MudTh>Описание</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Исходящий IP" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
-                <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Color="Color.Primary" />
-                @if (context.Server != null)
+        @{
+            var srcServer  = context.SourceServer;
+            var srcService = context.SourceService;
+            var dstServer  = context.DestinationServer;
+            var dstService = context.DestinationService;
+        }
+        <MudTd DataLabel="Источник" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)"
+                         Size="Size.Small" Color="Color.Default" />
+                @if (srcServer != null)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Dns">@context.Server.Name</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Dns">@srcServer.Name</MudChip>
                 }
-                else
+                @if (srcService != null)
                 {
-                    @(string.IsNullOrWhiteSpace(context.SourceIp) ? "—" : context.SourceIp)
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.MiscellaneousServices">@srcService.Name</MudChip>
                 }
             </MudStack>
         </MudTd>
-        <MudTd DataLabel="Входящий IP">
-            @if (context.Service != null)
-            {
-                <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.MiscellaneousServices">@context.Service.Name</MudChip>
-            }
-            else
-            {
-                @(string.IsNullOrWhiteSpace(context.DestinationIp) ? "—" : context.DestinationIp)
-            }
+        <MudTd Style="text-align:center; vertical-align:middle;">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Default" Size="Size.Small" />
         </MudTd>
-        <MudTd DataLabel="Порт">@(context.DestinationPort.HasValue ? context.DestinationPort.Value.ToString() : "—")</MudTd>
+        <MudTd DataLabel="Назначение">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                @if (dstServer != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Dns">@dstServer.Name</MudChip>
+                }
+                @if (dstService != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.MiscellaneousServices">@dstService.Name</MudChip>
+                }
+            </MudStack>
+        </MudTd>
         <MudTd DataLabel="Протокол">@(string.IsNullOrWhiteSpace(context.Protocol) ? "—" : context.Protocol)</MudTd>
         <MudTd DataLabel="Действие">
             @if (context.Action == "Allow")
@@ -56,27 +63,24 @@
                 @context.Action
             }
         </MudTd>
-        <MudTd DataLabel="Направление">
-            @if (context.Direction == "Inbound") { <text>Входящее</text> }
-            else if (context.Direction == "Outbound") { <text>Исходящее</text> }
-            else { @context.Direction }
-        </MudTd>
-        <MudTd DataLabel="Истекает">@context.ExpiresAt.ToString("dd.MM.yyyy")</MudTd>
-        <MudTd DataLabel="Статус">
-            @if (context.ExpiresAt < DateTime.Now)
+        <MudTd DataLabel="Истекает">
+            @if (context.ExpiresAt.HasValue)
             {
-                <MudChip T="string" Color="Color.Error" Size="Size.Small">Истёк</MudChip>
-            }
-            else if (context.ExpiresAt < DateTime.Now.AddDays(30))
-            {
-                <MudChip T="string" Color="Color.Warning" Size="Size.Small">Скоро истекает</MudChip>
+                @context.ExpiresAt.Value.ToString("dd.MM.yyyy")
+                @if (context.ExpiresAt < DateTime.Now)
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ml-1">Истёк</MudChip>
+                }
+                else if (context.ExpiresAt < DateTime.Now.AddDays(30))
+                {
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="ml-1">Скоро</MudChip>
+                }
             }
             else
             {
-                <MudChip T="string" Color="Color.Success" Size="Size.Small">Активен</MudChip>
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">Бессрочно</MudChip>
             }
         </MudTd>
-        <MudTd DataLabel="Описание">@context.Description</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
@@ -89,7 +93,7 @@
         @if (_expandedRows.Contains(rule.Id))
         {
             <MudTr>
-                <td colspan="10" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="7" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-primary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         <Details Rule="rule" Embedded="true" />
                     </div>
