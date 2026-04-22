@@ -44,11 +44,11 @@ else
                     <MudText Typo="Typo.body1">@_displayName</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Дочерних групп (AD)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Дочерних групп</MudText>
                     <MudText Typo="Typo.body1">@_childGroups.Count</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Пользователей (AD)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Пользователей</MudText>
                     <MudText Typo="Typo.body1">@_memberUsers.Count</MudText>
                 </MudItem>
                 @if (!string.IsNullOrWhiteSpace(_group?.Description))
@@ -66,7 +66,7 @@ else
     {
         <MudText Typo="Typo.h6" Class="mb-2">
             <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" Class="mr-1" />
-            Входит в группы (AD)
+            Входит в группы
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4">
             <AdGroupsTable Items="@_parentGroups" Elevation="0" Nested="false" />
@@ -77,7 +77,7 @@ else
     {
         <MudText Typo="Typo.h6" Class="mb-2">
             <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Small" Class="mr-1" />
-            Дочерние группы (AD)
+            Дочерние группы
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4">
             <AdGroupsTable Items="@_childGroups" Elevation="0" Nested="false" />
@@ -88,7 +88,7 @@ else
     {
         <MudText Typo="Typo.h6" Class="mb-2">
             <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-1" />
-            Пользователи (AD)
+            Пользователи
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4">
             <SecurityRule.Web.Components.Pages.Users.AdUsersTable Items="@_memberUsers" Elevation="0" Nested="false" />
