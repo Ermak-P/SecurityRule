@@ -180,4 +180,25 @@ public class ServerRepositoryTests
         updated!.Services.Should().HaveCount(1);
         updated.Services.Single().Name.Should().Be("Svc2");
     }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeFirewallRules()
+    {
+        // Arrange
+        var server = new Server { Name = "FW-Server", IpAddress = "10.0.9.1", OperatingSystem = "Linux" };
+        _context.Servers.Add(server);
+        await _context.SaveChangesAsync();
+
+        var rule = new FirewallRule { ServerId = server.Id, ExpiresAt = DateTime.Now.AddYears(1), Description = "ServerFWRule" };
+        _context.FirewallRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(server.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.FirewallRules.Should().HaveCount(1);
+        result.FirewallRules.First().Description.Should().Be("ServerFWRule");
+    }
 }

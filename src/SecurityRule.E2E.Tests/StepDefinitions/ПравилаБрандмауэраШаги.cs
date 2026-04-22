@@ -32,6 +32,44 @@ public sealed class ПравилаБрандмауэраШаги
         });
     }
 
+    /// <summary>Creates a firewall rule linked to a server (by name) directly in the database.</summary>
+    [Given("в системе существует правило фаервола для сервера {string} с описанием {string}")]
+    public async Task ВСистемеСуществуетПравилоФаерволаДляСервера(string serverName, string description)
+    {
+        using var scope = _state.Services.CreateScope();
+        var serverRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IServerRepository>();
+        var ruleRepo   = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IFirewallRuleRepository>();
+
+        var servers = await serverRepo.GetAllAsync();
+        var server  = servers.First(s => s.Name == serverName);
+
+        await ruleRepo.AddAsync(new FirewallRule
+        {
+            ServerId    = server.Id,
+            ExpiresAt   = DateTime.Now.AddYears(1),
+            Description = description
+        });
+    }
+
+    /// <summary>Creates a firewall rule linked to a service (by name) directly in the database.</summary>
+    [Given("в системе существует правило фаервола для сервиса {string} с описанием {string}")]
+    public async Task ВСистемеСуществуетПравилоФаерволаДляСервиса(string serviceName, string description)
+    {
+        using var scope = _state.Services.CreateScope();
+        var serviceRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+        var ruleRepo    = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IFirewallRuleRepository>();
+
+        var services = await serviceRepo.GetAllAsync();
+        var service  = services.First(s => s.Name == serviceName);
+
+        await ruleRepo.AddAsync(new FirewallRule
+        {
+            ServiceId   = service.Id,
+            ExpiresAt   = DateTime.Now.AddYears(1),
+            Description = description
+        });
+    }
+
     // ── When: navigation ──────────────────────────────────────────────────────
 
     [When("я перехожу на страницу правил фаервола")]

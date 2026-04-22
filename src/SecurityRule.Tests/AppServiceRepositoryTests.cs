@@ -218,4 +218,25 @@ public class AppServiceRepositoryTests
         updated!.Servers.Should().HaveCount(1);
         updated.Servers.Single().Name.Should().Be("Server2");
     }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeFirewallRules()
+    {
+        // Arrange
+        var service = new AppService { Name = "InvoiceSvc", UserName = "domain\\invoice" };
+        _context.AppServices.Add(service);
+        await _context.SaveChangesAsync();
+
+        var rule = new FirewallRule { ServiceId = service.Id, ExpiresAt = DateTime.Now.AddYears(1), Description = "ServiceFWRule" };
+        _context.FirewallRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(service.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.FirewallRules.Should().HaveCount(1);
+        result.FirewallRules.First().Description.Should().Be("ServiceFWRule");
+    }
 }
