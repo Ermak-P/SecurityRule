@@ -45,6 +45,7 @@ public class AppServiceRepository : IAppServiceRepository
 
         existing.Name = service.Name;
         existing.UserName = service.UserName;
+        existing.Port = service.Port;
 
         var serverIds = service.Servers.Select(s => s.Id).ToList();
         var trackedServers = await _context.Servers

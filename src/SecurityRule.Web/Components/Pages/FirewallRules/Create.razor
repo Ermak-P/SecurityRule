@@ -12,6 +12,22 @@
     <MudCardContent>
         <MudTextField @bind-Value="_rule.SourceIp" Label="Исходящий IP адрес" Required="true" Class="mb-3" />
         <MudTextField @bind-Value="_rule.DestinationIp" Label="Входящий IP адрес" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_portText" Label="Порт назначения" Class="mb-3"
+                      InputType="InputType.Number" />
+        <MudSelect @bind-Value="_rule.Protocol" Label="Протокол" Required="true" Class="mb-3">
+            <MudSelectItem Value="@("TCP")">TCP</MudSelectItem>
+            <MudSelectItem Value="@("UDP")">UDP</MudSelectItem>
+            <MudSelectItem Value="@("ICMP")">ICMP</MudSelectItem>
+            <MudSelectItem Value="@("Any")">Any</MudSelectItem>
+        </MudSelect>
+        <MudSelect @bind-Value="_rule.Action" Label="Действие" Required="true" Class="mb-3">
+            <MudSelectItem Value="@("Allow")">Разрешить</MudSelectItem>
+            <MudSelectItem Value="@("Deny")">Запретить</MudSelectItem>
+        </MudSelect>
+        <MudSelect @bind-Value="_rule.Direction" Label="Направление" Required="true" Class="mb-3">
+            <MudSelectItem Value="@("Inbound")">Входящее</MudSelectItem>
+            <MudSelectItem Value="@("Outbound")">Исходящее</MudSelectItem>
+        </MudSelect>
         <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
         <MudTextField @bind-Value="_rule.Description" Label="Описание" Class="mb-3" Lines="3" />
     </MudCardContent>
@@ -22,12 +38,14 @@
 </MudCard>
 
 @code {
-    private FirewallRule _rule = new();
+    private FirewallRule _rule = new() { Protocol = "TCP", Action = "Allow", Direction = "Inbound" };
     private DateTime? _expiresAt = DateTime.Now.AddYears(1);
+    private string _portText = string.Empty;
 
     private async Task Save()
     {
         _rule.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
+        _rule.DestinationPort = int.TryParse(_portText, out var p) ? p : null;
         await FirewallRuleRepository.AddAsync(_rule);
         Snackbar.Add("Правило добавлено", Severity.Success);
         Navigation.NavigateTo("/firewall-rules");

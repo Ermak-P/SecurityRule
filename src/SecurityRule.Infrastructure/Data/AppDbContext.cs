@@ -60,6 +60,9 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.SourceIp).IsRequired().HasMaxLength(45);
             entity.Property(e => e.DestinationIp).IsRequired().HasMaxLength(45);
+            entity.Property(e => e.Protocol).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.Action).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.Direction).IsRequired().HasMaxLength(20);
             entity.Property(e => e.Description).HasMaxLength(1000);
         });
 

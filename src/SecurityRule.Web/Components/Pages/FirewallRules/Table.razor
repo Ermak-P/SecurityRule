@@ -6,6 +6,10 @@
     <HeaderContent>
         <MudTh>Исходящий IP</MudTh>
         <MudTh>Входящий IP</MudTh>
+        <MudTh>Порт</MudTh>
+        <MudTh>Протокол</MudTh>
+        <MudTh>Действие</MudTh>
+        <MudTh>Направление</MudTh>
         <MudTh>Истекает</MudTh>
         <MudTh>Статус</MudTh>
         <MudTh>Описание</MudTh>
@@ -20,6 +24,27 @@
             </MudStack>
         </MudTd>
         <MudTd DataLabel="Входящий IP">@context.DestinationIp</MudTd>
+        <MudTd DataLabel="Порт">@(context.DestinationPort.HasValue ? context.DestinationPort.Value.ToString() : "—")</MudTd>
+        <MudTd DataLabel="Протокол">@(string.IsNullOrWhiteSpace(context.Protocol) ? "—" : context.Protocol)</MudTd>
+        <MudTd DataLabel="Действие">
+            @if (context.Action == "Allow")
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">Разрешить</MudChip>
+            }
+            else if (context.Action == "Deny")
+            {
+                <MudChip T="string" Color="Color.Error" Size="Size.Small">Запретить</MudChip>
+            }
+            else
+            {
+                @context.Action
+            }
+        </MudTd>
+        <MudTd DataLabel="Направление">
+            @if (context.Direction == "Inbound") { <text>Входящее</text> }
+            else if (context.Direction == "Outbound") { <text>Исходящее</text> }
+            else { @context.Direction }
+        </MudTd>
         <MudTd DataLabel="Истекает">@context.ExpiresAt.ToString("dd.MM.yyyy")</MudTd>
         <MudTd DataLabel="Статус">
             @if (context.ExpiresAt < DateTime.Now)
@@ -48,7 +73,7 @@
         @if (_expandedRows.Contains(rule.Id))
         {
             <MudTr>
-                <td colspan="6" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="10" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-primary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         <Details Rule="rule" Embedded="true" />
                     </div>

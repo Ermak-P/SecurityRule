@@ -65,6 +65,9 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
+
                     b.Property<int?>("UserId")
                         .HasColumnType("int");
 
@@ -112,18 +115,36 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("DestinationPort")
+                        .HasColumnType("int");
 
                     b.Property<string>("DestinationIp")
                         .IsRequired()
                         .HasMaxLength(45)
                         .HasColumnType("nvarchar(45)");
 
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Protocol")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("SourceIp")
                         .IsRequired()

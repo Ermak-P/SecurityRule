@@ -5,7 +5,8 @@
           Elevation="@Elevation" OnRowClick="@ToggleRow">
     <HeaderContent>
         <MudTh>Название</MudTh>
-        <MudTh>AD учётная запись</MudTh>
+        <MudTh>Учётная запись</MudTh>
+        <MudTh>Порт</MudTh>
         <MudTh>Сертификаты</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
@@ -17,7 +18,7 @@
                 @context.Name
             </MudStack>
         </MudTd>
-        <MudTd DataLabel="AD учётная запись">
+        <MudTd DataLabel="Учётная запись">
             @if (!string.IsNullOrWhiteSpace(context.UserName))
             {
                 <span @onclick:stopPropagation="true">
@@ -30,6 +31,7 @@
                 </span>
             }
         </MudTd>
+        <MudTd DataLabel="Порт">@(context.Port.HasValue ? context.Port.Value.ToString() : "—")</MudTd>
         <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
@@ -43,7 +45,7 @@
         @if (_expandedRows.Contains(svc.Id))
         {
             <MudTr>
-                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="5" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-secondary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         <Details Service="svc" Embedded="true" />
                     </div>
@@ -53,7 +55,7 @@
         @if (_expandedUserRows.Contains(svc.Id) && !string.IsNullOrWhiteSpace(svc.UserName))
         {
             <MudTr>
-                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="5" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-tertiary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         @if (svc.UserId.HasValue)
                         {

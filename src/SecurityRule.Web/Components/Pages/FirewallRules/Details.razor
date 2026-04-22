@@ -41,6 +41,44 @@ else
                     <MudText Typo="Typo.body1">@_displayRule.DestinationIp</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Порт назначения</MudText>
+                    <MudText Typo="Typo.body1">@(_displayRule.DestinationPort.HasValue ? _displayRule.DestinationPort.Value.ToString() : "—")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Протокол</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.Protocol) ? "—" : _displayRule.Protocol)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Действие</MudText>
+                    @if (_displayRule.Action == "Allow")
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Разрешить</MudChip>
+                    }
+                    else if (_displayRule.Action == "Deny")
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small">Запретить</MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.Action) ? "—" : _displayRule.Action)</MudText>
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Направление</MudText>
+                    @if (_displayRule.Direction == "Inbound")
+                    {
+                        <MudText Typo="Typo.body1">Входящее</MudText>
+                    }
+                    else if (_displayRule.Direction == "Outbound")
+                    {
+                        <MudText Typo="Typo.body1">Исходящее</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.Direction) ? "—" : _displayRule.Direction)</MudText>
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Истекает</MudText>
                     <MudText Typo="Typo.body1">
                         @_displayRule.ExpiresAt.ToString("dd.MM.yyyy")
