@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 using Reqnroll;
 using SecurityRule.Domain.Models;
@@ -24,6 +25,22 @@ public sealed class ПравилаБрандмауэраШаги
         using var scope = _state.Services.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
         await repo.AddAsync(new AppService { Name = name, UserName = userName });
+    }
+
+    /// <summary>Links an existing service to an existing server (many-to-many).</summary>
+    [Given("сервис {string} прикреплён к серверу {string}")]
+    public async Task СервисПрикреплёнКСерверу(string serviceName, string serverName)
+    {
+        using var scope = _state.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SecurityRule.Infrastructure.Data.AppDbContext>();
+
+        var server  = db.Servers.Include(s => s.Services).First(s => s.Name == serverName);
+        var service = db.AppServices.First(s => s.Name == serviceName);
+        if (!server.Services.Any(s => s.Id == service.Id))
+        {
+            server.Services.Add(service);
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>Creates a firewall rule linked to 4 entities by name.</summary>

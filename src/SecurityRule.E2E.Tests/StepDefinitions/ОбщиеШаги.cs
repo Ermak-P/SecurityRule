@@ -108,6 +108,42 @@ public sealed class ОбщиеШаги
             .ToBeHiddenAsync(new() { Timeout = 15_000 });
     }
 
+    /// <summary>Opens a MudSelect dropdown and asserts that an option with the given text is visible.</summary>
+    [Then("я вижу текст {string} в выпадающем списке {string}")]
+    public async Task ВидетьТекстВВыпадающемСписке(string value, string label)
+    {
+        var container = _state.Page.Locator(".mud-input-control")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await container.Locator(".mud-input-root").First.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(400);
+
+        await Assertions
+            .Expect(_state.Page.GetByRole(AriaRole.Option, new() { Name = value }))
+            .ToBeVisibleAsync(new() { Timeout = 10_000 });
+
+        await _state.Page.Keyboard.PressAsync("Escape");
+        await _state.Page.WaitForTimeoutAsync(200);
+    }
+
+    /// <summary>Opens a MudSelect dropdown and asserts that an option with the given text is NOT present.</summary>
+    [Then("в выпадающем списке {string} нет текста {string}")]
+    public async Task НетТекстаВВыпадающемСписке(string label, string value)
+    {
+        var container = _state.Page.Locator(".mud-input-control")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await container.Locator(".mud-input-root").First.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(400);
+
+        await Assertions
+            .Expect(_state.Page.GetByRole(AriaRole.Option, new() { Name = value }))
+            .ToBeHiddenAsync(new() { Timeout = 5_000 });
+
+        await _state.Page.Keyboard.PressAsync("Escape");
+        await _state.Page.WaitForTimeoutAsync(200);
+    }
+
     /// <summary>Asserts that the current URL contains the given path segment.</summary>
     [Then("URL страницы содержит {string}")]
     public async Task URLСодержит(string path)

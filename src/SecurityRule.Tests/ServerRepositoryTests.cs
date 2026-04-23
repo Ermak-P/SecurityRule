@@ -246,4 +246,65 @@ public class ServerRepositoryTests
         result!.DestinationFirewallRules.Should().HaveCount(1);
         result.DestinationFirewallRules.First().Description.Should().Be("DstFWRule");
     }
+
+    [Test]
+    public async Task GetAllAsync_ShouldIncludeServicesLinkedToEachServer()
+    {
+        // Arrange — two servers, each with one service linked
+        var svc1 = new AppService { Name = "Svc-For-Srv1", UserName = "domain\\svc1" };
+        var svc2 = new AppService { Name = "Svc-For-Srv2", UserName = "domain\\svc2" };
+        _context.AppServices.AddRange(svc1, svc2);
+        var srv1 = new Server { Name = "Srv1", IpAddress = "10.0.1.1", OperatingSystem = "Linux", Services = [svc1] };
+        var srv2 = new Server { Name = "Srv2", IpAddress = "10.0.1.2", OperatingSystem = "Linux", Services = [svc2] };
+        _context.Servers.AddRange(srv1, srv2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var servers = (await _repository.GetAllAsync()).ToList();
+
+        // Assert — each server exposes only its own services
+        var result1 = servers.First(s => s.Name == "Srv1");
+        var result2 = servers.First(s => s.Name == "Srv2");
+        result1.Services.Should().HaveCount(1);
+        result1.Services.Single().Name.Should().Be("Svc-For-Srv1");
+        result2.Services.Should().HaveCount(1);
+        result2.Services.Single().Name.Should().Be("Svc-For-Srv2");
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldReturnEmptyServicesCollection_WhenNoServicesLinked()
+    {
+        // Arrange — server with no linked services
+        var svc = new AppService { Name = "UnlinkedSvc", UserName = "domain\\unlinked" };
+        _context.AppServices.Add(svc);
+        var server = new Server { Name = "Srv-NoSvc", IpAddress = "10.0.2.1", OperatingSystem = "Linux" };
+        _context.Servers.Add(server);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var servers = (await _repository.GetAllAsync()).ToList();
+
+        // Assert — server.Services is empty because the service was not linked to it
+        var result = servers.Single(s => s.Name == "Srv-NoSvc");
+        result.Services.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldNotExposeOtherServersServices()
+    {
+        // Arrange — one service linked only to server A, not to server B
+        var svc = new AppService { Name = "SharedSvc", UserName = "domain\\shared" };
+        _context.AppServices.Add(svc);
+        var srvA = new Server { Name = "Srv-A", IpAddress = "10.0.3.1", OperatingSystem = "Linux", Services = [svc] };
+        var srvB = new Server { Name = "Srv-B", IpAddress = "10.0.3.2", OperatingSystem = "Linux" };
+        _context.Servers.AddRange(srvA, srvB);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var servers = (await _repository.GetAllAsync()).ToList();
+
+        // Assert — srvB has no services
+        var resultB = servers.First(s => s.Name == "Srv-B");
+        resultB.Services.Should().BeEmpty();
+    }
 }
