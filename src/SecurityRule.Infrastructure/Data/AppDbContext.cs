@@ -62,6 +62,7 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Protocol).HasMaxLength(10);
+            entity.Property(e => e.Description).HasMaxLength(1000);
 
             entity.HasOne(e => e.SourceServer)
                   .WithMany(s => s.SourceConnections)

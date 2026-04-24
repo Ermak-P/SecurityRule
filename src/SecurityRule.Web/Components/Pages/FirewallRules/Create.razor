@@ -68,9 +68,8 @@
                     <MudSelectItem Value="@("Any")">Any</MudSelectItem>
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12" sm="4">
-                <MudNumericField @bind-Value="_port" Label="Порт" Min="1" Max="65535"
-                                 HelperText="Оставьте пустым, если не применимо" />
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_description" Label="Описание" Lines="2" />
             </MudItem>
         </MudGrid>
     </MudCardContent>
@@ -82,7 +81,7 @@
 
 @code {
     private string _protocol = string.Empty;
-    private int? _port;
+    private string _description = string.Empty;
     private int? _srcServerId;
     private int? _srcServiceId;
     private int? _dstServerId;
@@ -130,8 +129,8 @@
             SourceServiceId      = _srcServiceId,
             DestinationServerId  = _dstServerId,
             DestinationServiceId = _dstServiceId.Value,
-            Protocol = _protocol,
-            Port     = _port
+            Protocol    = _protocol,
+            Description = _description
         };
 
         await ServiceConnectionRepository.AddAsync(connection);

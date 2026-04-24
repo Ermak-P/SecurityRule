@@ -20,5 +20,5 @@ public class ServiceConnection
 
     // Connection properties
     public string Protocol { get; set; } = string.Empty;
-    public int? Port { get; set; }
+    public string Description { get; set; } = string.Empty;
 }

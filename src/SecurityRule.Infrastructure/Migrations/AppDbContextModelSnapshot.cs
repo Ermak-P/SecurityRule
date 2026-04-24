@@ -136,8 +136,11 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.Property<int?>("DestinationServerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Port")
-                        .HasColumnType("int");
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasDefaultValue("")
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Protocol")
                         .IsRequired()

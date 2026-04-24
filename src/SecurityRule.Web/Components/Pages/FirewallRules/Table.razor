@@ -8,7 +8,6 @@
         <MudTh Style="width:5%; text-align:center;"></MudTh>
         <MudTh Style="width:38%">Назначение</MudTh>
         <MudTh>Протокол</MudTh>
-        <MudTh>Порт</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
@@ -60,7 +59,6 @@
             </MudStack>
         </MudTd>
         <MudTd DataLabel="Протокол">@(string.IsNullOrWhiteSpace(context.Protocol) ? "—" : context.Protocol)</MudTd>
-        <MudTd DataLabel="Порт">@(context.Port.HasValue ? context.Port.Value.ToString() : "—")</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
@@ -73,7 +71,7 @@
         @if (_expandedRows.Contains(connection.Id))
         {
             <MudTr>
-                <td colspan="6" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="5" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-primary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         <Details Connection="connection" Embedded="true" />
                     </div>

@@ -45,8 +45,8 @@ public class ServiceConnectionRepository : IServiceConnectionRepository
         existing.SourceServiceId     = connection.SourceServiceId;
         existing.DestinationServerId = connection.DestinationServerId;
         existing.DestinationServiceId = connection.DestinationServiceId;
-        existing.Protocol = connection.Protocol;
-        existing.Port     = connection.Port;
+        existing.Protocol    = connection.Protocol;
+        existing.Description = connection.Description;
 
         await _context.SaveChangesAsync();
     }

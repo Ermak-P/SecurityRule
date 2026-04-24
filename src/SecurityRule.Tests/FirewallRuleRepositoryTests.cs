@@ -46,15 +46,15 @@ public class ServiceConnectionRepositoryTests
 
     private ServiceConnection BuildConnection(
         Server? srcSrv, AppService? srcSvc, Server? dstSrv, AppService dstSvc,
-        string protocol = "TCP", int? port = null)
+        string protocol = "TCP", string description = "")
         => new ServiceConnection
         {
             SourceServerId       = srcSrv?.Id,
             SourceServiceId      = srcSvc?.Id,
             DestinationServerId  = dstSrv?.Id,
             DestinationServiceId = dstSvc.Id,
-            Protocol = protocol,
-            Port     = port
+            Protocol    = protocol,
+            Description = description
         };
 
     // ── Tests ─────────────────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ public class ServiceConnectionRepositoryTests
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", 443);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", "Test connection");
 
         // Act
         await _repository.AddAsync(connection);
@@ -77,7 +77,7 @@ public class ServiceConnectionRepositoryTests
         stored[0].DestinationServerId.Should().Be(dstSrv.Id);
         stored[0].DestinationServiceId.Should().Be(dstSvc.Id);
         stored[0].Protocol.Should().Be("TCP");
-        stored[0].Port.Should().Be(443);
+        stored[0].Description.Should().Be("Test connection");
     }
 
     [Test]
@@ -136,7 +136,7 @@ public class ServiceConnectionRepositoryTests
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "UDP", 80);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "UDP", "Test desc");
         _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
@@ -146,7 +146,7 @@ public class ServiceConnectionRepositoryTests
         // Assert
         result.Should().NotBeNull();
         result!.Protocol.Should().Be("UDP");
-        result.Port.Should().Be(80);
+        result.Description.Should().Be("Test desc");
     }
 
     [Test]
@@ -204,23 +204,23 @@ public class ServiceConnectionRepositoryTests
     }
 
     [Test]
-    public async Task UpdateAsync_ShouldUpdateProtocolAndPort()
+    public async Task UpdateAsync_ShouldUpdateProtocolAndDescription()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", 80);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", "Initial");
         _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        connection.Protocol = "UDP";
-        connection.Port = 443;
+        connection.Protocol    = "UDP";
+        connection.Description = "Updated";
         await _repository.UpdateAsync(connection);
 
         // Assert
         var result = await _context.ServiceConnections.FindAsync(connection.Id);
         result!.Protocol.Should().Be("UDP");
-        result.Port.Should().Be(443);
+        result.Description.Should().Be("Updated");
     }
 
     [Test]
@@ -265,21 +265,21 @@ public class ServiceConnectionRepositoryTests
     }
 
     [Test]
-    public async Task UpdateAsync_ShouldUpdatePortToNull()
+    public async Task UpdateAsync_ShouldUpdateDescriptionToEmpty()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", 443);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", "Some description");
         _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        connection.Port = null;
+        connection.Description = string.Empty;
         await _repository.UpdateAsync(connection);
 
         // Assert
         var result = await _context.ServiceConnections.FindAsync(connection.Id);
-        result!.Port.Should().BeNull();
+        result!.Description.Should().BeEmpty();
     }
 
     [Test]

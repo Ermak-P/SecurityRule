@@ -24,7 +24,7 @@ namespace SecurityRule.Infrastructure.Migrations
                     DestinationServerId = table.Column<int>(type: "int", nullable: true),
                     DestinationServiceId = table.Column<int>(type: "int", nullable: false),
                     Protocol = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    Port = table.Column<int>(type: "int", nullable: true)
+                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false, defaultValue: "")
                 },
                 constraints: table =>
                 {

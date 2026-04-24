@@ -33,17 +33,20 @@ else
         <MudCardContent>
 
             @* Source / Destination flow *@
-            <MudPaper Elevation="0" Class="pa-3 mb-4"
-                      Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-                    @* Source *@
-                    <MudStack AlignItems="AlignItems.Start" Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Источник</MudText>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudGrid Class="mb-4" Spacing="2">
+                @* Source box *@
+                <MudItem xs="12" sm="5">
+                    <MudPaper Elevation="0" Class="pa-3"
+                              Style="background: var(--mud-palette-background-grey); border-radius: 8px; border-left: 4px solid var(--mud-palette-info);">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CallMade" Size="Size.Small" Color="Color.Info" />
+                                <MudText Typo="Typo.overline" Color="Color.Info">Источник</MudText>
+                            </MudStack>
                             @if (_displayConnection.SourceServer != null)
                             {
                                 <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Dns"
-                                           Style="margin-left: -6px;"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
                                            OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayConnection.SourceServer.Id}"))">
                                     @_displayConnection.SourceServer.Name
                                 </MudButton>
@@ -52,9 +55,13 @@ else
                             {
                                 <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Info"
                                            StartIcon="@Icons.Material.Filled.MiscellaneousServices"
-                                           Style="margin-left: -6px;"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
                                            OnClick="@(() => Navigation.NavigateTo($"/services/{_displayConnection.SourceService.Id}"))">
                                     @_displayConnection.SourceService.Name
+                                    @if (_displayConnection.SourceService.Port.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="ml-1" Color="Color.Secondary">:@_displayConnection.SourceService.Port</MudText>
+                                    }
                                 </MudButton>
                             }
                             @if (_displayConnection.SourceServer == null && _displayConnection.SourceService == null)
@@ -62,45 +69,61 @@ else
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
                             }
                         </MudStack>
-                    </MudStack>
+                    </MudPaper>
+                </MudItem>
 
+                @* Arrow *@
+                <MudItem xs="12" sm="2" Class="d-flex align-center justify-center">
                     <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary" Style="font-size: 2rem;" />
+                </MudItem>
 
-                    @* Destination *@
-                    <MudStack AlignItems="AlignItems.Start" Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Назначение</MudText>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                @* Destination box *@
+                <MudItem xs="12" sm="5">
+                    <MudPaper Elevation="0" Class="pa-3"
+                              Style="background: var(--mud-palette-background-grey); border-radius: 8px; border-left: 4px solid var(--mud-palette-primary);">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CallReceived" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.overline" Color="Color.Primary">Назначение</MudText>
+                            </MudStack>
                             @if (_displayConnection.DestinationServer != null)
                             {
                                 <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Dns"
-                                           Style="margin-left: -6px;"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
                                            OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayConnection.DestinationServer.Id}"))">
                                     @_displayConnection.DestinationServer.Name
                                 </MudButton>
                             }
                             @if (_displayConnection.DestinationService != null)
                             {
-                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Info"
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
                                            StartIcon="@Icons.Material.Filled.MiscellaneousServices"
-                                           Style="margin-left: -6px;"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
                                            OnClick="@(() => Navigation.NavigateTo($"/services/{_displayConnection.DestinationService.Id}"))">
                                     @_displayConnection.DestinationService.Name
+                                    @if (_displayConnection.DestinationService.Port.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="ml-1" Color="Color.Secondary">:@_displayConnection.DestinationService.Port</MudText>
+                                    }
                                 </MudButton>
                             }
                         </MudStack>
-                    </MudStack>
-                </MudStack>
-            </MudPaper>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
 
             <MudGrid>
                 <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Протокол</MudText>
                     <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayConnection.Protocol) ? "—" : _displayConnection.Protocol)</MudText>
                 </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Порт</MudText>
-                    <MudText Typo="Typo.body1">@(_displayConnection.Port.HasValue ? _displayConnection.Port.Value.ToString() : "—")</MudText>
-                </MudItem>
+                @if (!string.IsNullOrWhiteSpace(_displayConnection.Description))
+                {
+                    <MudItem xs="12" sm="8">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
+                        <MudText Typo="Typo.body1">@_displayConnection.Description</MudText>
+                    </MudItem>
+                }
             </MudGrid>
         </MudCardContent>
     </MudCard>
