@@ -82,7 +82,7 @@
     Тогда я вижу текст "Map-Src" на странице
     И я вижу текст "Map-DstSvc" на странице
 
-
+  Сценарий: Таблица связей показывает источник и назначение
     Дано в системе существует сервер Name "Tbl-Src" IP "10.5.1.1" OS "Linux"
     И в системе существует сервис Name "Tbl-SrcSvc" UserName "domain\tblsrc"
     И в системе существует сервис Name "Tbl-DstSvc" UserName "domain\tbldst"

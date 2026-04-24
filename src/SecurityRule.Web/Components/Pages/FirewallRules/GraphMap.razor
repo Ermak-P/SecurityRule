@@ -92,9 +92,7 @@ else
                       marker-end="url(#arrowhead)" />
                 @if (!string.IsNullOrWhiteSpace(edge.Protocol))
                 {
-                    <text x="@midX" y="@(midY - 5)"
-                          text-anchor="middle" fill="#bdbdbd"
-                          font-size="10" font-family="Roboto, sans-serif">@edge.Protocol</text>
+                    @SvgText(midX, midY - 5, "middle", "#bdbdbd", 10, "normal", edge.Protocol)
                 }
             }
 
@@ -110,15 +108,10 @@ else
                     <rect x="@_srcColX" y="@node.Y"
                           width="@_nodeWidth" height="@_nodeHeight"
                           rx="5" fill="@fill" stroke="@stroke" stroke-width="1.5" />
-                    <text x="@(_srcColX + _nodeWidth / 2)" y="@labelY"
-                          text-anchor="middle" font-size="12"
-                          font-family="Roboto, sans-serif" fill="#212121"
-                          font-weight="500">@Truncate(node.Label, 22)</text>
+                    @SvgText(_srcColX + _nodeWidth / 2, labelY, "middle", "#212121", 12, "500", Truncate(node.Label, 22))
                     @if (!string.IsNullOrEmpty(node.SubLabel))
                     {
-                        <text x="@(_srcColX + _nodeWidth / 2)" y="@(node.Y + _nodeHeight / 2 + 11)"
-                              text-anchor="middle" font-size="10"
-                              font-family="Roboto, sans-serif" fill="#757575">@node.SubLabel</text>
+                        @SvgText(_srcColX + _nodeWidth / 2, node.Y + _nodeHeight / 2 + 11, "middle", "#757575", 10, "normal", node.SubLabel)
                     }
                 </g>
             }
@@ -135,15 +128,10 @@ else
                     <rect x="@_dstColX" y="@node.Y"
                           width="@_nodeWidth" height="@_nodeHeight"
                           rx="5" fill="@fill" stroke="@stroke" stroke-width="1.5" />
-                    <text x="@(_dstColX + _nodeWidth / 2)" y="@labelY"
-                          text-anchor="middle" font-size="12"
-                          font-family="Roboto, sans-serif" fill="#212121"
-                          font-weight="500">@Truncate(node.Label, 22)</text>
+                    @SvgText(_dstColX + _nodeWidth / 2, labelY, "middle", "#212121", 12, "500", Truncate(node.Label, 22))
                     @if (!string.IsNullOrEmpty(node.SubLabel))
                     {
-                        <text x="@(_dstColX + _nodeWidth / 2)" y="@(node.Y + _nodeHeight / 2 + 11)"
-                              text-anchor="middle" font-size="10"
-                              font-family="Roboto, sans-serif" fill="#757575">@node.SubLabel</text>
+                        @SvgText(_dstColX + _nodeWidth / 2, node.Y + _nodeHeight / 2 + 11, "middle", "#757575", 10, "normal", node.SubLabel)
                     }
                 </g>
             }
@@ -325,4 +313,10 @@ else
 
     private static string Truncate(string text, int maxLen)
         => text.Length <= maxLen ? text : text[..maxLen] + "…";
+
+    private static MarkupString SvgText(int x, int y, string anchor, string fill, int fontSize, string fontWeight, string content)
+    {
+        var encoded = System.Net.WebUtility.HtmlEncode(content);
+        return (MarkupString)$"<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" fill=\"{fill}\" font-size=\"{fontSize}\" font-weight=\"{fontWeight}\" font-family=\"Roboto, sans-serif\">{encoded}</text>";
+    }
 }
