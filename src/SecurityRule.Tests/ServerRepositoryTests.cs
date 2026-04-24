@@ -182,7 +182,7 @@ public class ServerRepositoryTests
     }
 
     [Test]
-    public async Task GetByIdAsync_ShouldIncludeSourceFirewallRules()
+    public async Task GetByIdAsync_ShouldIncludeSourceConnections()
     {
         // Arrange
         var server = new Server { Name = "FW-Server", IpAddress = "10.0.9.1", OperatingSystem = "Linux" };
@@ -193,16 +193,15 @@ public class ServerRepositoryTests
         _context.AppServices.AddRange(srcSvc, dstSvc);
         await _context.SaveChangesAsync();
 
-        var rule = new FirewallRule
+        var connection = new ServiceConnection
         {
             SourceServerId       = server.Id,
             SourceServiceId      = srcSvc.Id,
             DestinationServerId  = dstSrv.Id,
             DestinationServiceId = dstSvc.Id,
-            Protocol = "TCP", Action = "Allow", Direction = "Inbound",
-            Description = "ServerFWRule"
+            Protocol = "TCP"
         };
-        _context.FirewallRules.Add(rule);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
@@ -210,12 +209,12 @@ public class ServerRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.SourceFirewallRules.Should().HaveCount(1);
-        result.SourceFirewallRules.First().Description.Should().Be("ServerFWRule");
+        result!.SourceConnections.Should().HaveCount(1);
+        result.SourceConnections.First().Protocol.Should().Be("TCP");
     }
 
     [Test]
-    public async Task GetByIdAsync_ShouldIncludeDestinationFirewallRules()
+    public async Task GetByIdAsync_ShouldIncludeDestinationConnections()
     {
         // Arrange
         var srcSrv = new Server { Name = "Src-Server", IpAddress = "10.0.8.1", OperatingSystem = "Linux" };
@@ -226,16 +225,15 @@ public class ServerRepositoryTests
         _context.AppServices.AddRange(srcSvc, dstSvc);
         await _context.SaveChangesAsync();
 
-        var rule = new FirewallRule
+        var connection = new ServiceConnection
         {
             SourceServerId       = srcSrv.Id,
             SourceServiceId      = srcSvc.Id,
             DestinationServerId  = server.Id,
             DestinationServiceId = dstSvc.Id,
-            Protocol = "TCP", Action = "Deny", Direction = "Inbound",
-            Description = "DstFWRule"
+            Protocol = "UDP"
         };
-        _context.FirewallRules.Add(rule);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
@@ -243,8 +241,8 @@ public class ServerRepositoryTests
 
         // Assert
         result.Should().NotBeNull();
-        result!.DestinationFirewallRules.Should().HaveCount(1);
-        result.DestinationFirewallRules.First().Description.Should().Be("DstFWRule");
+        result!.DestinationConnections.Should().HaveCount(1);
+        result.DestinationConnections.First().Protocol.Should().Be("UDP");
     }
 
     [Test]

@@ -27,7 +27,7 @@ builder.Services.AddServerSideBlazor(options =>
 builder.Services.AddScoped<IServerRepository, ServerRepository>();
 builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
-builder.Services.AddScoped<IFirewallRuleRepository, FirewallRuleRepository>();
+builder.Services.AddScoped<IServiceConnectionRepository, ServiceConnectionRepository>();
 builder.Services.AddScoped<IOperatingSystemRepository, OperatingSystemRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGroupRepository, GroupRepository>();

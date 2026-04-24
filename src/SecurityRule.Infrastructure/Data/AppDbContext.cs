@@ -13,7 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Server> Servers => Set<Server>();
     public DbSet<AppService> AppServices => Set<AppService>();
     public DbSet<Certificate> Certificates => Set<Certificate>();
-    public DbSet<FirewallRule> FirewallRules => Set<FirewallRule>();
+    public DbSet<ServiceConnection> ServiceConnections => Set<ServiceConnection>();
     public DbSet<OperatingSystemOption> OperatingSystemOptions => Set<OperatingSystemOption>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Group> Groups => Set<Group>();
@@ -58,34 +58,31 @@ public class AppDbContext : DbContext
             entity.Property(e => e.RequestNumber).IsRequired().HasMaxLength(200);
         });
 
-        modelBuilder.Entity<FirewallRule>(entity =>
+        modelBuilder.Entity<ServiceConnection>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Protocol).IsRequired().HasMaxLength(10);
-            entity.Property(e => e.Action).IsRequired().HasMaxLength(10);
-            entity.Property(e => e.Direction).IsRequired().HasMaxLength(20);
-            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Protocol).HasMaxLength(10);
 
             entity.HasOne(e => e.SourceServer)
-                  .WithMany(s => s.SourceFirewallRules)
+                  .WithMany(s => s.SourceConnections)
                   .HasForeignKey(e => e.SourceServerId)
-                  .IsRequired()
+                  .IsRequired(false)
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.SourceService)
-                  .WithMany(s => s.SourceFirewallRules)
+                  .WithMany(s => s.SourceConnections)
                   .HasForeignKey(e => e.SourceServiceId)
-                  .IsRequired()
+                  .IsRequired(false)
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.DestinationServer)
-                  .WithMany(s => s.DestinationFirewallRules)
+                  .WithMany(s => s.DestinationConnections)
                   .HasForeignKey(e => e.DestinationServerId)
-                  .IsRequired()
+                  .IsRequired(false)
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.DestinationService)
-                  .WithMany(s => s.DestinationFirewallRules)
+                  .WithMany(s => s.DestinationConnections)
                   .HasForeignKey(e => e.DestinationServiceId)
                   .IsRequired()
                   .OnDelete(DeleteBehavior.Restrict);

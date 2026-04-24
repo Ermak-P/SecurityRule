@@ -87,21 +87,6 @@ public class SearchService : ISearchService
                 results.Add(new SearchResult("Сертификат", c.Id, "Описание", c.Description, $"/certificates/edit/{c.Id}"));
         }
 
-        var rules = await _context.FirewallRules
-            .Include(r => r.SourceServer)
-            .Include(r => r.SourceService)
-            .Include(r => r.DestinationServer)
-            .Include(r => r.DestinationService)
-            .Where(r => r.Description.Contains(query))
-            .Take(50)
-            .ToListAsync();
-
-        foreach (var r in rules)
-        {
-            if (!string.IsNullOrEmpty(r.Description) && r.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
-                results.Add(new SearchResult("Правило фаервола", r.Id, "Описание", r.Description, $"/firewall-rules/{r.Id}"));
-        }
-
         return results;
     }
 }

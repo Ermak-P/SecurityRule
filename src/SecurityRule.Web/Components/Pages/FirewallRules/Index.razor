@@ -1,15 +1,15 @@
-@page "/firewall-rules"
+@page "/connections"
 @rendermode InteractiveServer
-@inject IFirewallRuleRepository FirewallRuleRepository
+@inject IServiceConnectionRepository ServiceConnectionRepository
 @inject NavigationManager Navigation
 
-<PageTitle>Правила фаервола</PageTitle>
+<PageTitle>Связи</PageTitle>
 
 <MudStack Row="true" Spacing="1">
-    <MudText Typo="Typo.h4" GutterBottom="true">Правила фаервола</MudText>
+    <MudText Typo="Typo.h4" GutterBottom="true">Связи</MudText>
     <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
                    Title="Добавить"
-                   OnClick="@(() => Navigation.NavigateTo($"/firewall-rules/create"))" />
+                   OnClick="@(() => Navigation.NavigateTo($"/connections/create"))" />
 </MudStack>
 
 @if (_loading)
@@ -18,11 +18,11 @@
 }
 else
 {
-    <Table Items="_rules" />
+    <Table Items="_connections" />
 }
 
 @code {
-    private IEnumerable<FirewallRule> _rules = [];
+    private IEnumerable<ServiceConnection> _connections = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -33,7 +33,7 @@ else
     private async Task LoadData()
     {
         _loading = true;
-        _rules = await FirewallRuleRepository.GetAllAsync();
+        _connections = await ServiceConnectionRepository.GetAllAsync();
         _loading = false;
     }
 }

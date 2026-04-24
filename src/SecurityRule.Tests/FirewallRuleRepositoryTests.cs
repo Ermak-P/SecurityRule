@@ -7,10 +7,10 @@ using SecurityRule.Infrastructure.Repositories;
 namespace SecurityRule.Tests;
 
 [TestFixture]
-public class FirewallRuleRepositoryTests
+public class ServiceConnectionRepositoryTests
 {
     private AppDbContext _context = null!;
-    private FirewallRuleRepository _repository = null!;
+    private ServiceConnectionRepository _repository = null!;
 
     [SetUp]
     public void SetUp()
@@ -19,7 +19,7 @@ public class FirewallRuleRepositoryTests
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
-        _repository = new FirewallRuleRepository(_context);
+        _repository = new ServiceConnectionRepository(_context);
     }
 
     [TearDown]
@@ -44,51 +44,83 @@ public class FirewallRuleRepositoryTests
         return (srcSrv, srcSvc, dstSrv, dstSvc);
     }
 
-    private FirewallRule BuildRule(Server srcSrv, AppService srcSvc, Server dstSrv, AppService dstSvc,
-        string description = "Test rule", DateTime? expiresAt = null)
-        => new FirewallRule
+    private ServiceConnection BuildConnection(
+        Server? srcSrv, AppService? srcSvc, Server? dstSrv, AppService dstSvc,
+        string protocol = "TCP", int? port = null)
+        => new ServiceConnection
         {
-            SourceServerId       = srcSrv.Id,
-            SourceServiceId      = srcSvc.Id,
-            DestinationServerId  = dstSrv.Id,
+            SourceServerId       = srcSrv?.Id,
+            SourceServiceId      = srcSvc?.Id,
+            DestinationServerId  = dstSrv?.Id,
             DestinationServiceId = dstSvc.Id,
-            Protocol    = "TCP",
-            Action      = "Allow",
-            Direction   = "Inbound",
-            ExpiresAt   = expiresAt,
-            Description = description
+            Protocol = protocol,
+            Port     = port
         };
 
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     [Test]
-    public async Task AddAsync_ShouldAddRule()
+    public async Task AddAsync_ShouldAddConnection()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "AddTest");
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", 443);
 
         // Act
-        await _repository.AddAsync(rule);
+        await _repository.AddAsync(connection);
 
         // Assert
-        var stored = await _context.FirewallRules.ToListAsync();
+        var stored = await _context.ServiceConnections.ToListAsync();
         stored.Should().HaveCount(1);
-        stored[0].Description.Should().Be("AddTest");
         stored[0].SourceServerId.Should().Be(srcSrv.Id);
         stored[0].SourceServiceId.Should().Be(srcSvc.Id);
         stored[0].DestinationServerId.Should().Be(dstSrv.Id);
         stored[0].DestinationServiceId.Should().Be(dstSvc.Id);
+        stored[0].Protocol.Should().Be("TCP");
+        stored[0].Port.Should().Be(443);
     }
 
     [Test]
-    public async Task GetAllAsync_ShouldReturnAllRules()
+    public async Task AddAsync_WithNullSourceServer_ShouldPersist()
+    {
+        // Arrange
+        var (_, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var connection = BuildConnection(null, srcSvc, dstSrv, dstSvc);
+
+        // Act
+        await _repository.AddAsync(connection);
+
+        // Assert
+        var stored = await _context.ServiceConnections.FindAsync(connection.Id);
+        stored!.SourceServerId.Should().BeNull();
+        stored.SourceServiceId.Should().Be(srcSvc.Id);
+    }
+
+    [Test]
+    public async Task AddAsync_WithNullSourceServiceAndServer_ShouldPersist()
+    {
+        // Arrange
+        var (_, _, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var connection = BuildConnection(null, null, dstSrv, dstSvc);
+
+        // Act
+        await _repository.AddAsync(connection);
+
+        // Assert
+        var stored = await _context.ServiceConnections.FindAsync(connection.Id);
+        stored!.SourceServerId.Should().BeNull();
+        stored.SourceServiceId.Should().BeNull();
+        stored.DestinationServiceId.Should().Be(dstSvc.Id);
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldReturnAllConnections()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        _context.FirewallRules.AddRange(
-            BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Rule1"),
-            BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Rule2")
+        _context.ServiceConnections.AddRange(
+            BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc),
+            BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc)
         );
         await _context.SaveChangesAsync();
 
@@ -100,20 +132,21 @@ public class FirewallRuleRepositoryTests
     }
 
     [Test]
-    public async Task GetByIdAsync_ShouldReturnCorrectRule()
+    public async Task GetByIdAsync_ShouldReturnCorrectConnection()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "FindMe");
-        _context.FirewallRules.Add(rule);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "UDP", 80);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(rule.Id);
+        var result = await _repository.GetByIdAsync(connection.Id);
 
         // Assert
         result.Should().NotBeNull();
-        result!.Description.Should().Be("FindMe");
+        result!.Protocol.Should().Be("UDP");
+        result.Port.Should().Be(80);
     }
 
     [Test]
@@ -131,12 +164,12 @@ public class FirewallRuleRepositoryTests
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync("SrcS", "SrcSvc", "DstS", "DstSvc");
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "NavTest");
-        _context.FirewallRules.Add(rule);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByIdAsync(rule.Id);
+        var result = await _repository.GetByIdAsync(connection.Id);
 
         // Assert
         result.Should().NotBeNull();
@@ -155,7 +188,7 @@ public class FirewallRuleRepositoryTests
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        _context.FirewallRules.Add(BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "NavAll"));
+        _context.ServiceConnections.Add(BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc));
         await _context.SaveChangesAsync();
 
         // Act
@@ -163,29 +196,31 @@ public class FirewallRuleRepositoryTests
 
         // Assert
         result.Should().HaveCount(1);
-        var r = result[0];
-        r.SourceServer.Should().NotBeNull();
-        r.SourceService.Should().NotBeNull();
-        r.DestinationServer.Should().NotBeNull();
-        r.DestinationService.Should().NotBeNull();
+        var c = result[0];
+        c.SourceServer.Should().NotBeNull();
+        c.SourceService.Should().NotBeNull();
+        c.DestinationServer.Should().NotBeNull();
+        c.DestinationService.Should().NotBeNull();
     }
 
     [Test]
-    public async Task UpdateAsync_ShouldUpdateDescription()
+    public async Task UpdateAsync_ShouldUpdateProtocolAndPort()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "OldDesc");
-        _context.FirewallRules.Add(rule);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", 80);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        rule.Description = "NewDesc";
-        await _repository.UpdateAsync(rule);
+        connection.Protocol = "UDP";
+        connection.Port = 443;
+        await _repository.UpdateAsync(connection);
 
         // Assert
-        var result = await _context.FirewallRules.FindAsync(rule.Id);
-        result!.Description.Should().Be("NewDesc");
+        var result = await _context.ServiceConnections.FindAsync(connection.Id);
+        result!.Protocol.Should().Be("UDP");
+        result.Port.Should().Be(443);
     }
 
     [Test]
@@ -197,107 +232,70 @@ public class FirewallRuleRepositoryTests
         _context.Servers.Add(newSrcSrv);
         await _context.SaveChangesAsync();
 
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "ChangeSrc");
-        _context.FirewallRules.Add(rule);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        rule.SourceServerId = newSrcSrv.Id;
-        await _repository.UpdateAsync(rule);
+        connection.SourceServerId = newSrcSrv.Id;
+        await _repository.UpdateAsync(connection);
 
         // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
+        var result = await _repository.GetByIdAsync(connection.Id);
         result!.SourceServerId.Should().Be(newSrcSrv.Id);
         result.SourceServer!.Name.Should().Be("NewSrc");
     }
 
     [Test]
-    public async Task UpdateAsync_ShouldChangeDestinationService()
+    public async Task UpdateAsync_ShouldSetSourceServerToNull()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var newDstSvc = new AppService { Name = "NewDstSvc", UserName = "domain\\new" };
-        _context.AppServices.Add(newDstSvc);
-        await _context.SaveChangesAsync();
-
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "ChangeDst");
-        _context.FirewallRules.Add(rule);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        rule.DestinationServiceId = newDstSvc.Id;
-        await _repository.UpdateAsync(rule);
+        connection.SourceServerId = null;
+        await _repository.UpdateAsync(connection);
 
         // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result!.DestinationServiceId.Should().Be(newDstSvc.Id);
-        result.DestinationService!.Name.Should().Be("NewDstSvc");
+        var result = await _context.ServiceConnections.FindAsync(connection.Id);
+        result!.SourceServerId.Should().BeNull();
     }
 
     [Test]
-    public async Task UpdateAsync_ShouldUpdateExpiresAt_ToNull()
+    public async Task UpdateAsync_ShouldUpdatePortToNull()
     {
         // Arrange
         var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Expiring", expiresAt: DateTime.Now.AddYears(1));
-        _context.FirewallRules.Add(rule);
-        await _context.SaveChangesAsync();
-
-        // Act — set unlimited
-        rule.ExpiresAt = null;
-        await _repository.UpdateAsync(rule);
-
-        // Assert
-        var result = await _context.FirewallRules.FindAsync(rule.Id);
-        result!.ExpiresAt.Should().BeNull();
-    }
-
-    [Test]
-    public async Task AddAsync_WithNullExpiresAt_ShouldPersist_AsUnlimited()
-    {
-        // Arrange
-        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Unlimited", expiresAt: null);
-
-        // Act
-        await _repository.AddAsync(rule);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result.Should().NotBeNull();
-        result!.ExpiresAt.Should().BeNull();
-    }
-
-    [Test]
-    public async Task AddAsync_WithExpiresAtInPast_ShouldStoreExpiredRule()
-    {
-        // Arrange
-        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var pastDate = DateTime.Now.AddDays(-1);
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Expired", expiresAt: pastDate);
-
-        // Act
-        await _repository.AddAsync(rule);
-
-        // Assert
-        var result = await _repository.GetByIdAsync(rule.Id);
-        result!.ExpiresAt.Should().BeBefore(DateTime.Now);
-    }
-
-    [Test]
-    public async Task DeleteAsync_ShouldRemoveRule()
-    {
-        // Arrange
-        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "ToDelete");
-        _context.FirewallRules.Add(rule);
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, "TCP", 443);
+        _context.ServiceConnections.Add(connection);
         await _context.SaveChangesAsync();
 
         // Act
-        await _repository.DeleteAsync(rule.Id);
+        connection.Port = null;
+        await _repository.UpdateAsync(connection);
 
         // Assert
-        var result = await _context.FirewallRules.ToListAsync();
+        var result = await _context.ServiceConnections.FindAsync(connection.Id);
+        result!.Port.Should().BeNull();
+    }
+
+    [Test]
+    public async Task DeleteAsync_ShouldRemoveConnection()
+    {
+        // Arrange
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc);
+        _context.ServiceConnections.Add(connection);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await _repository.DeleteAsync(connection.Id);
+
+        // Assert
+        var result = await _context.ServiceConnections.ToListAsync();
         result.Should().BeEmpty();
     }
 
@@ -312,24 +310,18 @@ public class FirewallRuleRepositoryTests
     }
 
     [Test]
-    public async Task UpdateAsync_ShouldUpdateProtocolActionDirection()
+    public async Task AddAsync_WithNullDestinationServer_ShouldPersist()
     {
         // Arrange
-        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
-        var rule = BuildRule(srcSrv, srcSvc, dstSrv, dstSvc, "Protocol");
-        _context.FirewallRules.Add(rule);
-        await _context.SaveChangesAsync();
+        var (srcSrv, srcSvc, _, dstSvc) = await SeedEntitiesAsync();
+        var connection = BuildConnection(srcSrv, srcSvc, null, dstSvc);
 
         // Act
-        rule.Protocol  = "UDP";
-        rule.Action    = "Deny";
-        rule.Direction = "Outbound";
-        await _repository.UpdateAsync(rule);
+        await _repository.AddAsync(connection);
 
         // Assert
-        var result = await _context.FirewallRules.FindAsync(rule.Id);
-        result!.Protocol.Should().Be("UDP");
-        result.Action.Should().Be("Deny");
-        result.Direction.Should().Be("Outbound");
+        var stored = await _context.ServiceConnections.FindAsync(connection.Id);
+        stored!.DestinationServerId.Should().BeNull();
+        stored.DestinationServiceId.Should().Be(dstSvc.Id);
     }
 }

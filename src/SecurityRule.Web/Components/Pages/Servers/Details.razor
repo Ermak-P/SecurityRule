@@ -63,15 +63,15 @@ else
         <SecurityRule.Web.Components.Pages.Services.Table Items="@_displayServer.Services" Elevation="0" />
     </MudPaper>
 
-    @if (_displayServer.SourceFirewallRules.Any() || _displayServer.DestinationFirewallRules.Any())
+    @if (_displayServer.SourceConnections.Any() || _displayServer.DestinationConnections.Any())
     {
         <MudText Typo="Typo.h6" Class="mb-2">
-            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Class="mr-1" />
-            Правила фаервола
+            <MudIcon Icon="@Icons.Material.Filled.CompareArrows" Size="Size.Small" Class="mr-1" />
+            Связи
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden">
             <SecurityRule.Web.Components.Pages.FirewallRules.Table
-                Items="@(_displayServer.SourceFirewallRules.Concat(_displayServer.DestinationFirewallRules))"
+                Items="@(_displayServer.SourceConnections.Concat(_displayServer.DestinationConnections))"
                 Elevation="0" />
         </MudPaper>
     }

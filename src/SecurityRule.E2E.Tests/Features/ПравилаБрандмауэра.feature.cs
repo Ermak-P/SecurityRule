@@ -18,17 +18,17 @@ namespace SecurityRule.E2E.Tests.Features
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     [global::NUnit.Framework.TestFixtureAttribute()]
-    [global::NUnit.Framework.DescriptionAttribute("Управление правилами фаервола")]
+    [global::NUnit.Framework.DescriptionAttribute("Управление связями между сервисами и серверами")]
     [global::NUnit.Framework.FixtureLifeCycleAttribute(global::NUnit.Framework.LifeCycle.InstancePerTestCase)]
-    public partial class УправлениеПравиламиФаерволаFeature
+    public partial class УправлениеСвязямиМеждуСервисамиИСерверамиFeature
     {
         
         private global::Reqnroll.ITestRunner testRunner;
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("ru"), "Features", "Управление правилами фаервола", "  Как администратор системы\n  Я хочу управлять правилами фаервола\n  Чтобы контрол" +
-                "ировать сетевой доступ", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("ru"), "Features", "Управление связями между сервисами и серверами", "  Как администратор системы\n  Я хочу управлять связями между сервисами и серверам" +
+                "и\n  Чтобы контролировать взаимодействие компонентов инфраструктуры", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "ПравилаБрандмауэра.feature"
 #line hidden
@@ -110,13 +110,13 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Просмотр страницы со списком правил фаервола")]
-        public async global::System.Threading.Tasks.Task ПросмотрСтраницыСоСпискомПравилФаервола()
+        [global::NUnit.Framework.DescriptionAttribute("Просмотр страницы со списком связей")]
+        public async global::System.Threading.Tasks.Task ПросмотрСтраницыСоСпискомСвязей()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр страницы со списком правил фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр страницы со списком связей", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 7
@@ -130,23 +130,23 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 8
-    await testRunner.WhenAsync("я перехожу на страницу правил фаервола", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.WhenAsync("я перехожу на страницу связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 9
-    await testRunner.ThenAsync("я вижу заголовок \"Правила фаервола\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.ThenAsync("я вижу заголовок \"Связи\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Просмотр деталей правила фаервола")]
-        public async global::System.Threading.Tasks.Task ПросмотрДеталейПравилаФаервола()
+        [global::NUnit.Framework.DescriptionAttribute("Просмотр деталей связи")]
+        public async global::System.Threading.Tasks.Task ПросмотрДеталейСвязи()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "1";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр деталей правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Просмотр деталей связи", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 11
@@ -172,22 +172,17 @@ namespace SecurityRule.E2E.Tests.Features
     await testRunner.AndAsync("в системе существует сервис Name \"DstSvc\" UserName \"domain\\dst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 16
-    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"SrcServer\" сервиса \"SrcSvc\" до " +
-                        "сервера \"DstServer\" сервиса \"DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("в системе существует связь от сервера \"SrcServer\" сервиса \"SrcSvc\" до сервиса \"Ds" +
+                        "tSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 17
-    await testRunner.WhenAsync("я открываю страницу деталей правила фаервола от \"SrcServer\" до \"DstServer\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.WhenAsync("я открываю страницу деталей связи с источником \"SrcServer\" и назначением \"DstSvc\"" +
+                        "", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 18
     await testRunner.ThenAsync("я вижу текст \"SrcServer\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
 #line 19
-    await testRunner.AndAsync("я вижу текст \"DstServer\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 20
-    await testRunner.AndAsync("я вижу текст \"SrcSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 21
     await testRunner.AndAsync("я вижу текст \"DstSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
@@ -195,16 +190,16 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Добавление нового правила фаервола через UI")]
-        public async global::System.Threading.Tasks.Task ДобавлениеНовогоПравилаФаерволаЧерезUI()
+        [global::NUnit.Framework.DescriptionAttribute("Добавление новой связи через UI")]
+        public async global::System.Threading.Tasks.Task ДобавлениеНовойСвязиЧерезUI()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление нового правила фаервола через UI", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление новой связи через UI", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 23
+#line 21
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -214,50 +209,50 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 24
+#line 22
     await testRunner.GivenAsync("в системе существует сервер Name \"UI-SrcSrv\" IP \"10.2.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 25
+#line 23
     await testRunner.AndAsync("в системе существует сервер Name \"UI-DstSrv\" IP \"10.2.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 26
+#line 24
     await testRunner.AndAsync("в системе существует сервис Name \"UI-SrcSvc\" UserName \"domain\\uisrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 27
+#line 25
     await testRunner.AndAsync("в системе существует сервис Name \"UI-DstSvc\" UserName \"domain\\uidst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 28
+#line 26
     await testRunner.AndAsync("сервис \"UI-SrcSvc\" прикреплён к серверу \"UI-SrcSrv\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 29
+#line 27
     await testRunner.AndAsync("сервис \"UI-DstSvc\" прикреплён к серверу \"UI-DstSrv\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 30
-    await testRunner.WhenAsync("я перехожу на страницу добавления правила фаервола", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line 28
+    await testRunner.WhenAsync("я перехожу на страницу добавления связи", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 31
+#line 29
     await testRunner.AndAsync("я выбираю \"UI-SrcSrv (10.2.1.1)\" в выпадающем списке \"Сервер (источник)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 32
+#line 30
     await testRunner.AndAsync("я выбираю \"UI-SrcSvc\" в выпадающем списке \"Сервис (источник)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 33
+#line 31
     await testRunner.AndAsync("я выбираю \"UI-DstSrv (10.2.1.2)\" в выпадающем списке \"Сервер (назначение)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 34
-    await testRunner.AndAsync("я выбираю \"UI-DstSvc\" в выпадающем списке \"Сервис (назначение)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line 32
+    await testRunner.AndAsync("я выбираю \"UI-DstSvc\" в выпадающем списке \"Сервис назначения (обязательно)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 35
+#line 33
     await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 36
-    await testRunner.ThenAsync("я нахожусь на странице \"/firewall-rules\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line 34
+    await testRunner.ThenAsync("я нахожусь на странице \"/connections\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 37
+#line 35
     await testRunner.AndAsync("я вижу текст \"UI-SrcSrv\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 38
-    await testRunner.AndAsync("я вижу текст \"UI-DstSrv\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line 36
+    await testRunner.AndAsync("я вижу текст \"UI-DstSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -273,7 +268,7 @@ namespace SecurityRule.E2E.Tests.Features
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Список сервисов источника фильтруется по выбранному серверу", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 40
+#line 38
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -283,28 +278,28 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 41
+#line 39
     await testRunner.GivenAsync("в системе существует сервер Name \"Filter-Srv\" IP \"10.6.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 42
-    await testRunner.AndAsync("в системе существует сервис Name \"Filter-OwnSvc\" UserName \"domain\\filterlown\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line 40
+    await testRunner.AndAsync("в системе существует сервис Name \"Filter-OwnSvc\" UserName \"domain\\filterown\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 43
+#line 41
     await testRunner.AndAsync("в системе существует сервис Name \"Filter-OtherSvc\" UserName \"domain\\filterother\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 44
+#line 42
     await testRunner.AndAsync("сервис \"Filter-OwnSvc\" прикреплён к серверу \"Filter-Srv\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 45
-    await testRunner.WhenAsync("я перехожу на страницу добавления правила фаервола", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line 43
+    await testRunner.WhenAsync("я перехожу на страницу добавления связи", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 46
+#line 44
     await testRunner.AndAsync("я выбираю \"Filter-Srv (10.6.1.1)\" в выпадающем списке \"Сервер (источник)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 47
+#line 45
     await testRunner.ThenAsync("я вижу текст \"Filter-OwnSvc\" в выпадающем списке \"Сервис (источник)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 48
+#line 46
     await testRunner.AndAsync("в выпадающем списке \"Сервис (источник)\" нет текста \"Filter-OtherSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
@@ -312,16 +307,16 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Редактирование описания правила фаервола")]
-        public async global::System.Threading.Tasks.Task РедактированиеОписанияПравилаФаервола()
+        [global::NUnit.Framework.DescriptionAttribute("Редактирование связи")]
+        public async global::System.Threading.Tasks.Task РедактированиеСвязи()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "4";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Редактирование описания правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Редактирование связи", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 50
+#line 48
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -331,49 +326,47 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 51
+#line 49
     await testRunner.GivenAsync("в системе существует сервер Name \"Edit-Src\" IP \"10.3.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 52
+#line 50
     await testRunner.AndAsync("в системе существует сервер Name \"Edit-Dst\" IP \"10.3.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 53
+#line 51
     await testRunner.AndAsync("в системе существует сервис Name \"Edit-SrcSvc\" UserName \"domain\\editsrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 54
+#line 52
     await testRunner.AndAsync("в системе существует сервис Name \"Edit-DstSvc\" UserName \"domain\\editdst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
+#line 53
+    await testRunner.AndAsync("в системе существует связь от сервера \"Edit-Src\" сервиса \"Edit-SrcSvc\" до сервиса" +
+                        " \"Edit-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 54
+    await testRunner.WhenAsync("я открываю страницу редактирования связи с источником \"Edit-Src\" и назначением \"E" +
+                        "dit-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
 #line 55
-    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"Edit-Src\" сервиса \"Edit-SrcSvc\"" +
-                        " до сервера \"Edit-Dst\" сервиса \"Edit-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 56
-    await testRunner.WhenAsync("я открываю страницу редактирования правила фаервола от \"Edit-Src\" до \"Edit-Dst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
-#line hidden
-#line 57
-    await testRunner.AndAsync("я заполняю поле \"Описание\" значением \"Новое описание\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 58
     await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 59
-    await testRunner.ThenAsync("я нахожусь на странице \"/firewall-rules\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line 56
+    await testRunner.ThenAsync("я нахожусь на странице \"/connections\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Удаление правила фаервола")]
-        public async global::System.Threading.Tasks.Task УдалениеПравилаФаервола()
+        [global::NUnit.Framework.DescriptionAttribute("Удаление связи")]
+        public async global::System.Threading.Tasks.Task УдалениеСвязи()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "5";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Удаление правила фаервола", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Удаление связи", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 61
+#line 58
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -383,49 +376,47 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 62
+#line 59
     await testRunner.GivenAsync("в системе существует сервер Name \"Del-Src\" IP \"10.4.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 63
-    await testRunner.AndAsync("в системе существует сервер Name \"Del-Dst\" IP \"10.4.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 64
+#line 60
     await testRunner.AndAsync("в системе существует сервис Name \"Del-SrcSvc\" UserName \"domain\\delsrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 65
+#line 61
     await testRunner.AndAsync("в системе существует сервис Name \"Del-DstSvc\" UserName \"domain\\deldst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 66
-    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"Del-Src\" сервиса \"Del-SrcSvc\" д" +
-                        "о сервера \"Del-Dst\" сервиса \"Del-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line 62
+    await testRunner.AndAsync("в системе существует связь без сервера источника от сервиса \"Del-SrcSvc\" до серви" +
+                        "са \"Del-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 67
-    await testRunner.WhenAsync("я открываю страницу редактирования правила фаервола от \"Del-Src\" до \"Del-Dst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line 63
+    await testRunner.WhenAsync("я открываю страницу редактирования связи без сервера источника с назначением \"Del" +
+                        "-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 68
+#line 64
     await testRunner.AndAsync("я нажимаю кнопку \"Удалить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 69
-    await testRunner.ThenAsync("я нахожусь на странице \"/firewall-rules\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line 65
+    await testRunner.ThenAsync("я нахожусь на странице \"/connections\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 70
-    await testRunner.AndAsync("на странице нет текста \"Del-Src\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line 66
+    await testRunner.AndAsync("на странице нет текста \"Del-SrcSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Таблица правил показывает источник и назначение")]
-        public async global::System.Threading.Tasks.Task ТаблицаПравилПоказываетИсточникИНазначение()
+        [global::NUnit.Framework.DescriptionAttribute("Таблица связей показывает источник и назначение")]
+        public async global::System.Threading.Tasks.Task ТаблицаСвязейПоказываетИсточникИНазначение()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "6";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Таблица правил показывает источник и назначение", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Таблица связей показывает источник и назначение", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 72
+#line 68
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -435,35 +426,26 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 73
+#line 69
     await testRunner.GivenAsync("в системе существует сервер Name \"Tbl-Src\" IP \"10.5.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 74
-    await testRunner.AndAsync("в системе существует сервер Name \"Tbl-Dst\" IP \"10.5.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 75
+#line 70
     await testRunner.AndAsync("в системе существует сервис Name \"Tbl-SrcSvc\" UserName \"domain\\tblsrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 76
+#line 71
     await testRunner.AndAsync("в системе существует сервис Name \"Tbl-DstSvc\" UserName \"domain\\tbldst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 77
-    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"Tbl-Src\" сервиса \"Tbl-SrcSvc\" д" +
-                        "о сервера \"Tbl-Dst\" сервиса \"Tbl-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line 72
+    await testRunner.AndAsync("в системе существует связь без сервера источника от сервиса \"Tbl-SrcSvc\" до серви" +
+                        "са \"Tbl-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 78
-    await testRunner.WhenAsync("я перехожу на страницу правил фаервола", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line 73
+    await testRunner.WhenAsync("я перехожу на страницу связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 79
-    await testRunner.ThenAsync("я вижу текст \"Tbl-Src\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line 74
+    await testRunner.ThenAsync("я вижу текст \"Tbl-SrcSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 80
-    await testRunner.AndAsync("я вижу текст \"Tbl-SrcSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 81
-    await testRunner.AndAsync("я вижу текст \"Tbl-Dst\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
-#line hidden
-#line 82
+#line 75
     await testRunner.AndAsync("я вижу текст \"Tbl-DstSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }

@@ -1,13 +1,13 @@
-@page "/firewall-rules/{Id:int}"
+@page "/connections/{Id:int}"
 @rendermode InteractiveServer
-@inject IFirewallRuleRepository FirewallRuleRepository
+@inject IServiceConnectionRepository ServiceConnectionRepository
 @inject NavigationManager Navigation
 
-@if (_displayRule == null)
+@if (_displayConnection == null)
 {
     @if (!Embedded)
     {
-        <PageTitle>Правило фаервола — ...</PageTitle>
+        <PageTitle>Связь — ...</PageTitle>
     }
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
 }
@@ -15,15 +15,15 @@ else
 {
     @if (!Embedded)
     {
-        <PageTitle>Правило фаервола — @_ruleTitle</PageTitle>
+        <PageTitle>Связь — @_title</PageTitle>
         <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" />
-                <MudText Typo="Typo.h4">@_ruleTitle</MudText>
+                <MudIcon Icon="@Icons.Material.Filled.CompareArrows" Color="Color.Primary" />
+                <MudText Typo="Typo.h4">@_title</MudText>
             </MudStack>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                       OnClick="@(() => Navigation.NavigateTo($"/firewall-rules/edit/{_displayRule.Id}"))">
+                       OnClick="@(() => Navigation.NavigateTo($"/connections/edit/{_displayConnection.Id}"))">
                 Редактировать
             </MudButton>
         </MudStack>
@@ -40,22 +40,26 @@ else
                     <MudStack AlignItems="AlignItems.Start" Spacing="1">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Источник</MudText>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            @if (_displayRule.SourceServer != null)
+                            @if (_displayConnection.SourceServer != null)
                             {
                                 <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Dns"
                                            Style="margin-left: -6px;"
-                                           OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayRule.SourceServer.Id}"))">
-                                    @_displayRule.SourceServer.Name
+                                           OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayConnection.SourceServer.Id}"))">
+                                    @_displayConnection.SourceServer.Name
                                 </MudButton>
                             }
-                            @if (_displayRule.SourceService != null)
+                            @if (_displayConnection.SourceService != null)
                             {
                                 <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Info"
                                            StartIcon="@Icons.Material.Filled.MiscellaneousServices"
                                            Style="margin-left: -6px;"
-                                           OnClick="@(() => Navigation.NavigateTo($"/services/{_displayRule.SourceService.Id}"))">
-                                    @_displayRule.SourceService.Name
+                                           OnClick="@(() => Navigation.NavigateTo($"/services/{_displayConnection.SourceService.Id}"))">
+                                    @_displayConnection.SourceService.Name
                                 </MudButton>
+                            }
+                            @if (_displayConnection.SourceServer == null && _displayConnection.SourceService == null)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
                             }
                         </MudStack>
                     </MudStack>
@@ -66,21 +70,21 @@ else
                     <MudStack AlignItems="AlignItems.Start" Spacing="1">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Назначение</MudText>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            @if (_displayRule.DestinationServer != null)
+                            @if (_displayConnection.DestinationServer != null)
                             {
                                 <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Dns"
                                            Style="margin-left: -6px;"
-                                           OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayRule.DestinationServer.Id}"))">
-                                    @_displayRule.DestinationServer.Name
+                                           OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayConnection.DestinationServer.Id}"))">
+                                    @_displayConnection.DestinationServer.Name
                                 </MudButton>
                             }
-                            @if (_displayRule.DestinationService != null)
+                            @if (_displayConnection.DestinationService != null)
                             {
                                 <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Info"
                                            StartIcon="@Icons.Material.Filled.MiscellaneousServices"
                                            Style="margin-left: -6px;"
-                                           OnClick="@(() => Navigation.NavigateTo($"/services/{_displayRule.DestinationService.Id}"))">
-                                    @_displayRule.DestinationService.Name
+                                           OnClick="@(() => Navigation.NavigateTo($"/services/{_displayConnection.DestinationService.Id}"))">
+                                    @_displayConnection.DestinationService.Name
                                 </MudButton>
                             }
                         </MudStack>
@@ -91,70 +95,12 @@ else
             <MudGrid>
                 <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Протокол</MudText>
-                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.Protocol) ? "—" : _displayRule.Protocol)</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayConnection.Protocol) ? "—" : _displayConnection.Protocol)</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Действие</MudText>
-                    @if (_displayRule.Action == "Allow")
-                    {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Разрешить</MudChip>
-                    }
-                    else if (_displayRule.Action == "Deny")
-                    {
-                        <MudChip T="string" Color="Color.Error" Size="Size.Small">Запретить</MudChip>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.Action) ? "—" : _displayRule.Action)</MudText>
-                    }
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Порт</MudText>
+                    <MudText Typo="Typo.body1">@(_displayConnection.Port.HasValue ? _displayConnection.Port.Value.ToString() : "—")</MudText>
                 </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Направление</MudText>
-                    @if (_displayRule.Direction == "Inbound")
-                    {
-                        <MudText Typo="Typo.body1">Входящее</MudText>
-                    }
-                    else if (_displayRule.Direction == "Outbound")
-                    {
-                        <MudText Typo="Typo.body1">Исходящее</MudText>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayRule.Direction) ? "—" : _displayRule.Direction)</MudText>
-                    }
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Истекает</MudText>
-                    @if (_displayRule.ExpiresAt.HasValue)
-                    {
-                        <MudText Typo="Typo.body1">
-                            @_displayRule.ExpiresAt.Value.ToString("dd.MM.yyyy")
-                            @if (_displayRule.ExpiresAt < DateTime.Now)
-                            {
-                                <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ml-1">Истёк</MudChip>
-                            }
-                            else if (_displayRule.ExpiresAt < DateTime.Now.AddDays(30))
-                            {
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="ml-1">Скоро истекает</MudChip>
-                            }
-                            else
-                            {
-                                <MudChip T="string" Color="Color.Success" Size="Size.Small" Class="ml-1">Активен</MudChip>
-                            }
-                        </MudText>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Бессрочно</MudChip>
-                    }
-                </MudItem>
-                @if (!string.IsNullOrWhiteSpace(_displayRule.Description))
-                {
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
-                        <MudText Typo="Typo.body1">@_displayRule.Description</MudText>
-                    </MudItem>
-                }
             </MudGrid>
         </MudCardContent>
     </MudCard>
@@ -162,36 +108,36 @@ else
 
 @code {
     [Parameter] public int Id { get; set; }
-    [Parameter] public FirewallRule? Rule { get; set; }
+    [Parameter] public ServiceConnection? Connection { get; set; }
     [Parameter] public bool Embedded { get; set; } = false;
 
-    private FirewallRule? _displayRule;
-    private string _ruleTitle = string.Empty;
+    private ServiceConnection? _displayConnection;
+    private string _title = string.Empty;
     private List<BreadcrumbItem> _breadcrumbs = [];
 
     protected override async Task OnInitializedAsync()
     {
-        if (Rule is not null)
+        if (Connection is not null)
         {
-            _displayRule = Rule;
+            _displayConnection = Connection;
         }
         else
         {
-            _displayRule = await FirewallRuleRepository.GetByIdAsync(Id);
+            _displayConnection = await ServiceConnectionRepository.GetByIdAsync(Id);
         }
-        _ruleTitle = BuildTitle(_displayRule, Id);
-        if (!Embedded && Rule is null)
+        _title = BuildTitle(_displayConnection, Id);
+        if (!Embedded && Connection is null)
         {
             _breadcrumbs =
             [
-                new BreadcrumbItem("Правила фаервола", href: "/firewall-rules"),
-                new BreadcrumbItem(_ruleTitle, href: null, disabled: true)
+                new BreadcrumbItem("Связи", href: "/connections"),
+                new BreadcrumbItem(_title, href: null, disabled: true)
             ];
         }
     }
 
-    private static string BuildTitle(FirewallRule? rule, int fallbackId)
-        => rule is null
+    private static string BuildTitle(ServiceConnection? c, int fallbackId)
+        => c is null
             ? fallbackId.ToString()
-            : $"{rule.SourceServer?.Name ?? "?"} / {rule.SourceService?.Name ?? "?"} → {rule.DestinationServer?.Name ?? "?"} / {rule.DestinationService?.Name ?? "?"}";
+            : $"{c.SourceServer?.Name ?? c.SourceService?.Name ?? "—"} → {c.DestinationServer?.Name ?? c.DestinationService?.Name ?? "?"}";
 }

@@ -122,7 +122,7 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("Certificates");
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.FirewallRule", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.ServiceConnection", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -130,39 +130,24 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("DestinationServiceId")
+                    b.Property<int?>("DestinationServiceId")
                         .HasColumnType("int");
 
-                    b.Property<int>("DestinationServerId")
+                    b.Property<int?>("DestinationServerId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Direction")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
 
                     b.Property<string>("Protocol")
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("SourceServiceId")
+                    b.Property<int?>("SourceServiceId")
                         .HasColumnType("int");
 
-                    b.Property<int>("SourceServerId")
+                    b.Property<int?>("SourceServerId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -175,7 +160,7 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     b.HasIndex("SourceServerId");
 
-                    b.ToTable("FirewallRules");
+                    b.ToTable("ServiceConnections");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.Group", b =>
@@ -291,28 +276,25 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.FirewallRule", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.ServiceConnection", b =>
                 {
                     b.HasOne("SecurityRule.Domain.Models.Server", "SourceServer")
-                        .WithMany("SourceFirewallRules")
+                        .WithMany("SourceConnections")
                         .HasForeignKey("SourceServerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("SecurityRule.Domain.Models.AppService", "SourceService")
-                        .WithMany("SourceFirewallRules")
+                        .WithMany("SourceConnections")
                         .HasForeignKey("SourceServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("SecurityRule.Domain.Models.Server", "DestinationServer")
-                        .WithMany("DestinationFirewallRules")
+                        .WithMany("DestinationConnections")
                         .HasForeignKey("DestinationServerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("SecurityRule.Domain.Models.AppService", "DestinationService")
-                        .WithMany("DestinationFirewallRules")
+                        .WithMany("DestinationConnections")
                         .HasForeignKey("DestinationServiceId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -376,14 +358,14 @@ namespace SecurityRule.Infrastructure.Migrations
 
             modelBuilder.Entity("SecurityRule.Domain.Models.Server", b =>
                 {
-                    b.Navigation("SourceFirewallRules");
-                    b.Navigation("DestinationFirewallRules");
+                    b.Navigation("SourceConnections");
+                    b.Navigation("DestinationConnections");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
-                    b.Navigation("SourceFirewallRules");
-                    b.Navigation("DestinationFirewallRules");
+                    b.Navigation("SourceConnections");
+                    b.Navigation("DestinationConnections");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.Certificate", b =>
