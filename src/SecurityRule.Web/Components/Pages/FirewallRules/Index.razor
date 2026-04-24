@@ -5,11 +5,14 @@
 
 <PageTitle>Связи</PageTitle>
 
-<MudStack Row="true" Spacing="1">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
     <MudText Typo="Typo.h4" GutterBottom="true">Связи</MudText>
     <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
                    Title="Добавить"
                    OnClick="@(() => Navigation.NavigateTo($"/connections/create"))" />
+    <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" Color="Color.Primary"
+                   Title="Карта связей"
+                   OnClick="@(() => Navigation.NavigateTo($"/connections/map"))" />
 </MudStack>
 
 @if (_loading)

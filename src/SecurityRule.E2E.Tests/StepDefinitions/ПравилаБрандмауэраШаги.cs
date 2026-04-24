@@ -88,6 +88,12 @@ public sealed class ПравилаБрандмауэраШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/connections");
     }
 
+    [When("я перехожу на страницу карты связей")]
+    public async Task ПерейтиНаСтраницуКартыСвязей()
+    {
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/map");
+    }
+
     [When("я перехожу на страницу добавления связи")]
     public async Task ПерейтиНаСтраницуДобавленияСвязи()
     {
