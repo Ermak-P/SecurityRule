@@ -5,6 +5,7 @@
           Elevation="@Elevation" OnRowClick="@ToggleRow">
     <HeaderContent>
         <MudTh>Описание</MudTh>
+        <MudTh>SN</MudTh>
         <MudTh>Выдан</MudTh>
         <MudTh>Истекает</MudTh>
         <MudTh>Статус</MudTh>
@@ -18,6 +19,7 @@
                 @context.Description
             </MudStack>
         </MudTd>
+        <MudTd DataLabel="SN">@(string.IsNullOrWhiteSpace(context.SerialNumber) ? "—" : context.SerialNumber)</MudTd>
         <MudTd DataLabel="Выдан">@context.IssuedAt.ToString("dd.MM.yyyy")</MudTd>
         <MudTd DataLabel="Истекает">@context.ExpiresAt.ToString("dd.MM.yyyy")</MudTd>
         <MudTd DataLabel="Статус">
@@ -46,7 +48,7 @@
         @if (_expandedRows.Contains(cert.Id))
         {
             <MudTr>
-                <td colspan="5" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="6" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-warning); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         <Details Certificate="cert" Embedded="true" />
                     </div>

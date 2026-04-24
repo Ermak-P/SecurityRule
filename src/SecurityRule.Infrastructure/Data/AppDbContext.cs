@@ -52,7 +52,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Certificate>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.SerialNumber).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Thumbprint).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.RequestNumber).IsRequired().HasMaxLength(200);
         });
 
         modelBuilder.Entity<FirewallRule>(entity =>
@@ -103,6 +106,11 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasOne(e => e.Certificate)
+                  .WithMany(c => c.Users)
+                  .HasForeignKey(e => e.CertificateId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Group>(entity =>

@@ -102,6 +102,21 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("RequestNumber")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SerialNumber")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Thumbprint")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Certificates");
@@ -256,6 +271,9 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CertificateId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -267,6 +285,8 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CertificateId");
 
                     b.ToTable("Users");
                 });
@@ -345,6 +365,12 @@ namespace SecurityRule.Infrastructure.Migrations
 
             modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
                 {
+                    b.HasOne("SecurityRule.Domain.Models.Certificate", "Certificate")
+                        .WithMany("Users")
+                        .HasForeignKey("CertificateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Certificate");
                     b.Navigation("Services");
                 });
 
@@ -358,6 +384,11 @@ namespace SecurityRule.Infrastructure.Migrations
                 {
                     b.Navigation("SourceFirewallRules");
                     b.Navigation("DestinationFirewallRules");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.Certificate", b =>
+                {
+                    b.Navigation("Users");
                 });
 #pragma warning restore 612, 618
         }

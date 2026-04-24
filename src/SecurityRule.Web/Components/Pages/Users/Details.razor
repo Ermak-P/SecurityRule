@@ -54,6 +54,17 @@ else
                         <MudText Typo="Typo.body1">@_displayUser.Services.Count</MudText>
                     </MudItem>
                 }
+                @if (_displayUser?.Certificate != null)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Сертификат</MudText>
+                        <MudText Typo="Typo.body1">
+                            <MudLink Href="@($"/certificates/{_displayUser.Certificate.Id}")">
+                                @_displayUser.Certificate.Description (@_displayUser.Certificate.SerialNumber)
+                            </MudLink>
+                        </MudText>
+                    </MudItem>
+                }
                 @if (!string.IsNullOrWhiteSpace(_displayUser?.Description))
                 {
                     <MudItem xs="12">

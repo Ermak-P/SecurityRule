@@ -19,6 +19,7 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByIdAsync(int id)
         => await _context.Users
+            .Include(u => u.Certificate)
             .Include(u => u.Services)
                 .ThenInclude(s => s.Servers)
             .Include(u => u.Services)
@@ -38,6 +39,7 @@ public class UserRepository : IUserRepository
 
         existing.Name = user.Name;
         existing.Description = user.Description;
+        existing.CertificateId = user.CertificateId;
 
         await _context.SaveChangesAsync();
     }

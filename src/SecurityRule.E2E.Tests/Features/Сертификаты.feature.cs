@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сертификаты.feature.ndjson", 7);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сертификаты.feature.ndjson", 8);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -173,13 +173,13 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Добавление нового сертификата")]
-        public async global::System.Threading.Tasks.Task ДобавлениеНовогоСертификата()
+        [global::NUnit.Framework.DescriptionAttribute("Детали сертификата содержат все поля")]
+        public async global::System.Threading.Tasks.Task ДеталиСертификатаСодержатВсеПоля()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "2";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление нового сертификата", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Детали сертификата содержат все поля", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 16
@@ -193,32 +193,32 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 17
-    await testRunner.WhenAsync("я перехожу на страницу добавления сертификата", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.GivenAsync("в системе существует сертификат Desc \"DetailCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 18
-    await testRunner.AndAsync("я заполняю поле \"Описание\" значением \"SSL-Cert-2025\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.WhenAsync("я открываю страницу деталей сертификата \"DetailCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 19
-    await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.ThenAsync("я вижу текст \"SN-TEST\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
 #line 20
-    await testRunner.ThenAsync("я нахожусь на странице \"/certificates\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.AndAsync("я вижу текст \"TESTTHUMBPRINT\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 21
-    await testRunner.AndAsync("я вижу текст \"SSL-Cert-2025\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("я вижу текст \"REQ-TEST\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Редактирование сертификата")]
-        public async global::System.Threading.Tasks.Task РедактированиеСертификата()
+        [global::NUnit.Framework.DescriptionAttribute("Добавление нового сертификата")]
+        public async global::System.Threading.Tasks.Task ДобавлениеНовогоСертификата()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "3";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Редактирование сертификата", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Добавление нового сертификата", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 23
@@ -232,18 +232,66 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 24
-    await testRunner.GivenAsync("в системе существует сертификат Desc \"OldCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+    await testRunner.WhenAsync("я перехожу на страницу добавления сертификата", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 25
-    await testRunner.WhenAsync("я открываю страницу редактирования сертификата \"OldCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+    await testRunner.AndAsync("я заполняю поле \"SN (Серийный номер)\" значением \"SN-2025-001\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 26
-    await testRunner.AndAsync("я заменяю значение поля \"Описание\" на \"UpdatedCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("я заполняю поле \"Thumbprint\" значением \"AABBCCDD\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 27
-    await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("я заполняю поле \"Номер заявки\" значением \"JIRA-100\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 28
+    await testRunner.AndAsync("я заполняю поле \"Описание\" значением \"SSL-Cert-2025\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 29
+    await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 30
+    await testRunner.ThenAsync("я нахожусь на странице \"/certificates\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 31
+    await testRunner.AndAsync("я вижу текст \"SSL-Cert-2025\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Редактирование сертификата")]
+        public async global::System.Threading.Tasks.Task РедактированиеСертификата()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "4";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Редактирование сертификата", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 33
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 34
+    await testRunner.GivenAsync("в системе существует сертификат Desc \"OldCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 35
+    await testRunner.WhenAsync("я открываю страницу редактирования сертификата \"OldCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 36
+    await testRunner.AndAsync("я заменяю значение поля \"Описание\" на \"UpdatedCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 37
+    await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 38
     await testRunner.ThenAsync("я вижу текст \"UpdatedCert\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
@@ -256,11 +304,11 @@ namespace SecurityRule.E2E.Tests.Features
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
-            string pickleIndex = "4";
+            string pickleIndex = "5";
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Удаление сертификата", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 30
+#line 40
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -270,19 +318,19 @@ namespace SecurityRule.E2E.Tests.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 31
+#line 41
     await testRunner.GivenAsync("в системе существует сертификат Desc \"TempCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
-#line 32
+#line 42
     await testRunner.WhenAsync("я открываю страницу редактирования сертификата \"TempCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 33
+#line 43
     await testRunner.AndAsync("я нажимаю кнопку \"Удалить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 34
+#line 44
     await testRunner.ThenAsync("я нахожусь на странице \"/certificates\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 35
+#line 45
     await testRunner.AndAsync("на странице нет текста \"TempCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }

@@ -31,6 +31,12 @@
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.MiscellaneousServices">@srcService.Name</MudChip>
                 }
+                @if (srcServer != null || srcService?.Port != null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(srcServer?.IpAddress ?? string.Empty)@(srcService?.Port != null ? $":{srcService.Port}" : string.Empty)
+                    </MudText>
+                }
             </MudStack>
         </MudTd>
         <MudTd Style="text-align:center; vertical-align:middle;">
@@ -45,6 +51,12 @@
                 @if (dstService != null)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.MiscellaneousServices">@dstService.Name</MudChip>
+                }
+                @if (dstServer != null || dstService?.Port != null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(dstServer?.IpAddress ?? string.Empty)@(dstService?.Port != null ? $":{dstService.Port}" : string.Empty)
+                    </MudText>
                 }
             </MudStack>
         </MudTd>

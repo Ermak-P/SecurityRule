@@ -16,7 +16,10 @@ else
 {
     <MudCard>
         <MudCardContent>
-            <MudTextField @bind-Value="_certificate.Description" Label="Описание" Required="true" Class="mb-3" Lines="3" />
+            <MudTextField @bind-Value="_certificate.SerialNumber" Label="SN (Серийный номер)" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_certificate.Thumbprint" Label="Thumbprint" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_certificate.Description" Label="Описание" Class="mb-3" Lines="3" />
+            <MudTextField @bind-Value="_certificate.RequestNumber" Label="Номер заявки" Required="true" Class="mb-3" />
             <MudDatePicker @bind-Date="_issuedAt" Label="Дата выдачи" Required="true" Class="mb-3" />
             <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
         </MudCardContent>

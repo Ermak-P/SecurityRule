@@ -25,6 +25,9 @@ public sealed class СертификатыШаги
         var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.ICertificateRepository>();
         await repo.AddAsync(new Certificate
         {
+            SerialNumber = "SN-TEST",
+            Thumbprint = "TESTTHUMBPRINT",
+            RequestNumber = "REQ-TEST",
             Description = description,
             IssuedAt = DateTime.Now.AddYears(-1),
             ExpiresAt = DateTime.Now.AddYears(2)

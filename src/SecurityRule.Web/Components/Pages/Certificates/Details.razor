@@ -33,8 +33,20 @@ else
         <MudCardContent>
             <MudGrid>
                 <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">SN (Серийный номер)</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayCertificate.SerialNumber) ? "—" : _displayCertificate.SerialNumber)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Thumbprint</MudText>
+                    <MudText Typo="Typo.body1" Style="word-break:break-all">@(string.IsNullOrWhiteSpace(_displayCertificate.Thumbprint) ? "—" : _displayCertificate.Thumbprint)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
-                    <MudText Typo="Typo.body1">@_displayCertificate.Description</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayCertificate.Description) ? "—" : _displayCertificate.Description)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Номер заявки</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayCertificate.RequestNumber) ? "—" : _displayCertificate.RequestNumber)</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Выдан</MudText>
