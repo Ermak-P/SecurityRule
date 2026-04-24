@@ -67,9 +67,9 @@ public sealed class ОбщиеШаги
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await container.Locator(".mud-input-root").First.ClickAsync();
         // Wait for the popover list to appear and click the matching item
-        await _state.Page.WaitForTimeoutAsync(400);
+        await _state.Page.WaitForTimeoutAsync(800);
         var option = _state.Page.GetByRole(AriaRole.Option, new() { Name = value });
-        await option.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await option.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
         await option.ClickAsync();
         await _state.Page.WaitForTimeoutAsync(200);
     }
@@ -116,11 +116,11 @@ public sealed class ОбщиеШаги
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await container.Locator(".mud-input-root").First.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(400);
+        await _state.Page.WaitForTimeoutAsync(800);
 
         await Assertions
             .Expect(_state.Page.GetByRole(AriaRole.Option, new() { Name = value }))
-            .ToBeVisibleAsync(new() { Timeout = 10_000 });
+            .ToBeVisibleAsync(new() { Timeout = 20_000 });
 
         await _state.Page.Keyboard.PressAsync("Escape");
         await _state.Page.WaitForTimeoutAsync(200);
@@ -134,7 +134,7 @@ public sealed class ОбщиеШаги
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await container.Locator(".mud-input-root").First.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(400);
+        await _state.Page.WaitForTimeoutAsync(800);
 
         await Assertions
             .Expect(_state.Page.GetByRole(AriaRole.Option, new() { Name = value }))

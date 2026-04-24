@@ -21,8 +21,8 @@ else
             <MudText Typo="Typo.subtitle1" Class="mb-3" Color="Color.Secondary">Источник</MudText>
             <MudGrid Class="mb-2">
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Value="@_srcServerId" Label="Сервер (источник)"
-                               ValueChanged="@OnSrcServerChanged">
+                    <MudSelect T="int?" @bind-Value="_srcServerId" Label="Сервер (источник)" Clearable="true"
+                               @bind-Value:after="OnSrcServerChanged">
                         <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
                         @foreach (var s in _allServers)
                         {
@@ -31,9 +31,8 @@ else
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Value="@_srcServiceId" Label="Сервис (источник)"
-                               Disabled="@(_srcServerId != null && !_srcServices.Any())"
-                               ValueChanged="@(id => _srcServiceId = id)">
+                    <MudSelect T="int?" @bind-Value="_srcServiceId" Label="Сервис (источник)" Clearable="true"
+                               Disabled="@(_srcServerId != null && !_srcServices.Any())">
                         <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
                         @foreach (var svc in _srcServices)
                         {
@@ -47,8 +46,8 @@ else
             <MudText Typo="Typo.subtitle1" Class="mb-3" Color="Color.Secondary">Назначение</MudText>
             <MudGrid Class="mb-2">
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Value="@_dstServerId" Label="Сервер (назначение)"
-                               ValueChanged="@OnDstServerChanged">
+                    <MudSelect T="int?" @bind-Value="_dstServerId" Label="Сервер (назначение)" Clearable="true"
+                               @bind-Value:after="OnDstServerChanged">
                         <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
                         @foreach (var s in _allServers)
                         {
@@ -57,9 +56,8 @@ else
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int?" Value="@_dstServiceId" Label="Сервис назначения (обязательно)" Required="true"
-                               Disabled="@(_dstServerId != null && !_dstServices.Any())"
-                               ValueChanged="@(id => _dstServiceId = id)">
+                    <MudSelect T="int?" @bind-Value="_dstServiceId" Label="Сервис назначения (обязательно)" Required="true"
+                               Disabled="@(_dstServerId != null && !_dstServices.Any())">
                         <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
                         @foreach (var svc in _dstServices)
                         {
@@ -134,21 +132,19 @@ else
         }
     }
 
-    private void OnSrcServerChanged(int? serverId)
+    private void OnSrcServerChanged()
     {
-        _srcServerId  = serverId;
         _srcServiceId = null;
-        _srcServices  = serverId.HasValue
-            ? _allServers.FirstOrDefault(s => s.Id == serverId.Value)?.Services ?? []
+        _srcServices  = _srcServerId.HasValue
+            ? _allServers.FirstOrDefault(s => s.Id == _srcServerId.Value)?.Services ?? []
             : _allServices;
     }
 
-    private void OnDstServerChanged(int? serverId)
+    private void OnDstServerChanged()
     {
-        _dstServerId  = serverId;
         _dstServiceId = null;
-        _dstServices  = serverId.HasValue
-            ? _allServers.FirstOrDefault(s => s.Id == serverId.Value)?.Services ?? []
+        _dstServices  = _dstServerId.HasValue
+            ? _allServers.FirstOrDefault(s => s.Id == _dstServerId.Value)?.Services ?? []
             : _allServices;
     }
 

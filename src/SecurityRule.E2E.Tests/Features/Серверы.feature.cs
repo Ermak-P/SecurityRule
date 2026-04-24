@@ -300,13 +300,13 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Правила фаервола отображаются на странице деталей сервера")]
-        public async global::System.Threading.Tasks.Task ПравилаФаерволаОтображаютсяНаСтраницеДеталейСервера()
+        [global::NUnit.Framework.DescriptionAttribute("Связи отображаются на странице деталей сервера")]
+        public async global::System.Threading.Tasks.Task СвязиОтображаютсяНаСтраницеДеталейСервера()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "5";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Правила фаервола отображаются на странице деталей сервера", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Связи отображаются на странице деталей сервера", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 40
@@ -332,8 +332,8 @@ namespace SecurityRule.E2E.Tests.Features
     await testRunner.AndAsync("в системе существует сервис Name \"FW-DstSvc\" UserName \"domain\\fwdst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 45
-    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"Web-Firewall\" сервиса \"FW-SrcSv" +
-                        "c\" до сервера \"FW-Dst-Srv\" сервиса \"FW-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("в системе существует связь от сервера \"Web-Firewall\" сервиса \"FW-SrcSvc\" до серви" +
+                        "са \"FW-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 46
     await testRunner.WhenAsync("я открываю страницу деталей сервера \"Web-Firewall\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");

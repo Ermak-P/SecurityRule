@@ -329,13 +329,13 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Правила фаервола отображаются на странице деталей сервиса")]
-        public async global::System.Threading.Tasks.Task ПравилаФаерволаОтображаютсяНаСтраницеДеталейСервиса()
+        [global::NUnit.Framework.DescriptionAttribute("Связи отображаются на странице деталей сервиса")]
+        public async global::System.Threading.Tasks.Task СвязиОтображаютсяНаСтраницеДеталейСервиса()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "6";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Правила фаервола отображаются на странице деталей сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Связи отображаются на странице деталей сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 43
@@ -361,8 +361,8 @@ namespace SecurityRule.E2E.Tests.Features
     await testRunner.AndAsync("в системе существует сервис Name \"BA-DstSvc\" UserName \"domain\\badst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 48
-    await testRunner.AndAsync("в системе существует правило фаервола от сервера \"BA-SrcSrv\" сервиса \"BackendApi\"" +
-                        " до сервера \"BA-DstSrv\" сервиса \"BA-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("в системе существует связь от сервера \"BA-SrcSrv\" сервиса \"BackendApi\" до сервиса" +
+                        " \"BA-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 49
     await testRunner.WhenAsync("я открываю страницу деталей сервиса \"BackendApi\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");

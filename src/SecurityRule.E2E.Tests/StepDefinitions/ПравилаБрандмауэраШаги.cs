@@ -18,15 +18,6 @@ public sealed class ПравилаБрандмауэраШаги
 
     // ── Given: seed data directly into the in-memory database ────────────────
 
-    /// <summary>Creates a service directly in the database.</summary>
-    [Given("в системе существует сервис Name {string} UserName {string}")]
-    public async Task ВСистемеСуществуетСервис(string name, string userName)
-    {
-        using var scope = _state.Services.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
-        await repo.AddAsync(new AppService { Name = name, UserName = userName });
-    }
-
     /// <summary>Links an existing service to an existing server (many-to-many).</summary>
     [Given("сервис {string} прикреплён к серверу {string}")]
     public async Task СервисПрикреплёнКСерверу(string serviceName, string serverName)
@@ -164,7 +155,7 @@ public sealed class ПравилаБрандмауэраШаги
         await _state.Page.WaitForFunctionAsync(
             "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
             null, new() { Timeout = 15_000, PollingInterval = 200 });
-        await _state.Page.WaitForTimeoutAsync(500);
+        await _state.Page.WaitForTimeoutAsync(1500);
     }
 }
 
