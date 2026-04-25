@@ -187,13 +187,14 @@ else
             bool dstInScope = conn.DestinationServerId.HasValue && visibleServerIds.Contains(conn.DestinationServerId.Value);
             if (!srcInScope || !dstInScope) continue;
 
+            // At this point SourceServerId and DestinationServerId are guaranteed to have values (checked above)
             string srcNodeId = conn.SourceServiceId.HasValue && addedServiceIds.Contains(conn.SourceServiceId.Value)
                 ? $"svc-{conn.SourceServiceId.Value}"
-                : $"srv-{conn.SourceServerId!.Value}";
+                : $"srv-{conn.SourceServerId.GetValueOrDefault()}";
 
             string dstNodeId = addedServiceIds.Contains(conn.DestinationServiceId)
                 ? $"svc-{conn.DestinationServiceId}"
-                : $"srv-{conn.DestinationServerId!.Value}";
+                : $"srv-{conn.DestinationServerId.GetValueOrDefault()}";
 
             bool fromService = conn.SourceServiceId.HasValue;
             string label = BuildEdgeLabel(
