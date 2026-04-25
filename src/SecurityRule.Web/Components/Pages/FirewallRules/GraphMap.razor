@@ -57,83 +57,116 @@ else
 {
     <MudPaper Elevation="1" Style="overflow: auto;" data-testid="connections-map-container">
         <svg width="@_svgWidth" height="@_svgHeight" xmlns="http://www.w3.org/2000/svg"
-             data-testid="connections-graph" style="display: block;">
+             data-testid="connections-graph" style="display: block; background: #ffffff;">
             <defs>
-                <marker id="arrowhead" markerWidth="8" markerHeight="6"
+                @* Arrowhead for server → service connections (blue) *@
+                <marker id="arr-srv" markerWidth="8" markerHeight="6"
                         refX="7" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="#9e9e9e" />
+                    <polygon points="0 0, 8 3, 0 6" fill="#1565c0" />
+                </marker>
+                @* Arrowhead for service → service connections (purple) *@
+                <marker id="arr-svc" markerWidth="8" markerHeight="6"
+                        refX="7" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" fill="#6a1b9a" />
                 </marker>
             </defs>
 
-            @* Column background panels *@
-            <rect x="@(_srcColX - 10)" y="42"
-                  width="@(_nodeWidth + 20)" height="@(_svgHeight - 52)"
-                  rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1" />
-            <rect x="@(_dstColX - 10)" y="42"
-                  width="@(_nodeWidth + 20)" height="@(_svgHeight - 52)"
-                  rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1" />
+            @* ── Services cluster box ── *@
+            @* Outer rounded rectangle *@
+            <rect x="@SvcBoxX" y="@TopPad" width="@SvcBoxW" height="@_svcBoxH"
+                  rx="10" fill="#fce4ec" stroke="#c62828" stroke-width="2" />
+            @* Header background: rounded at top, flat at bottom (two-rect trick) *@
+            <rect x="@SvcBoxX" y="@TopPad" width="@SvcBoxW" height="@SvcBoxHeaderH"
+                  rx="10" fill="#c62828" />
+            <rect x="@SvcBoxX" y="@(TopPad + SvcBoxHeaderH - 10)" width="@SvcBoxW" height="10"
+                  fill="#c62828" />
+            @* Header title *@
+            @SvgText(SvcBoxX + SvcBoxW / 2, TopPad + SvcBoxHeaderH / 2 + 5, "middle", "white", 13, "bold", "⚙  С Е Р В И С Ы")
 
-            @* Column headers *@
-            <text x="@(_srcColX + _nodeWidth / 2)" y="32"
-                  text-anchor="middle" font-weight="bold" fill="#616161"
-                  font-size="13" font-family="Roboto, sans-serif">Источник</text>
-            <text x="@(_dstColX + _nodeWidth / 2)" y="32"
-                  text-anchor="middle" font-weight="bold" fill="#616161"
-                  font-size="13" font-family="Roboto, sans-serif">Назначение</text>
-
-            @* Edges (drawn first so nodes appear on top) *@
-            @foreach (var edge in _edges)
+            @* Individual service rows *@
+            @foreach (var svc in _svcItems)
             {
-                int midX = (_srcColX + _nodeWidth + _dstColX) / 2;
-                int midY = (edge.SrcMidY + edge.DstMidY) / 2;
-                <line x1="@(_srcColX + _nodeWidth)" y1="@edge.SrcMidY"
-                      x2="@_dstColX" y2="@edge.DstMidY"
-                      stroke="#bdbdbd" stroke-width="1.5"
-                      marker-end="url(#arrowhead)" />
-                @if (!string.IsNullOrWhiteSpace(edge.Protocol))
+                <rect x="@(SvcBoxX + SvcInnerPad)" y="@svc.Y"
+                      width="@(SvcBoxW - 2 * SvcInnerPad)" height="@SvcRowH"
+                      rx="5" fill="white" stroke="@svc.BorderColor" stroke-width="2" />
+                <circle cx="@(SvcBoxX + SvcInnerPad + 14)" cy="@(svc.Y + SvcRowH / 2)"
+                        r="5" fill="@svc.BorderColor" />
+                @SvgText(SvcBoxX + SvcInnerPad + 27,
+                         string.IsNullOrEmpty(svc.SubLabel) ? svc.Y + SvcRowH / 2 + 4 : svc.Y + SvcRowH / 2 - 3,
+                         "start", "#212121", 12, "600", Truncate(svc.Name, 26))
+                @if (!string.IsNullOrEmpty(svc.SubLabel))
                 {
-                    @SvgText(midX, midY - 5, "middle", "#bdbdbd", 10, "normal", edge.Protocol)
+                    @SvgText(SvcBoxX + SvcInnerPad + 27, svc.Y + SvcRowH / 2 + 12,
+                             "start", "#757575", 10, "normal", svc.SubLabel)
                 }
             }
 
-            @* Source nodes *@
-            @foreach (var node in _srcNodes)
+            @* ── Server nodes (left column) ── *@
+            @foreach (var srv in _srvNodes)
             {
-                string fill   = node.IsServer ? "#e3f2fd" : "#e8f5e9";
-                string stroke = node.IsServer ? "#90caf9" : "#a5d6a7";
-                int labelY    = string.IsNullOrEmpty(node.SubLabel)
-                                    ? node.Y + _nodeHeight / 2 + 4
-                                    : node.Y + _nodeHeight / 2 - 4;
-                <g data-node-id="@node.Id">
-                    <rect x="@_srcColX" y="@node.Y"
-                          width="@_nodeWidth" height="@_nodeHeight"
-                          rx="5" fill="@fill" stroke="@stroke" stroke-width="1.5" />
-                    @SvgText(_srcColX + _nodeWidth / 2, labelY, "middle", "#212121", 12, "500", Truncate(node.Label, 22))
-                    @if (!string.IsNullOrEmpty(node.SubLabel))
-                    {
-                        @SvgText(_srcColX + _nodeWidth / 2, node.Y + _nodeHeight / 2 + 11, "middle", "#757575", 10, "normal", node.SubLabel)
-                    }
-                </g>
+                @* Server box *@
+                <rect x="@SrvColX" y="@srv.Y" width="@SrvNodeW" height="@SrvNodeH"
+                      rx="6" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5" />
+                @* Left accent stripe *@
+                <rect x="@SrvColX" y="@srv.Y" width="5" height="@SrvNodeH"
+                      rx="2" fill="#1565c0" />
+                @* Server icon rectangle inside stripe area *@
+                <rect x="@(SrvColX + 10)" y="@(srv.Y + SrvNodeH / 2 - 7)" width="12" height="9"
+                      rx="1" fill="none" stroke="#1565c0" stroke-width="1.2" />
+                <line x1="@(SrvColX + 10)" y1="@(srv.Y + SrvNodeH / 2 - 2)"
+                      x2="@(SrvColX + 22)" y2="@(srv.Y + SrvNodeH / 2 - 2)"
+                      stroke="#1565c0" stroke-width="1" />
+                @* Label *@
+                @SvgText(SrvColX + 28,
+                         string.IsNullOrEmpty(srv.IpAddress) ? srv.Y + SrvNodeH / 2 + 4 : srv.Y + SrvNodeH / 2 - 3,
+                         "start", "#0d47a1", 12, "600", Truncate(srv.Name, 18))
+                @if (!string.IsNullOrEmpty(srv.IpAddress))
+                {
+                    @SvgText(SrvColX + 28, srv.Y + SrvNodeH / 2 + 12, "start", "#546e7a", 10, "normal", srv.IpAddress)
+                }
             }
 
-            @* Destination nodes *@
-            @foreach (var node in _dstNodes)
+            @* ── Server → Service bezier arrows ── *@
+            @foreach (var edge in _srvEdges)
             {
-                string fill   = node.IsServer ? "#e3f2fd" : "#fff3e0";
-                string stroke = node.IsServer ? "#90caf9" : "#ffcc80";
-                int labelY    = string.IsNullOrEmpty(node.SubLabel)
-                                    ? node.Y + _nodeHeight / 2 + 4
-                                    : node.Y + _nodeHeight / 2 - 4;
-                <g data-node-id="@node.Id">
-                    <rect x="@_dstColX" y="@node.Y"
-                          width="@_nodeWidth" height="@_nodeHeight"
-                          rx="5" fill="@fill" stroke="@stroke" stroke-width="1.5" />
-                    @SvgText(_dstColX + _nodeWidth / 2, labelY, "middle", "#212121", 12, "500", Truncate(node.Label, 22))
-                    @if (!string.IsNullOrEmpty(node.SubLabel))
-                    {
-                        @SvgText(_dstColX + _nodeWidth / 2, node.Y + _nodeHeight / 2 + 11, "middle", "#757575", 10, "normal", node.SubLabel)
-                    }
-                </g>
+                int ex1  = SrvColX + SrvNodeW;
+                int ey1  = edge.SrcY;
+                int ex2  = SvcBoxX;
+                int ey2  = edge.DstY;
+                int cp1x = ex1 + (ex2 - ex1) * 2 / 3;
+                int cp2x = ex1 + (ex2 - ex1) / 3;
+                <path d="M @ex1 @ey1 C @cp1x @ey1 @cp2x @ey2 @ex2 @ey2"
+                      fill="none" stroke="#1565c0" stroke-width="1.5"
+                      marker-end="url(#arr-srv)" />
+                @if (!string.IsNullOrWhiteSpace(edge.Protocol))
+                {
+                    int lx = ex1 + (ex2 - ex1) / 2;
+                    int ly = ey1 + (ey2 - ey1) / 2;
+                    <rect x="@(lx - 18)" y="@(ly - 9)" width="36" height="14"
+                          rx="3" fill="white" stroke="#1565c0" stroke-width="0.5" opacity="0.9" />
+                    @SvgText(lx, ly + 2, "middle", "#1565c0", 9, "normal", edge.Protocol)
+                }
+            }
+
+            @* ── Service → Service loop arrows (exit right side of box) ── *@
+            @foreach (var edge in _svcEdges)
+            {
+                int lx1   = SvcBoxX + SvcBoxW;
+                int ly1   = edge.SrcY;
+                int lx2   = SvcBoxX + SvcBoxW;
+                int ly2   = edge.DstY;
+                int loopX = lx1 + LoopXOffset;
+                <path d="M @lx1 @ly1 C @loopX @ly1 @loopX @ly2 @lx2 @ly2"
+                      fill="none" stroke="#6a1b9a" stroke-width="1.5"
+                      marker-end="url(#arr-svc)" />
+                @if (!string.IsNullOrWhiteSpace(edge.Protocol))
+                {
+                    int plx = loopX + 6;
+                    int ply = (ly1 + ly2) / 2;
+                    <rect x="@plx" y="@(ply - 8)" width="34" height="14"
+                          rx="3" fill="white" stroke="#6a1b9a" stroke-width="0.5" opacity="0.9" />
+                    @SvgText(plx + 17, ply + 2, "middle", "#6a1b9a", 9, "normal", edge.Protocol)
+                }
             }
         </svg>
     </MudPaper>
@@ -143,52 +176,71 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
             <MudText Typo="Typo.caption" Color="Color.Secondary">Обозначения:</MudText>
             <div style="display:inline-flex; align-items:center; gap:6px;">
-                <div style="width:18px; height:12px; background:#e3f2fd; border:1.5px solid #90caf9; border-radius:3px;"></div>
-                <MudText Typo="Typo.caption">Сервер</MudText>
+                <div style="width:18px; height:12px; background:#e3f2fd; border:1.5px solid #1565c0; border-radius:3px;"></div>
+                <MudText Typo="Typo.caption">Сервер-источник</MudText>
             </div>
             <div style="display:inline-flex; align-items:center; gap:6px;">
-                <div style="width:18px; height:12px; background:#e8f5e9; border:1.5px solid #a5d6a7; border-radius:3px;"></div>
-                <MudText Typo="Typo.caption">Сервис (источник)</MudText>
+                <div style="width:18px; height:12px; background:#fce4ec; border:1.5px solid #c62828; border-radius:3px;"></div>
+                <MudText Typo="Typo.caption">Группа сервисов</MudText>
             </div>
             <div style="display:inline-flex; align-items:center; gap:6px;">
-                <div style="width:18px; height:12px; background:#fff3e0; border:1.5px solid #ffcc80; border-radius:3px;"></div>
-                <MudText Typo="Typo.caption">Сервис (назначение)</MudText>
+                <div style="width:10px; height:10px; border-radius:50%; background:#2e7d32;"></div>
+                <MudText Typo="Typo.caption">Только источник</MudText>
+            </div>
+            <div style="display:inline-flex; align-items:center; gap:6px;">
+                <div style="width:10px; height:10px; border-radius:50%; background:#e65100;"></div>
+                <MudText Typo="Typo.caption">Только получатель</MudText>
+            </div>
+            <div style="display:inline-flex; align-items:center; gap:6px;">
+                <div style="width:10px; height:10px; border-radius:50%; background:#7b1fa2;"></div>
+                <MudText Typo="Typo.caption">Источник и получатель</MudText>
             </div>
         </MudStack>
     </MudPaper>
 }
 
 @code {
-    private sealed record GraphNode(string Id, string Label, string SubLabel, bool IsServer, int Y);
-    private sealed record GraphEdge(int SrcMidY, int DstMidY, string Protocol);
+    // ── Layout constants ─────────────────────────────────────────────────────
+    private const int SrvColX       = 20;
+    private const int SrvNodeW      = 185;
+    private const int SrvNodeH      = 48;
+    private const int SrvNodeGap    = 20;
+    private const int ColGap        = 50;
+    private const int SvcBoxX       = SrvColX + SrvNodeW + ColGap; // = 255
+    private const int SvcBoxW       = 340;
+    private const int SvcBoxHeaderH = 34;
+    private const int SvcInnerPad   = 12;
+    private const int SvcRowH       = 42;
+    private const int SvcRowGap     = 8;
+    private const int SvcBoxPadBot  = 14;
+    private const int TopPad        = 20;
+    private const int LoopXOffset   = 60;
 
-    private const int NodeWidth  = 200;
-    private const int NodeHeight = 44;
-    private const int NodeGap    = 22;
-    private const int TopPadding = 58;
-    private const int ColPadding = 30;
-    private const int SvgTotalWidth = 820;
+    // ── Record types ─────────────────────────────────────────────────────────
+    private sealed record SvcItem(string Id, string Name, string SubLabel, int Y, string BorderColor);
+    private sealed record SrvNode(string Id, string Name, string IpAddress, int Y);
+    private sealed record SrvEdge(int SrcY, int DstY, string Protocol);
+    private sealed record SvcEdge(int SrcY, int DstY, string Protocol);
 
-    private readonly int _nodeWidth  = NodeWidth;
-    private readonly int _nodeHeight = NodeHeight;
-    private readonly int _srcColX    = ColPadding;
-    private readonly int _dstColX    = SvgTotalWidth - NodeWidth - ColPadding;
-    private readonly int _svgWidth   = SvgTotalWidth;
+    // ── Dynamic SVG dimensions ───────────────────────────────────────────────
+    private int _svcBoxH  = 120;
+    private int _svgWidth  = 700;
+    private int _svgHeight = 300;
 
-    private int _svgHeight = 200;
-
-    private bool   _loading         = true;
-    private int?   _filterServerId  = null;
-    private int?   _filterServiceId = null;
+    // ── State ────────────────────────────────────────────────────────────────
+    private bool  _loading         = true;
+    private int?  _filterServerId  = null;
+    private int?  _filterServiceId = null;
 
     private IEnumerable<ServiceConnection> _allConnections = [];
     private IEnumerable<Server>            _allServers     = [];
     private IEnumerable<AppService>        _allServices    = [];
 
     private List<ServiceConnection> _filteredConnections = [];
-    private List<GraphNode>         _srcNodes            = [];
-    private List<GraphNode>         _dstNodes            = [];
-    private List<GraphEdge>         _edges               = [];
+    private List<SvcItem>           _svcItems            = [];
+    private List<SrvNode>           _srvNodes            = [];
+    private List<SrvEdge>           _srvEdges            = [];
+    private List<SvcEdge>           _svcEdges            = [];
 
     private readonly List<BreadcrumbItem> _breadcrumbs =
     [
@@ -196,6 +248,7 @@ else
         new BreadcrumbItem("Карта", href: null, disabled: true)
     ];
 
+    // ── Lifecycle ────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         _allConnections = await ServiceConnectionRepository.GetAllAsync();
@@ -212,6 +265,7 @@ else
         Recompute();
     }
 
+    // ── Graph computation ────────────────────────────────────────────────────
     private void Recompute()
     {
         _filteredConnections = _allConnections.Where(c =>
@@ -229,94 +283,129 @@ else
             return true;
         }).ToList();
 
-        var srcList  = new List<(string Key, string Label, string SubLabel, bool IsServer)>();
-        var dstList  = new List<(string Key, string Label, string SubLabel, bool IsServer)>();
-        var srcSeen  = new HashSet<string>();
-        var dstSeen  = new HashSet<string>();
+        // ── Collect all unique services (sources + destinations) ──────────
+        var svcSrcIds = new HashSet<int>();
+        var svcDstIds = new HashSet<int>();
+        var svcInfos  = new Dictionary<int, (string Name, string Sub)>();
 
         foreach (var c in _filteredConnections)
         {
-            // Source node
-            string srcKey;
-            string srcLabel, srcSubLabel;
-            bool   srcIsServer;
+            svcDstIds.Add(c.DestinationServiceId);
+            EnsureSvcInfo(svcInfos, c.DestinationServiceId, c.DestinationService);
 
-            if (c.SourceServerId.HasValue)
+            if (c.SourceServiceId.HasValue)
             {
-                srcKey      = $"srv-{c.SourceServerId}";
-                srcLabel    = c.SourceServer?.Name ?? $"Сервер #{c.SourceServerId}";
-                srcSubLabel = c.SourceServer?.IpAddress ?? "";
-                srcIsServer = true;
+                svcSrcIds.Add(c.SourceServiceId.Value);
+                EnsureSvcInfo(svcInfos, c.SourceServiceId.Value, c.SourceService);
             }
-            else if (c.SourceServiceId.HasValue)
-            {
-                srcKey      = $"svc-{c.SourceServiceId}";
-                srcLabel    = c.SourceService?.Name ?? $"Сервис #{c.SourceServiceId}";
-                srcSubLabel = c.SourceService?.Port.HasValue == true
-                                  ? $":{c.SourceService.Port}"
-                                  : "";
-                srcIsServer = false;
-            }
-            else
-            {
-                srcKey      = "anon";
-                srcLabel    = "—";
-                srcSubLabel = "";
-                srcIsServer = false;
-            }
-
-            if (srcSeen.Add(srcKey))
-                srcList.Add((srcKey, srcLabel, srcSubLabel, srcIsServer));
-
-            // Destination node (always a service)
-            string dstKey      = $"dst-svc-{c.DestinationServiceId}";
-            string dstLabel    = c.DestinationService?.Name ?? $"Сервис #{c.DestinationServiceId}";
-            string dstSubLabel = c.DestinationService?.Port.HasValue == true
-                                     ? $":{c.DestinationService.Port}"
-                                     : "";
-
-            if (dstSeen.Add(dstKey))
-                dstList.Add((dstKey, dstLabel, dstSubLabel, false));
         }
 
-        int spacing = NodeHeight + NodeGap;
-
-        _srcNodes = srcList
-            .Select((t, i) => new GraphNode(t.Key, t.Label, t.SubLabel, t.IsServer,
-                                            TopPadding + i * spacing))
+        // Sort: source-only first, then destination-only, by name
+        var orderedSvcIds = svcInfos.Keys
+            .OrderBy(id => svcSrcIds.Contains(id) ? 0 : 1)
+            .ThenBy(id => svcInfos[id].Name)
             .ToList();
 
-        _dstNodes = dstList
-            .Select((t, i) => new GraphNode(t.Key, t.Label, t.SubLabel, t.IsServer,
-                                            TopPadding + i * spacing))
-            .ToList();
+        int svcRowsStartY = TopPad + SvcBoxHeaderH + SvcRowGap;
 
-        _edges = _filteredConnections.Select(c =>
+        _svcItems = orderedSvcIds.Select((id, i) =>
         {
-            string srcKey = c.SourceServerId.HasValue  ? $"srv-{c.SourceServerId}"
-                          : c.SourceServiceId.HasValue ? $"svc-{c.SourceServiceId}"
-                          : "anon";
-            string dstKey = $"dst-svc-{c.DestinationServiceId}";
-
-            var src = _srcNodes.FirstOrDefault(n => n.Id == srcKey);
-            var dst = _dstNodes.FirstOrDefault(n => n.Id == dstKey);
-
-            int srcMidY = (src?.Y ?? TopPadding) + NodeHeight / 2;
-            int dstMidY = (dst?.Y ?? TopPadding) + NodeHeight / 2;
-
-            return new GraphEdge(srcMidY, dstMidY, c.Protocol);
+            bool isSrc = svcSrcIds.Contains(id);
+            bool isDst = svcDstIds.Contains(id);
+            string border = (isSrc && isDst) ? "#7b1fa2"
+                          : isSrc            ? "#2e7d32"
+                                             : "#e65100";
+            return new SvcItem(
+                $"svc-{id}",
+                svcInfos[id].Name,
+                svcInfos[id].Sub,
+                svcRowsStartY + i * (SvcRowH + SvcRowGap),
+                border);
         }).ToList();
 
-        int maxNodes = Math.Max(1, Math.Max(_srcNodes.Count, _dstNodes.Count));
-        _svgHeight = TopPadding + maxNodes * spacing + NodeGap + 10;
+        _svcBoxH = SvcBoxHeaderH + SvcRowGap
+                 + orderedSvcIds.Count * (SvcRowH + SvcRowGap)
+                 + SvcBoxPadBot;
+
+        // ── Collect unique source servers ─────────────────────────────────
+        var srvInfos = new Dictionary<int, (string Name, string Ip)>();
+        foreach (var c in _filteredConnections.Where(c => c.SourceServerId.HasValue))
+        {
+            int id = c.SourceServerId!.Value;
+            if (!srvInfos.ContainsKey(id))
+                srvInfos[id] = (c.SourceServer?.Name ?? $"Сервер #{id}",
+                                c.SourceServer?.IpAddress ?? "");
+        }
+
+        // Center servers vertically relative to services box
+        int svcBoxCenterY = TopPad + _svcBoxH / 2;
+        int srvCount      = srvInfos.Count;
+        int srvTotalH     = srvCount * SrvNodeH + Math.Max(0, srvCount - 1) * SrvNodeGap;
+        int srvStartY     = Math.Max(TopPad, svcBoxCenterY - srvTotalH / 2);
+
+        _srvNodes = srvInfos.Keys
+            .OrderBy(id => srvInfos[id].Name)
+            .Select((id, i) => new SrvNode(
+                $"srv-{id}",
+                srvInfos[id].Name,
+                srvInfos[id].Ip,
+                srvStartY + i * (SrvNodeH + SrvNodeGap)))
+            .ToList();
+
+        // ── Server → Service edges ────────────────────────────────────────
+        _srvEdges = _filteredConnections
+            .Where(c => c.SourceServerId.HasValue)
+            .Select(c =>
+            {
+                var srv = _srvNodes.FirstOrDefault(n => n.Id == $"srv-{c.SourceServerId}");
+                var svc = _svcItems.FirstOrDefault(n => n.Id == $"svc-{c.DestinationServiceId}");
+                int srcY = (srv?.Y ?? srvStartY) + SrvNodeH / 2;
+                int dstY = (svc?.Y ?? svcRowsStartY) + SvcRowH / 2;
+                return new SrvEdge(srcY, dstY, c.Protocol);
+            }).ToList();
+
+        // ── Service → Service edges (loop right) ──────────────────────────
+        _svcEdges = _filteredConnections
+            .Where(c => c.SourceServiceId.HasValue && !c.SourceServerId.HasValue)
+            .Select(c =>
+            {
+                var src = _svcItems.FirstOrDefault(n => n.Id == $"svc-{c.SourceServiceId}");
+                var dst = _svcItems.FirstOrDefault(n => n.Id == $"svc-{c.DestinationServiceId}");
+                int srcY = (src?.Y ?? svcRowsStartY) + SvcRowH / 2;
+                int dstY = (dst?.Y ?? svcRowsStartY) + SvcRowH / 2;
+                return new SvcEdge(srcY, dstY, c.Protocol);
+            }).ToList();
+
+        // ── SVG dimensions ────────────────────────────────────────────────
+        int svcColBottom = TopPad + _svcBoxH;
+        int srvColBottom = srvCount > 0
+            ? srvStartY + srvCount * SrvNodeH + (srvCount - 1) * SrvNodeGap
+            : 0;
+        _svgHeight = Math.Max(svcColBottom, srvColBottom) + 30;
+
+        bool hasLoops = _svcEdges.Any();
+        _svgWidth = SvcBoxX + SvcBoxW + (hasLoops ? LoopXOffset + 50 : 24) + 10;
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    private static void EnsureSvcInfo(Dictionary<int, (string Name, string Sub)> dict,
+                                      int id, AppService? svc)
+    {
+        if (!dict.ContainsKey(id))
+            dict[id] = (svc?.Name ?? $"Сервис #{id}",
+                        svc?.Port.HasValue == true ? $":{svc.Port}" : "");
     }
 
     private static string Truncate(string text, int maxLen)
         => text.Length <= maxLen ? text : text[..maxLen] + "…";
 
-    private static MarkupString SvgText(int x, int y, string anchor, string fill, int fontSize, string fontWeight, string content)
+    private static MarkupString SvgText(int x, int y, string anchor, string fill,
+                                        int fontSize, string fontWeight, string content)
     {
         var encoded = System.Net.WebUtility.HtmlEncode(content);
-        return (MarkupString)$"<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" fill=\"{fill}\" font-size=\"{fontSize}\" font-weight=\"{fontWeight}\" font-family=\"Roboto, sans-serif\">{encoded}</text>";
+        return (MarkupString)(
+            $"<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" fill=\"{fill}\" " +
+            $"font-size=\"{fontSize}\" font-weight=\"{fontWeight}\" " +
+            $"font-family=\"Roboto, sans-serif\">{encoded}</text>");
     }
 }
