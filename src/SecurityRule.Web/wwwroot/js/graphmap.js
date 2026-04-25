@@ -1,3 +1,7 @@
+if (typeof cytoscapeFcose !== 'undefined') {
+    cytoscape.use(cytoscapeFcose);
+}
+
 window.graphMap = (function () {
     'use strict';
 

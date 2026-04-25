@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 12);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 13);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -517,13 +517,13 @@ namespace SecurityRule.E2E.Tests.Features
         }
         
         [global::NUnit.Framework.TestAttribute()]
-        [global::NUnit.Framework.DescriptionAttribute("Таблица связей показывает источник и назначение")]
-        public async global::System.Threading.Tasks.Task ТаблицаСвязейПоказываетИсточникИНазначение()
+        [global::NUnit.Framework.DescriptionAttribute("Граф карты связей отрисовывает canvas без ошибок JavaScript")]
+        public async global::System.Threading.Tasks.Task ГрафКартыСвязейОтрисовываетCanvasБезОшибокJavaScript()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "9";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Таблица связей показывает источник и назначение", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Граф карты связей отрисовывает canvas без ошибок JavaScript", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
 #line 85
@@ -537,25 +537,77 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 86
-    await testRunner.GivenAsync("в системе существует сервер Name \"Tbl-Src\" IP \"10.5.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+    await testRunner.GivenAsync("в системе существует сервер Name \"GraphSrv1\" IP \"10.30.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 87
-    await testRunner.AndAsync("в системе существует сервис Name \"Tbl-SrcSvc\" UserName \"domain\\tblsrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("в системе существует сервер Name \"GraphSrv2\" IP \"10.30.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 88
-    await testRunner.AndAsync("в системе существует сервис Name \"Tbl-DstSvc\" UserName \"domain\\tbldst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("в системе существует сервис Name \"GraphSvc1\" UserName \"domain\\gsvc1\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
 #line 89
+    await testRunner.AndAsync("в системе существует сервис Name \"GraphSvc2\" UserName \"domain\\gsvc2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 90
+    await testRunner.AndAsync("сервис \"GraphSvc1\" прикреплён к серверу \"GraphSrv1\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 91
+    await testRunner.AndAsync("сервис \"GraphSvc2\" прикреплён к серверу \"GraphSrv2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 92
+    await testRunner.AndAsync("в системе существует связь от сервера \"GraphSrv1\" сервиса \"GraphSvc1\" до сервиса " +
+                        "\"GraphSvc2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 93
+    await testRunner.WhenAsync("я перехожу на страницу карты связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 94
+    await testRunner.ThenAsync("граф карты связей содержит canvas элемент", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Таблица связей показывает источник и назначение")]
+        public async global::System.Threading.Tasks.Task ТаблицаСвязейПоказываетИсточникИНазначение()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "10";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Таблица связей показывает источник и назначение", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 96
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 97
+    await testRunner.GivenAsync("в системе существует сервер Name \"Tbl-Src\" IP \"10.5.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 98
+    await testRunner.AndAsync("в системе существует сервис Name \"Tbl-SrcSvc\" UserName \"domain\\tblsrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 99
+    await testRunner.AndAsync("в системе существует сервис Name \"Tbl-DstSvc\" UserName \"domain\\tbldst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 100
     await testRunner.AndAsync("в системе существует связь без сервера источника от сервиса \"Tbl-SrcSvc\" до серви" +
                         "са \"Tbl-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
-#line 90
+#line 101
     await testRunner.WhenAsync("я перехожу на страницу связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
-#line 91
+#line 102
     await testRunner.ThenAsync("я вижу текст \"Tbl-SrcSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
-#line 92
+#line 103
     await testRunner.AndAsync("я вижу текст \"Tbl-DstSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }

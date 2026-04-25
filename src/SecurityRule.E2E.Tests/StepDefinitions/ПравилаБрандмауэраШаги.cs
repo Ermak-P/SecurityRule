@@ -128,6 +128,13 @@ public sealed class ПравилаБрандмауэраШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/edit/{connection.Id}");
     }
 
+    [Then("граф карты связей содержит canvas элемент")]
+    public async Task ГрафСодержитCanvasЭлемент()
+    {
+        var canvas = _state.Page.Locator("[data-testid='connections-graph'] canvas");
+        await canvas.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 15_000 });
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<int> GetConnectionIdAsync(string srcName, string dstServiceName)
