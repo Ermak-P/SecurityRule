@@ -29,15 +29,27 @@ window.graphMap = (function () {
 
     function getLayout() {
         return {
-            name: 'cose',
+            name: 'fcose',
             animate: false,
-            nodeRepulsion: function () { return 12000; },
-            idealEdgeLength: function () { return 120; },
-            componentSpacing: 100,
-            nodeOverlap: 10,
-            padding: 40,
+            quality: 'proof',
+            randomize: true,
             fit: true,
-            randomize: false
+            padding: 40,
+            nodeDimensionsIncludeLabels: true,
+            uniformNodeDimensions: false,
+            packComponents: true,
+            nodeRepulsion: 8000,
+            idealEdgeLength: 120,
+            edgeElasticity: 0.45,
+            nestingFactor: 0.1,
+            gravity: 0.25,
+            gravityRange: 3.8,
+            gravityCompound: 1.0,
+            gravityRangeCompound: 1.5,
+            numIter: 2500,
+            tile: true,
+            tilingPaddingVertical: 10,
+            tilingPaddingHorizontal: 10
         };
     }
 
