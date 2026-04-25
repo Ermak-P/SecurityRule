@@ -62,12 +62,12 @@ else
                 @* Arrowhead – server source (blue) *@
                 <marker id="arr-srv" markerWidth="8" markerHeight="6"
                         refX="7" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="#1565c0" />
+                    <polygon points="0 0, 8 3, 0 6" fill="@SrvStroke" />
                 </marker>
                 @* Arrowhead – service source (teal) *@
                 <marker id="arr-svc" markerWidth="8" markerHeight="6"
                         refX="7" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="#00695c" />
+                    <polygon points="0 0, 8 3, 0 6" fill="@SvcArrowStroke" />
                 </marker>
             </defs>
 
@@ -76,12 +76,12 @@ else
             {
                 @* Outer body *@
                 <rect x="@LeftColX" y="@cl.Y" width="@ClusterW" height="@cl.Height"
-                      rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5" />
+                      rx="8" fill="@SrvFill" stroke="@SrvStroke" stroke-width="1.5" />
                 @* Header fill (rounded top, flat bottom) *@
                 <rect x="@LeftColX" y="@cl.Y" width="@ClusterW" height="@ClusterHeaderH"
-                      rx="8" fill="#1565c0" />
+                      rx="8" fill="@SrvStroke" />
                 <rect x="@LeftColX" y="@(cl.Y + ClusterHeaderH - 8)" width="@ClusterW" height="8"
-                      fill="#1565c0" />
+                      fill="@SrvStroke" />
                 @* Server icon *@
                 <rect x="@(LeftColX + 10)" y="@(cl.Y + ClusterHeaderH / 2 - 7)" width="13" height="9"
                       rx="1" fill="none" stroke="white" stroke-width="1.2" />
@@ -116,12 +116,12 @@ else
             {
                 @* Outer body *@
                 <rect x="@RightColX" y="@cl.Y" width="@ClusterW" height="@cl.Height"
-                      rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5" />
+                      rx="8" fill="@DstFill" stroke="@DstStroke" stroke-width="1.5" />
                 @* Header fill *@
                 <rect x="@RightColX" y="@cl.Y" width="@ClusterW" height="@ClusterHeaderH"
-                      rx="8" fill="#2e7d32" />
+                      rx="8" fill="@DstStroke" />
                 <rect x="@RightColX" y="@(cl.Y + ClusterHeaderH - 8)" width="@ClusterW" height="8"
-                      fill="#2e7d32" />
+                      fill="@DstStroke" />
                 @* Server icon *@
                 <rect x="@(RightColX + 10)" y="@(cl.Y + ClusterHeaderH / 2 - 7)" width="13" height="9"
                       rx="1" fill="none" stroke="white" stroke-width="1.2" />
@@ -160,7 +160,7 @@ else
                 int y2   = edge.DstY;
                 int cp1x = x1 + (x2 - x1) / 3;
                 int cp2x = x1 + 2 * (x2 - x1) / 3;
-                string stroke = edge.IsFromService ? "#00695c" : "#1565c0";
+                string stroke = edge.IsFromService ? SvcArrowStroke : SrvStroke;
                 string marker = edge.IsFromService ? "url(#arr-svc)" : "url(#arr-srv)";
                 <path d="M @x1 @y1 C @cp1x @y1 @cp2x @y2 @x2 @y2"
                       fill="none" stroke="@stroke" stroke-width="1.5"
@@ -230,6 +230,13 @@ else
     private const int ClusterPadBot  = 10;
     private const int ClusterGapV    = 16;
     private const int TopPad         = 20;
+
+    // ── Color constants ───────────────────────────────────────────────────────
+    private const string SrvStroke      = "#1565c0";  // source server cluster border + arrows
+    private const string SrvFill        = "#e3f2fd";  // source server cluster body fill
+    private const string DstStroke      = "#2e7d32";  // destination server cluster border + arrows
+    private const string DstFill        = "#e8f5e9";  // destination server cluster body fill
+    private const string SvcArrowStroke = "#00695c";  // service-sourced arrow colour
 
     // ── Record types ─────────────────────────────────────────────────────────
     private sealed record ClusterSvcItem(int ServiceId, string Name, int Y);
