@@ -3,6 +3,7 @@
 @inject IServiceConnectionRepository ServiceConnectionRepository
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
+@inject IJSRuntime JS
 
 <PageTitle>Карта связей</PageTitle>
 
@@ -13,26 +14,17 @@
     <MudText Typo="Typo.h4">Карта связей</MudText>
 </MudStack>
 
-@* Filter panel *@
+@* Filter panel – servers only *@
 <MudPaper Class="pa-3 mb-4" Elevation="1">
     <MudGrid Spacing="2">
-        <MudItem xs="12" sm="5">
-            <MudSelect T="int?" Label="Сервер" Clearable="true"
-                       Value="_filterServerId"
-                       ValueChanged="@((int? v) => { _filterServerId = v; Recompute(); })">
+        <MudItem xs="12" sm="10">
+            <MudSelect T="int" Label="Серверы" MultiSelection="true"
+                       SelectedValues="_selectedServerIds"
+                       SelectedValuesChanged="OnServersChanged"
+                       Clearable="true">
                 @foreach (var s in _allServers)
                 {
-                    <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name (@s.IpAddress)</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="5">
-            <MudSelect T="int?" Label="Сервис" Clearable="true"
-                       Value="_filterServiceId"
-                       ValueChanged="@((int? v) => { _filterServiceId = v; Recompute(); })">
-                @foreach (var svc in _allServices)
-                {
-                    <MudSelectItem T="int?" Value="@((int?)svc.Id)">@svc.Name</MudSelectItem>
+                    <MudSelectItem T="int" Value="@s.Id">@s.Name (@s.IpAddress)</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
@@ -47,95 +39,10 @@
 {
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
 }
-else if (!_filteredConnections.Any())
-{
-    <MudPaper Elevation="1" Class="pa-4">
-        <MudAlert Severity="Severity.Info" Class="mb-0">Нет связей для отображения</MudAlert>
-    </MudPaper>
-}
 else
 {
-    <MudPaper Elevation="1" Style="overflow: auto;" data-testid="connections-map-container">
-        <svg width="@_svgWidth" height="@_svgHeight" xmlns="http://www.w3.org/2000/svg"
-             data-testid="connections-graph" style="display: block; background: #fafafa;">
-            <defs>
-                @* Arrowhead – server source (blue) *@
-                <marker id="arr-srv" markerWidth="8" markerHeight="6"
-                        refX="1" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="@SrvStroke" />
-                </marker>
-                @* Arrowhead – service source (teal) *@
-                <marker id="arr-svc" markerWidth="8" markerHeight="6"
-                        refX="1" refY="3" orient="auto">
-                    <polygon points="0 0, 8 3, 0 6" fill="@SvcArrowStroke" />
-                </marker>
-            </defs>
-
-            @* ── Server clusters (single column – each server/service appears exactly once) ── *@
-            @foreach (var cl in _clusters)
-            {
-                @* Outer body *@
-                <rect x="@ColX" y="@cl.Y" width="@ClusterW" height="@cl.Height"
-                      rx="8" fill="@SrvFill" stroke="@SrvStroke" stroke-width="1.5" />
-                @* Header fill (rounded top, flat bottom) *@
-                <rect x="@ColX" y="@cl.Y" width="@ClusterW" height="@ClusterHeaderH"
-                      rx="8" fill="@SrvStroke" />
-                <rect x="@ColX" y="@(cl.Y + ClusterHeaderH - 8)" width="@ClusterW" height="8"
-                      fill="@SrvStroke" />
-                @* Server icon *@
-                <rect x="@(ColX + 10)" y="@(cl.Y + ClusterHeaderH / 2 - 7)" width="13" height="9"
-                      rx="1" fill="none" stroke="white" stroke-width="1.2" />
-                <line x1="@(ColX + 10)" y1="@(cl.Y + ClusterHeaderH / 2 - 2)"
-                      x2="@(ColX + 23)" y2="@(cl.Y + ClusterHeaderH / 2 - 2)"
-                      stroke="white" stroke-width="1" />
-                @* Name + IP *@
-                @if (!string.IsNullOrEmpty(cl.IpAddress))
-                {
-                    @SvgText(ColX + 32, cl.Y + ClusterHeaderH / 2 - 3, "start", "white", 11, "bold", Truncate(cl.Name, 22))
-                    @SvgText(ColX + 32, cl.Y + ClusterHeaderH / 2 + 11, "start", "#bbdefb", 9, "normal", cl.IpAddress)
-                }
-                else
-                {
-                    @SvgText(ColX + 32, cl.Y + ClusterHeaderH / 2 + 4, "start", "white", 11, "bold", Truncate(cl.Name, 22))
-                }
-                @* Service rows – extend to cluster right edge so arrows exit from the service *@
-                @foreach (var svc in cl.Services)
-                {
-                    <rect x="@(ColX + SvcInnerPad)" y="@svc.Y"
-                          width="@(ClusterW - SvcInnerPad)" height="@SvcRowH"
-                          rx="4" fill="white" stroke="#64b5f6" stroke-width="1.2" />
-                    <circle cx="@(ColX + SvcInnerPad + 10)" cy="@(svc.Y + SvcRowH / 2)"
-                            r="4" fill="#1e88e5" />
-                    @SvgText(ColX + SvcInnerPad + 20, svc.Y + SvcRowH / 2 + 4,
-                             "start", "#1a237e", 11, "500", Truncate(svc.Name, 21))
-                }
-            }
-
-            @* ── Arrows (bezier arcs to the right of the cluster column) ── *@
-            @foreach (var edge in _edges)
-            {
-                int x1 = edge.SrcX;
-                int y1 = edge.SrcY;
-                int x2 = edge.DstX;
-                int y2 = edge.DstY;
-                int ax = edge.ArcX;
-                string stroke = edge.IsFromService ? SvcArrowStroke : SrvStroke;
-                string marker = edge.IsFromService ? "url(#arr-svc)" : "url(#arr-srv)";
-                @* Cubic bezier: exits source on the right, arcs through ArcX, enters destination from the right *@
-                <path d="M @x1 @y1 C @ax @y1 @ax @y2 @x2 @y2"
-                      fill="none" stroke="@stroke" stroke-width="1.5"
-                      marker-end="@marker" />
-                @if (!string.IsNullOrEmpty(edge.Label))
-                {
-                    int lx   = ax;
-                    int ly   = (y1 + y2) / 2;
-                    int lblW = edge.Label.Length * 6 + 10;
-                    <rect x="@(lx - lblW / 2)" y="@(ly - 9)" width="@lblW" height="14"
-                          rx="3" fill="white" stroke="@stroke" stroke-width="0.6" opacity="0.95" />
-                    @SvgText(lx, ly + 2, "middle", stroke, 9, "600", edge.Label)
-                }
-            }
-        </svg>
+    <MudPaper Elevation="1" Style="height: 620px;" data-testid="connections-map-container">
+        <div id="cy-container" style="width: 100%; height: 100%;" data-testid="connections-graph"></div>
     </MudPaper>
 
     @* Legend *@
@@ -143,8 +50,12 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
             <MudText Typo="Typo.caption" Color="Color.Secondary">Обозначения:</MudText>
             <div style="display:inline-flex; align-items:center; gap:6px;">
-                <div style="width:18px; height:12px; background:#e3f2fd; border:1.5px solid #1565c0; border-radius:3px;"></div>
+                <div style="width:22px; height:14px; background:#e8f4fc; border:2px solid #1565c0; border-radius:4px;"></div>
                 <MudText Typo="Typo.caption">Сервер</MudText>
+            </div>
+            <div style="display:inline-flex; align-items:center; gap:6px;">
+                <div style="width:22px; height:14px; background:#ffffff; border:1.5px solid #42a5f5; border-radius:4px;"></div>
+                <MudText Typo="Typo.caption">Сервис</MudText>
             </div>
             <div style="display:inline-flex; align-items:center; gap:6px;">
                 <svg width="30" height="12" xmlns="http://www.w3.org/2000/svg">
@@ -161,10 +72,10 @@ else
                 <svg width="30" height="12" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <marker id="leg-svc" markerWidth="6" markerHeight="5" refX="1" refY="2.5" orient="auto">
-                            <polygon points="0 0, 6 2.5, 0 5" fill="#00695c" />
+                            <polygon points="0 0, 6 2.5, 0 5" fill="#00796b" />
                         </marker>
                     </defs>
-                    <line x1="0" y1="6" x2="22" y2="6" stroke="#00695c" stroke-width="1.5" marker-end="url(#leg-svc)" />
+                    <line x1="0" y1="6" x2="22" y2="6" stroke="#00796b" stroke-width="1.5" marker-end="url(#leg-svc)" />
                 </svg>
                 <MudText Typo="Typo.caption">Связь от сервиса</MudText>
             </div>
@@ -173,50 +84,14 @@ else
 }
 
 @code {
-    // ── Layout constants ─────────────────────────────────────────────────────
-    private const int ColX           = 20;   // left edge of the single cluster column
-    private const int ClusterW       = 215;
-    private const int ClusterHeaderH = 40;
-    private const int SvcRowH        = 36;
-    private const int SvcRowGap      = 6;
-    private const int SvcInnerPad    = 10;
-    private const int ClusterPadTop  = 8;
-    private const int ClusterPadBot  = 10;
-    private const int ClusterGapV    = 16;
-    private const int TopPad         = 20;
-    private const int ArcGap         = 14;   // gap between cluster right edge and first arc lane
-    private const int ArcStep        = 22;   // X increment per arc lane to avoid overlap
+    private bool _loading = true;
+    private bool _graphInitialized = false;
 
-    // Connection point X – right edge of cluster (both service rows and server header exit here)
-    private static int ConnX    => ColX + ClusterW;
-    private static int ArcBaseX => ColX + ClusterW + ArcGap;
-
-    // ── Color constants ───────────────────────────────────────────────────────
-    private const string SrvStroke      = "#1565c0";
-    private const string SrvFill        = "#e3f2fd";
-    private const string SvcArrowStroke = "#00695c";
-
-    // ── Record types ─────────────────────────────────────────────────────────
-    private sealed record ClusterSvcItem(int ServiceId, string Name, int Y);
-    private sealed record ClusterNode(int ServerId, string Name, string IpAddress, int Y, int Height, List<ClusterSvcItem> Services);
-    private sealed record MapEdge(bool IsFromService, int SrcX, int SrcY, int DstX, int DstY, string Label, int ArcX);
-
-    // ── Dynamic SVG dimensions ────────────────────────────────────────────────
-    private int _svgWidth  = 400;
-    private int _svgHeight = 300;
-
-    // ── State ─────────────────────────────────────────────────────────────────
-    private bool _loading         = true;
-    private int? _filterServerId  = null;
-    private int? _filterServiceId = null;
+    private IReadOnlyCollection<int> _selectedServerIds = [];
 
     private IEnumerable<ServiceConnection> _allConnections = [];
     private IEnumerable<Server>            _allServers     = [];
     private IEnumerable<AppService>        _allServices    = [];
-
-    private List<ServiceConnection> _filteredConnections = [];
-    private List<ClusterNode>       _clusters            = [];
-    private List<MapEdge>           _edges               = [];
 
     private readonly List<BreadcrumbItem> _breadcrumbs =
     [
@@ -224,163 +99,124 @@ else
         new BreadcrumbItem("Карта", href: null, disabled: true)
     ];
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         _allConnections = await ServiceConnectionRepository.GetAllAsync();
         _allServers     = await ServerRepository.GetAllAsync();
         _allServices    = await AppServiceRepository.GetAllAsync();
         _loading = false;
-        Recompute();
     }
 
-    private void ClearFilters()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _filterServerId  = null;
-        _filterServiceId = null;
-        Recompute();
+        if (!_loading && !_graphInitialized)
+        {
+            _graphInitialized = true;
+            await RenderGraph();
+        }
     }
 
-    // ── Graph computation ─────────────────────────────────────────────────────
-    private void Recompute()
+    private async Task OnServersChanged(IReadOnlyCollection<int> values)
     {
-        _filteredConnections = _allConnections.Where(c =>
+        _selectedServerIds = values;
+        await RenderGraph();
+    }
+
+    private async Task ClearFilters()
+    {
+        _selectedServerIds = [];
+        await RenderGraph();
+    }
+
+    private async Task RenderGraph()
+    {
+        var elements = BuildElements();
+        await JS.InvokeVoidAsync("graphMap.init", "cy-container", elements);
+    }
+
+    // ── Build Cytoscape elements ──────────────────────────────────────────────
+    private object[] BuildElements()
+    {
+        var selectedIds = _selectedServerIds.ToHashSet();
+
+        var visibleServers = selectedIds.Count == 0
+            ? _allServers.ToList()
+            : _allServers.Where(s => selectedIds.Contains(s.Id)).ToList();
+
+        var visibleServerIds = visibleServers.Select(s => s.Id).ToHashSet();
+
+        var elements = new List<object>();
+
+        // Server compound nodes
+        foreach (var srv in visibleServers.OrderBy(s => s.Name))
         {
-            if (_filterServerId.HasValue &&
-                c.SourceServerId != _filterServerId &&
-                c.DestinationServerId != _filterServerId)
-                return false;
+            string label = string.IsNullOrWhiteSpace(srv.IpAddress)
+                ? srv.Name
+                : $"{srv.Name}\n{srv.IpAddress}";
 
-            if (_filterServiceId.HasValue &&
-                c.SourceServiceId != _filterServiceId &&
-                c.DestinationServiceId != _filterServiceId)
-                return false;
-
-            return true;
-        }).ToList();
-
-        if (!_filteredConnections.Any())
-        {
-            _clusters = [];
-            _edges    = [];
-            return;
+            elements.Add(new { data = new { id = $"srv-{srv.Id}", label, type = "server" } });
         }
 
-        // ── Collect all unique (serverId → serviceIds) from both source and destination sides ──
-        var serverServices = new Dictionary<int, HashSet<int>>();
-
-        foreach (var c in _filteredConnections)
+        // Service nodes (children of their servers; each service appears once under its first visible server)
+        var addedServiceIds = new HashSet<int>();
+        foreach (var srv in visibleServers.OrderBy(s => s.Name))
         {
-            if (c.SourceServerId.HasValue)
+            foreach (var svc in srv.Services.OrderBy(s => s.Name))
             {
-                if (!serverServices.ContainsKey(c.SourceServerId.Value))
-                    serverServices[c.SourceServerId.Value] = [];
-                if (c.SourceServiceId.HasValue)
-                    serverServices[c.SourceServerId.Value].Add(c.SourceServiceId.Value);
-            }
-
-            if (c.DestinationServerId.HasValue)
-            {
-                if (!serverServices.ContainsKey(c.DestinationServerId.Value))
-                    serverServices[c.DestinationServerId.Value] = [];
-                serverServices[c.DestinationServerId.Value].Add(c.DestinationServiceId);
+                if (addedServiceIds.Add(svc.Id))
+                {
+                    elements.Add(new
+                    {
+                        data = new
+                        {
+                            id     = $"svc-{svc.Id}",
+                            label  = svc.Name,
+                            parent = $"srv-{srv.Id}",
+                            type   = "service"
+                        }
+                    });
+                }
             }
         }
 
-        // ── Build single cluster list ─────────────────────────────────────────
-        _clusters = BuildClusters(serverServices);
-
-        // ── Build edges ───────────────────────────────────────────────────────
-        var edges    = new List<MapEdge>();
-        int arcIndex = 0;
-
-        foreach (var c in _filteredConnections)
+        // Edges – only between visible servers
+        int edgeIdx = 0;
+        foreach (var conn in _allConnections)
         {
-            if (!c.SourceServerId.HasValue) continue;
+            bool srcInScope = conn.SourceServerId.HasValue && visibleServerIds.Contains(conn.SourceServerId.Value);
+            bool dstInScope = conn.DestinationServerId.HasValue && visibleServerIds.Contains(conn.DestinationServerId.Value);
+            if (!srcInScope || !dstInScope) continue;
 
-            var srcCluster = _clusters.FirstOrDefault(x => x.ServerId == c.SourceServerId.Value);
-            if (srcCluster is null) continue;
+            string srcNodeId = conn.SourceServiceId.HasValue && addedServiceIds.Contains(conn.SourceServiceId.Value)
+                ? $"svc-{conn.SourceServiceId.Value}"
+                : $"srv-{conn.SourceServerId!.Value}";
 
-            bool isFromService = c.SourceServiceId.HasValue;
-            int srcX = ConnX;
-            int srcY;
+            string dstNodeId = addedServiceIds.Contains(conn.DestinationServiceId)
+                ? $"svc-{conn.DestinationServiceId}"
+                : $"srv-{conn.DestinationServerId!.Value}";
 
-            if (isFromService)
-            {
-                var svc = srcCluster.Services.FirstOrDefault(s => s.ServiceId == c.SourceServiceId!.Value);
-                srcY = svc is not null ? svc.Y + SvcRowH / 2 : srcCluster.Y + ClusterHeaderH / 2;
-            }
-            else
-            {
-                srcY = srcCluster.Y + ClusterHeaderH / 2;
-            }
-
-            if (!c.DestinationServerId.HasValue) continue;
-
-            var dstCluster = _clusters.FirstOrDefault(x => x.ServerId == c.DestinationServerId.Value);
-            if (dstCluster is null) continue;
-
-            int dstX = ConnX;
-            var dstSvc = dstCluster.Services.FirstOrDefault(s => s.ServiceId == c.DestinationServiceId);
-            int dstY = dstSvc is not null ? dstSvc.Y + SvcRowH / 2 : dstCluster.Y + ClusterHeaderH / 2;
-
+            bool fromService = conn.SourceServiceId.HasValue;
             string label = BuildEdgeLabel(
-                c.DestinationService?.Port
-                    ?? _allServices.FirstOrDefault(s => s.Id == c.DestinationServiceId)?.Port,
-                c.Protocol);
+                conn.DestinationService?.Port
+                    ?? _allServices.FirstOrDefault(s => s.Id == conn.DestinationServiceId)?.Port,
+                conn.Protocol);
 
-            int arcX = ArcBaseX + arcIndex * ArcStep;
-            edges.Add(new MapEdge(isFromService, srcX, srcY, dstX, dstY, label, arcX));
-            arcIndex++;
+            elements.Add(new
+            {
+                data = new
+                {
+                    id          = $"edge-{edgeIdx++}",
+                    source      = srcNodeId,
+                    target      = dstNodeId,
+                    label,
+                    fromService = fromService ? "1" : "0"
+                }
+            });
         }
 
-        _edges = edges;
-
-        // ── SVG dimensions ────────────────────────────────────────────────────
-        int clusterBottom = _clusters.Any() ? _clusters.Max(c => c.Y + c.Height) : TopPad;
-        int maxArcX       = edges.Any() ? edges.Max(e => e.ArcX) + 30 : ArcBaseX + 30;
-        _svgHeight = clusterBottom + 30;
-        _svgWidth  = Math.Max(maxArcX, ColX + ClusterW + 40);
+        return [.. elements];
     }
 
-    // ── Cluster builder ───────────────────────────────────────────────────────
-    private List<ClusterNode> BuildClusters(Dictionary<int, HashSet<int>> serverServices)
-    {
-        var result = new List<ClusterNode>();
-        int y = TopPad;
-
-        foreach (var (srvId, rawSvcIds) in serverServices
-            .OrderBy(kv => _allServers.FirstOrDefault(s => s.Id == kv.Key)?.Name ?? "Z"))
-        {
-            var srv     = _allServers.FirstOrDefault(s => s.Id == srvId);
-            string name = srv?.Name ?? $"Сервер #{srvId}";
-            string ip   = srv?.IpAddress ?? "";
-
-            var svcIds = rawSvcIds
-                .OrderBy(id => _allServices.FirstOrDefault(s => s.Id == id)?.Name ?? "")
-                .ToList();
-
-            int svcAreaH = svcIds.Count > 0
-                ? ClusterPadTop + svcIds.Count * (SvcRowH + SvcRowGap) - SvcRowGap + ClusterPadBot
-                : ClusterPadBot;
-            int clusterH = ClusterHeaderH + svcAreaH;
-
-            int svcY0    = y + ClusterHeaderH + ClusterPadTop;
-            var svcItems = svcIds
-                .Select((id, i) => new ClusterSvcItem(
-                    id,
-                    _allServices.FirstOrDefault(s => s.Id == id)?.Name ?? $"Сервис #{id}",
-                    svcY0 + i * (SvcRowH + SvcRowGap)))
-                .ToList();
-
-            result.Add(new ClusterNode(srvId, name, ip, y, clusterH, svcItems));
-            y += clusterH + ClusterGapV;
-        }
-
-        return result;
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
     private static string BuildEdgeLabel(int? port, string? protocol)
     {
         bool hasPort  = port.HasValue;
@@ -389,18 +225,5 @@ else
         if (hasPort)             return $"{port}";
         if (hasProto)            return protocol!;
         return "";
-    }
-
-    private static string Truncate(string text, int maxLen)
-        => text.Length <= maxLen ? text : text[..maxLen] + "…";
-
-    private static MarkupString SvgText(int x, int y, string anchor, string fill,
-                                        int fontSize, string fontWeight, string content)
-    {
-        var encoded = System.Net.WebUtility.HtmlEncode(content);
-        return (MarkupString)(
-            $"<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" fill=\"{fill}\" " +
-            $"font-size=\"{fontSize}\" font-weight=\"{fontWeight}\" " +
-            $"font-family=\"Roboto, sans-serif\">{encoded}</text>");
     }
 }
