@@ -65,31 +65,20 @@ public sealed class ОбщиеШаги
         var container = _state.Page.Locator(".mud-input-control")
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
-        await container.First.ScrollIntoViewIfNeededAsync();
 
-        // MudBlazor 9 opens the dropdown via @onmousedown="HandleMouseDown" which checks
-        // args.Button == 0 (left click). Use the physical Mouse API to fire a real, trusted
-        // mousedown event. DispatchEventAsync is synthetic (isTrusted:false) and FocusAsync
-        // does not trigger the mousedown handler.
-        var box = await container.First.BoundingBoxAsync();
-        if (box is not null)
-        {
-            await _state.Page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
-            await _state.Page.Mouse.DownAsync();
-        }
+        // MudBlazor 9 opens the dropdown via @onmousedown="HandleMouseDown" on MudInputControl
+        // (exposed as a typed OnMouseDown EventCallback parameter). ClickAsync fires mousedown
+        // which triggers HandleMouseDown → ToggleMenu → OpenMenu. The subsequent click event
+        // has no handler that closes the menu, so the popover stays open.
+        await container.First.ClickAsync();
 
         // Wait for the popover list to appear.
         // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
-        // The popover content is only added to the DOM when Open=true, so once
-        // the element is visible the dropdown is confirmed open.
         await _state.Page.WaitForTimeoutAsync(500);
 
         var option = _state.Page.Locator(".mud-list-item")
             .Filter(new LocatorFilterOptions { HasText = value });
         await option.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
-
-        // Release the mouse before clicking the option to avoid stale press state
-        await _state.Page.Mouse.UpAsync();
         await option.First.ClickAsync();
         await _state.Page.WaitForTimeoutAsync(200);
     }
@@ -135,20 +124,16 @@ public sealed class ОбщиеШаги
         var container = _state.Page.Locator(".mud-input-control")
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
-        await container.First.ScrollIntoViewIfNeededAsync();
 
-        // MudBlazor 9 opens the dropdown via @onmousedown="HandleMouseDown" which checks
-        // args.Button == 0 (left click). Use the physical Mouse API to fire a real, trusted
-        // mousedown event. DispatchEventAsync is synthetic (isTrusted:false) and does not
-        // reliably trigger Blazor Server event handlers.
-        var box = await container.First.BoundingBoxAsync();
-        if (box is not null)
-        {
-            await _state.Page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
-            await _state.Page.Mouse.DownAsync();
-        }
-
-        await _state.Page.WaitForTimeoutAsync(1000);
+        // Focus the input inside the MudSelect then press Space.
+        // Space key is handled by MudSelect's KeyInterceptorService (JS→.NET callback),
+        // which reliably opens the dropdown even when mousedown event routing is flaky
+        // after SSR prerender→InteractiveServer adoption.
+        var input = container.First.Locator("input");
+        await input.First.FocusAsync();
+        await _state.Page.WaitForTimeoutAsync(200);
+        await _state.Page.Keyboard.PressAsync("Space");
+        await _state.Page.WaitForTimeoutAsync(600);
 
         // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
         var option = _state.Page.Locator(".mud-list-item")
@@ -159,7 +144,6 @@ public sealed class ОбщиеШаги
             .ToBeVisibleAsync(new() { Timeout = 10_000 });
 
         await _state.Page.Keyboard.PressAsync("Escape");
-        await _state.Page.Mouse.UpAsync();
         await _state.Page.WaitForTimeoutAsync(200);
     }
 

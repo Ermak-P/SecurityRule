@@ -91,7 +91,18 @@ public sealed class ПравилаБрандмауэраШаги
     [When("я перехожу на страницу карты связей")]
     public async Task ПерейтиНаСтраницуКартыСвязей()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/map");
+        var url = $"{_state.BaseUrl}/connections/map";
+        await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
+        await _state.Page.WaitForFunctionAsync(
+            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
+            null, new() { Timeout = 15_000, PollingInterval = 200 });
+        // Wait for Cytoscape canvas – graphMap.init() is called from OnAfterRenderAsync
+        // via JS interop, which only runs after Blazor becomes interactive (not in SSR
+        // prerender). This guarantees the MudSelect event handlers are fully wired up
+        // before any dropdown interaction steps run.
+        await _state.Page.WaitForSelectorAsync("#cy-container canvas",
+            new() { Timeout = 15_000 });
+        await _state.Page.WaitForTimeoutAsync(300);
     }
 
     [When("я перехожу на страницу добавления связи")]
