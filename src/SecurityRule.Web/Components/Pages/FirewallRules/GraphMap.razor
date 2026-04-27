@@ -80,7 +80,8 @@ else
                 <div data-testid="server-filter-chips">
                     <MudChipSet T="int" SelectionMode="SelectionMode.MultiSelection"
                                 SelectedValues="_selectedServerIds"
-                                SelectedValuesChanged="OnServersChanged">
+                                SelectedValuesChanged="OnServersChanged"
+                                Class="d-flex flex-column align-start">
                         @foreach (var s in _allServers)
                         {
                             <MudChip T="int" Value="@s.Id" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
@@ -135,7 +136,9 @@ else
         if (_graphInitialized)
         {
             var elements = BuildElements();
-            await JS.InvokeVoidAsync("graphMap.update", elements);
+            // Wrap in object[] so the params overload passes 'elements' as a single JS argument
+            // (rather than spreading each element as a separate argument).
+            await JS.InvokeVoidAsync("graphMap.update", new object[] { elements });
         }
     }
 
