@@ -125,15 +125,9 @@ public sealed class ОбщиеШаги
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
 
-        // Focus the input inside the MudSelect then press Space.
-        // Space key is handled by MudSelect's KeyInterceptorService (JS→.NET callback),
-        // which reliably opens the dropdown even when mousedown event routing is flaky
-        // after SSR prerender→InteractiveServer adoption.
-        var input = container.First.Locator("input");
-        await input.First.FocusAsync();
-        await _state.Page.WaitForTimeoutAsync(200);
-        await _state.Page.Keyboard.PressAsync("Space");
-        await _state.Page.WaitForTimeoutAsync(600);
+        // ClickAsync fires mousedown → HandleMouseDown → ToggleMenu → OpenMenu (MudBlazor 9).
+        await container.First.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(500);
 
         // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
         var option = _state.Page.Locator(".mud-list-item")

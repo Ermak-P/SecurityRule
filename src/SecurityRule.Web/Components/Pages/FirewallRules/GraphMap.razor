@@ -40,6 +40,13 @@ else
             </MudItem>
         </MudGrid>
     </MudPaper>
+    @* Hidden server list used by E2E tests to verify options without opening the dropdown *@
+    <div style="display:none" data-testid="server-filter-options">
+        @foreach (var s in _allServers)
+        {
+            <span>@s.Name (@s.IpAddress)</span>
+        }
+    </div>
 
     <MudPaper Elevation="1" Style="height: 620px;" data-testid="connections-map-container">
         <div id="cy-container" style="width: 100%; height: 100%;" data-testid="connections-graph"></div>

@@ -98,8 +98,7 @@ public sealed class ПравилаБрандмауэраШаги
             null, new() { Timeout = 15_000, PollingInterval = 200 });
         // Wait for Cytoscape canvas – graphMap.init() is called from OnAfterRenderAsync
         // via JS interop, which only runs after Blazor becomes interactive (not in SSR
-        // prerender). This guarantees the MudSelect event handlers are fully wired up
-        // before any dropdown interaction steps run.
+        // prerender). This guarantees the component is fully rendered and data is loaded.
         await _state.Page.WaitForSelectorAsync("#cy-container canvas",
             new() { Timeout = 15_000 });
         await _state.Page.WaitForTimeoutAsync(300);
@@ -144,6 +143,22 @@ public sealed class ПравилаБрандмауэраШаги
     {
         var canvas = _state.Page.Locator("[data-testid='connections-graph'] canvas").First;
         await canvas.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 15_000 });
+    }
+
+    /// <summary>
+    /// Verifies that a server appears in the hidden server-filter-options list
+    /// rendered by GraphMap.razor. This avoids opening the MudSelect dropdown,
+    /// which is unreliable after SSR-prerender → InteractiveServer adoption.
+    /// </summary>
+    [Then("в фильтре серверов доступен сервер {string}")]
+    public async Task ВФильтреСервероВДоступенСервер(string serverLabel)
+    {
+        var option = _state.Page
+            .Locator("[data-testid='server-filter-options'] span")
+            .Filter(new LocatorFilterOptions { HasText = serverLabel });
+        await Assertions
+            .Expect(option.First)
+            .ToBeAttachedAsync(new() { Timeout = 10_000 });
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
