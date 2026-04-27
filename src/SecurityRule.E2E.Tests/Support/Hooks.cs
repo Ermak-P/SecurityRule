@@ -67,8 +67,13 @@ public sealed class Hooks
     [BeforeScenario]
     public async Task BeforeScenarioAsync()
     {
-        var server  = _featureContext.Get<TestWebServer>();
-        var browser = _featureContext.Get<IBrowser>();
+        if (!_featureContext.TryGetValue<TestWebServer>(out var server))
+            throw new InvalidOperationException(
+                "TestWebServer not found in FeatureContext. Did BeforeFeatureAsync fail?");
+
+        if (!_featureContext.TryGetValue<IBrowser>(out var browser))
+            throw new InvalidOperationException(
+                "IBrowser not found in FeatureContext. Did BeforeFeatureAsync fail?");
 
         // Start each scenario with a clean in-memory database
         await server.ResetDatabaseAsync();

@@ -164,118 +164,125 @@ window.graphMap = (function () {
     }
 
     function getStyle() {
-        return [
-            /* ── Server compound node (SBGN compartment-like) ── */
-            {
-                selector: 'node[type="server"]',
-                style: {
-                    'shape': 'round-rectangle',
-                    'background-color': '#e8f4fc',
-                    'background-opacity': 0.65,
-                    'border-color': '#1565c0',
-                    'border-width': 2,
-                    'label': 'data(label)',
-                    'text-valign': 'top',
-                    'text-halign': 'center',
-                    'font-size': '13px',
-                    'font-weight': 'bold',
-                    'font-family': 'Roboto, sans-serif',
-                    'color': '#0d47a1',
-                    'text-wrap': 'wrap',
-                    'text-max-width': '180px',
-                    'text-margin-y': 8,
-                    'padding': '28px',
-                    'min-width': 150,
-                    'min-height': 70
-                }
-            },
-            /* ── Related (dimmed) server – visually lighter to distinguish from selected ── */
-            {
-                selector: 'node[type="server"][dimmed="1"]',
-                style: {
-                    'background-color': '#f5f5f5',
-                    'background-opacity': 0.35,
-                    'border-color': '#b0bec5',
-                    'border-width': 1.5,
-                    'border-style': 'dashed',
-                    'color': '#78909c',
-                    'font-weight': 'normal'
-                }
-            },
-            /* ── Service node (SBGN macromolecule / process-like) ── */
-            {
-                selector: 'node[type="service"]',
-                style: {
-                    'shape': 'round-rectangle',
-                    'background-color': '#ffffff',
-                    'border-color': '#42a5f5',
-                    'border-width': 1.5,
-                    'label': 'data(label)',
-                    'text-valign': 'center',
-                    'text-halign': 'center',
-                    'font-size': '11px',
-                    'font-family': 'Roboto, sans-serif',
-                    'color': '#1a237e',
-                    'text-wrap': 'wrap',
-                    'text-max-width': '115px',
-                    'width': 130,
-                    'height': 36
-                }
-            },
-            /* ── Service node inside a related (dimmed) server ── */
-            {
-                selector: 'node[type="service"][dimmed="1"]',
-                style: {
-                    'background-color': '#fafafa',
-                    'border-color': '#b0bec5',
-                    'color': '#90a4ae'
-                }
-            },
-            /* ── Default edge ── */
-            {
-                selector: 'edge',
-                style: {
-                    'curve-style': 'bezier',
-                    'target-arrow-shape': 'triangle',
-                    'target-arrow-color': '#1565c0',
-                    'line-color': '#1565c0',
-                    'width': 1.5,
-                    'label': 'data(label)',
-                    'font-size': '9px',
-                    'font-family': 'Roboto, sans-serif',
-                    'color': '#37474f',
-                    'text-background-color': '#ffffff',
-                    'text-background-opacity': 0.9,
-                    'text-background-padding': '2px',
-                    'text-background-shape': 'round-rectangle',
-                    'text-rotation': 'autorotate'
-                }
-            },
+        /* Use cytoscape-sbgn-stylesheet as the base when available.
+         * It provides:
+         *   • White text-outline for all nodes (improves label readability)
+         *   • Foundation styles for SBGN glyph classes
+         *   • Hollow-arrow-capable edge defaults
+         * We then override shape/color/size selectors to match the
+         * network-diagram visual language of this application.
+         */
+        const base = typeof cytoscapeSbgnStylesheet !== 'undefined'
+            ? cytoscapeSbgnStylesheet(cytoscape)
+            : cytoscape.stylesheet();
+
+        return base
+            /* ── Server compound node (compartment) ── */
+            .selector('node[type="server"]')
+            .css({
+                'shape': 'round-rectangle',
+                'background-color': '#e8f4fc',
+                'background-opacity': 0.65,
+                'border-color': '#1565c0',
+                'border-width': 2,
+                'border-style': 'solid',
+                'background-image': 'none',
+                'label': 'data(label)',
+                'content': 'data(label)',
+                'text-valign': 'top',
+                'text-halign': 'center',
+                'font-size': '13px',
+                'font-weight': 'bold',
+                'font-family': 'Roboto, sans-serif',
+                'color': '#0d47a1',
+                'text-wrap': 'wrap',
+                'text-max-width': '180px',
+                'text-margin-y': 8,
+                'padding': '28px',
+                'width': 'label',
+                'height': 'label',
+                'min-width': 150,
+                'min-height': 70
+            })
+            /* ── Related (dimmed) server ── */
+            .selector('node[type="server"][dimmed="1"]')
+            .css({
+                'background-color': '#f5f5f5',
+                'background-opacity': 0.35,
+                'border-color': '#b0bec5',
+                'border-width': 1.5,
+                'border-style': 'dashed',
+                'color': '#78909c',
+                'font-weight': 'normal'
+            })
+            /* ── Service node (macromolecule) ── */
+            .selector('node[type="service"]')
+            .css({
+                'shape': 'round-rectangle',
+                'background-color': '#ffffff',
+                'background-opacity': 1,
+                'border-color': '#42a5f5',
+                'border-width': 1.5,
+                'border-style': 'solid',
+                'background-image': 'none',
+                'label': 'data(label)',
+                'content': 'data(label)',
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'font-size': '11px',
+                'font-family': 'Roboto, sans-serif',
+                'color': '#1a237e',
+                'text-wrap': 'wrap',
+                'text-max-width': '115px',
+                'width': 130,
+                'height': 36,
+                'padding': '8px'
+            })
+            /* ── Service inside a dimmed server ── */
+            .selector('node[type="service"][dimmed="1"]')
+            .css({
+                'background-color': '#fafafa',
+                'border-color': '#b0bec5',
+                'color': '#90a4ae'
+            })
+            /* ── Edges ── */
+            .selector('edge')
+            .css({
+                'curve-style': 'bezier',
+                'target-arrow-shape': 'triangle',
+                'target-arrow-fill': 'filled',
+                'target-arrow-color': '#1565c0',
+                'source-arrow-shape': 'none',
+                'line-color': '#1565c0',
+                'width': 1.5,
+                'label': 'data(label)',
+                'font-size': '9px',
+                'font-family': 'Roboto, sans-serif',
+                'color': '#37474f',
+                'text-background-color': '#ffffff',
+                'text-background-opacity': 0.9,
+                'text-background-padding': '2px',
+                'text-background-shape': 'round-rectangle',
+                'text-rotation': 'autorotate'
+            })
             /* ── Edge from service (teal) ── */
-            {
-                selector: 'edge[fromService="1"]',
-                style: {
-                    'line-color': '#00796b',
-                    'target-arrow-color': '#00796b'
-                }
-            },
-            /* ── Hover / selected highlights ── */
-            {
-                selector: 'node:selected',
-                style: {
-                    'border-color': '#f57c00',
-                    'border-width': 3
-                }
-            },
-            {
-                selector: 'edge:selected',
-                style: {
-                    'line-color': '#f57c00',
-                    'target-arrow-color': '#f57c00',
-                    'width': 2.5
-                }
-            }
-        ];
+            .selector('edge[fromService="1"]')
+            .css({
+                'line-color': '#00796b',
+                'target-arrow-color': '#00796b'
+            })
+            /* ── Selection highlights ── */
+            .selector('node:selected')
+            .css({
+                'border-color': '#f57c00',
+                'border-width': 3
+            })
+            .selector('edge:selected')
+            .css({
+                'line-color': '#f57c00',
+                'target-arrow-color': '#f57c00',
+                'width': 2.5
+            });
     }
 
     return { init: init, update: update };

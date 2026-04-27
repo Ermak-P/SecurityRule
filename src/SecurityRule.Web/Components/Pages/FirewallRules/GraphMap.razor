@@ -240,21 +240,11 @@ else
 
         // Primary server compound nodes
         foreach (var srv in primaryServers.OrderBy(s => s.Name))
-        {
-            string label = string.IsNullOrWhiteSpace(srv.IpAddress)
-                ? srv.Name
-                : $"{srv.Name}\n{srv.IpAddress}";
-            elements.Add(new { data = new { id = $"srv-{srv.Id}", label, type = "server", dimmed = "0" } });
-        }
+            elements.Add(CreateServerElement(srv, dimmed: false));
 
         // Related (dimmed) server compound nodes
         foreach (var srv in relatedServers.OrderBy(s => s.Name))
-        {
-            string label = string.IsNullOrWhiteSpace(srv.IpAddress)
-                ? srv.Name
-                : $"{srv.Name}\n{srv.IpAddress}";
-            elements.Add(new { data = new { id = $"srv-{srv.Id}", label, type = "server", dimmed = "1" } });
-        }
+            elements.Add(CreateServerElement(srv, dimmed: true));
 
         // Service nodes (children of their servers)
         var addedServiceIds = new HashSet<int>();
@@ -273,7 +263,11 @@ else
                             label  = svc.Name,
                             parent = $"srv-{srv.Id}",
                             type   = "service",
-                            dimmed = isDimmed ? "1" : "0"
+                            @class = "macromolecule",
+                            dimmed = isDimmed ? "1" : "0",
+                            stateVariables    = Array.Empty<object>(),
+                            unitsOfInformation = Array.Empty<object>(),
+                            clonemarker       = false
                         }
                     });
                 }
@@ -328,5 +322,31 @@ else
         if (hasPort)             return $"{port}";
         if (hasProto)            return protocol!;
         return "";
+    }
+
+    /// <summary>
+    /// Builds a Cytoscape node element for a server (compound / compartment node).
+    /// Includes the SBGN data fields required by cytoscape-sbgn-stylesheet.
+    /// </summary>
+    private static object CreateServerElement(Server srv, bool dimmed)
+    {
+        string label = string.IsNullOrWhiteSpace(srv.IpAddress)
+            ? srv.Name
+            : $"{srv.Name}\n{srv.IpAddress}";
+
+        return new
+        {
+            data = new
+            {
+                id                 = $"srv-{srv.Id}",
+                label,
+                type               = "server",
+                @class             = "compartment",
+                dimmed             = dimmed ? "1" : "0",
+                stateVariables     = Array.Empty<object>(),
+                unitsOfInformation = Array.Empty<object>(),
+                clonemarker        = false
+            }
+        };
     }
 }
