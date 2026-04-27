@@ -1,14 +1,16 @@
-@page "/firewall-rules/edit/{Id:int}"
+@page "/connections/edit/{Id:int}"
 @rendermode InteractiveServer
-@inject IFirewallRuleRepository FirewallRuleRepository
+@inject IServiceConnectionRepository ServiceConnectionRepository
+@inject IServerRepository ServerRepository
+@inject IAppServiceRepository AppServiceRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<PageTitle>Редактировать правило фаервола</PageTitle>
+<PageTitle>Редактировать связь</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Редактировать правило фаервола</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">Редактировать связь</MudText>
 
-@if (_rule == null)
+@if (_connection == null)
 {
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
 }
@@ -16,14 +18,74 @@ else
 {
     <MudCard>
         <MudCardContent>
-            <MudTextField @bind-Value="_rule.SourceIp" Label="Исходящий IP адрес" Required="true" Class="mb-3" />
-            <MudTextField @bind-Value="_rule.DestinationIp" Label="Входящий IP адрес" Required="true" Class="mb-3" />
-            <MudDatePicker @bind-Date="_expiresAt" Label="Дата истечения" Required="true" Class="mb-3" />
-            <MudTextField @bind-Value="_rule.Description" Label="Описание" Class="mb-3" Lines="3" />
+            <MudText Typo="Typo.subtitle1" Class="mb-3" Color="Color.Secondary">Источник</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_srcServerId" Label="Сервер (источник)" Clearable="true"
+                               @bind-Value:after="OnSrcServerChanged">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var s in _allServers)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name (@s.IpAddress)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_srcServiceId" Label="Сервис (источник)" Clearable="true"
+                               Disabled="@(_srcServerId != null && !_srcServices.Any())">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var svc in _srcServices)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)svc.Id)">@svc.Name@(svc.Port.HasValue ? $" (:{svc.Port})" : "")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-3" />
+            <MudText Typo="Typo.subtitle1" Class="mb-3" Color="Color.Secondary">Назначение</MudText>
+            <MudGrid Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_dstServerId" Label="Сервер (назначение)" Clearable="true"
+                               @bind-Value:after="OnDstServerChanged">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var s in _allServers)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name (@s.IpAddress)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int?" @bind-Value="_dstServiceId" Label="Сервис назначения (обязательно)" Required="true"
+                               Disabled="@(_dstServerId != null && !_dstServices.Any())">
+                        <MudSelectItem T="int?" Value="@((int?)null)">— не выбрано —</MudSelectItem>
+                        @foreach (var svc in _dstServices)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)svc.Id)">@svc.Name@(svc.Port.HasValue ? $" (:{svc.Port})" : "")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-3" />
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudSelect @bind-Value="_protocol" Label="Протокол">
+                        <MudSelectItem Value="@("")">— не выбрано —</MudSelectItem>
+                        <MudSelectItem Value="@("TCP")">TCP</MudSelectItem>
+                        <MudSelectItem Value="@("UDP")">UDP</MudSelectItem>
+                        <MudSelectItem Value="@("ICMP")">ICMP</MudSelectItem>
+                        <MudSelectItem Value="@("Any")">Any</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="_description" Label="Описание" Lines="2" />
+                </MudItem>
+            </MudGrid>
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
-            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/firewall-rules"))">Отмена</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/connections"))">Отмена</MudButton>
             <MudSpacer />
             <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
                        OnClick="@Delete">
@@ -35,38 +97,89 @@ else
 
 @code {
     [Parameter] public int Id { get; set; }
-    private FirewallRule? _rule;
-    private DateTime? _expiresAt;
+    private ServiceConnection? _connection;
+    private string _protocol = string.Empty;
+    private string _description = string.Empty;
+    private int? _srcServerId;
+    private int? _srcServiceId;
+    private int? _dstServerId;
+    private int? _dstServiceId;
+    private IEnumerable<Server> _allServers = [];
+    private IEnumerable<AppService> _allServices = [];
+    private IEnumerable<AppService> _srcServices = [];
+    private IEnumerable<AppService> _dstServices = [];
 
     protected override async Task OnInitializedAsync()
     {
-        _rule = await FirewallRuleRepository.GetByIdAsync(Id);
-        if (_rule != null)
-            _expiresAt = _rule.ExpiresAt;
+        _allServers  = await ServerRepository.GetAllAsync();
+        _allServices = await AppServiceRepository.GetAllAsync();
+        _connection  = await ServiceConnectionRepository.GetByIdAsync(Id);
+        if (_connection != null)
+        {
+            _protocol     = _connection.Protocol;
+            _description  = _connection.Description;
+            _srcServerId  = _connection.SourceServerId;
+            _srcServiceId = _connection.SourceServiceId;
+            _dstServerId  = _connection.DestinationServerId;
+            _dstServiceId = _connection.DestinationServiceId;
+            _srcServices  = _srcServerId.HasValue
+                ? _allServers.FirstOrDefault(s => s.Id == _srcServerId)?.Services ?? []
+                : _allServices;
+            _dstServices  = _dstServerId.HasValue
+                ? _allServers.FirstOrDefault(s => s.Id == _dstServerId)?.Services ?? []
+                : _allServices;
+        }
+    }
+
+    private void OnSrcServerChanged()
+    {
+        _srcServiceId = null;
+        _srcServices  = _srcServerId.HasValue
+            ? _allServers.FirstOrDefault(s => s.Id == _srcServerId.Value)?.Services ?? []
+            : _allServices;
+    }
+
+    private void OnDstServerChanged()
+    {
+        _dstServiceId = null;
+        _dstServices  = _dstServerId.HasValue
+            ? _allServers.FirstOrDefault(s => s.Id == _dstServerId.Value)?.Services ?? []
+            : _allServices;
     }
 
     private async Task Save()
     {
-        if (_rule != null)
+        if (_connection == null) return;
+
+        if (_dstServiceId is null)
         {
-            _rule.ExpiresAt = _expiresAt ?? DateTime.Now.AddYears(1);
-            await FirewallRuleRepository.UpdateAsync(_rule);
-            Snackbar.Add("Правило обновлено", Severity.Success);
-            Navigation.NavigateTo("/firewall-rules");
+            Snackbar.Add("Сервис назначения обязателен", Severity.Warning);
+            return;
         }
+
+        _connection.SourceServerId       = _srcServerId;
+        _connection.SourceServiceId      = _srcServiceId;
+        _connection.DestinationServerId  = _dstServerId;
+        _connection.DestinationServiceId = _dstServiceId.Value;
+        _connection.Protocol    = _protocol;
+        _connection.Description = _description;
+
+        await ServiceConnectionRepository.UpdateAsync(_connection);
+        Snackbar.Add("Связь обновлена", Severity.Success);
+        Navigation.NavigateTo("/connections");
     }
 
     private async Task Delete()
     {
         try
         {
-            await FirewallRuleRepository.DeleteAsync(Id);
-            Snackbar.Add("Правило удалено", Severity.Success);
-            Navigation.NavigateTo("/firewall-rules");
+            await ServiceConnectionRepository.DeleteAsync(Id);
+            Snackbar.Add("Связь удалена", Severity.Success);
+            Navigation.NavigateTo("/connections");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Ошибка при удалении правила: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Ошибка при удалении связи: {ex.Message}", Severity.Error);
         }
     }
 }

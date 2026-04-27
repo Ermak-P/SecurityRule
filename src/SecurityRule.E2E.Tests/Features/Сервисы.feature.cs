@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сервисы.feature.ndjson", 8);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сервисы.feature.ndjson", 10);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -323,6 +323,85 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 41
     await testRunner.ThenAsync("я вижу текст \"svc_user\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Сертификаты отображаются в таблице на странице деталей сервиса")]
+        public async global::System.Threading.Tasks.Task СертификатыОтображаютсяВТаблицеНаСтраницеДеталейСервиса()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "6";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Сертификаты отображаются в таблице на странице деталей сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 43
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 44
+    await testRunner.GivenAsync("в системе существует сервис \"CertSvc\" с сертификатом \"CertForSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 45
+    await testRunner.WhenAsync("я открываю страницу деталей сервиса \"CertSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 46
+    await testRunner.ThenAsync("я вижу текст \"CertForSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Связи отображаются на странице деталей сервиса")]
+        public async global::System.Threading.Tasks.Task СвязиОтображаютсяНаСтраницеДеталейСервиса()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "7";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Связи отображаются на странице деталей сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 48
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 49
+    await testRunner.GivenAsync("в системе существует сервис Name \"BackendApi\" UserName \"domain\\backend\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 50
+    await testRunner.AndAsync("в системе существует сервер Name \"BA-SrcSrv\" IP \"10.20.0.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 51
+    await testRunner.AndAsync("в системе существует сервер Name \"BA-DstSrv\" IP \"10.20.0.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 52
+    await testRunner.AndAsync("в системе существует сервис Name \"BA-DstSvc\" UserName \"domain\\badst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 53
+    await testRunner.AndAsync("в системе существует связь от сервера \"BA-SrcSrv\" сервиса \"BackendApi\" до сервиса" +
+                        " \"BA-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 54
+    await testRunner.WhenAsync("я открываю страницу деталей сервиса \"BackendApi\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 55
+    await testRunner.ThenAsync("я вижу текст \"BA-SrcSrv\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

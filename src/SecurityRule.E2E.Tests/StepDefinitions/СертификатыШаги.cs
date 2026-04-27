@@ -25,6 +25,9 @@ public sealed class СертификатыШаги
         var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.ICertificateRepository>();
         await repo.AddAsync(new Certificate
         {
+            SerialNumber = "SN-TEST",
+            Thumbprint = "TESTTHUMBPRINT",
+            RequestNumber = "REQ-TEST",
             Description = description,
             IssuedAt = DateTime.Now.AddYears(-1),
             ExpiresAt = DateTime.Now.AddYears(2)
@@ -43,6 +46,13 @@ public sealed class СертификатыШаги
     public async Task ПерейтиНаСтраницуДобавленияСертификата()
     {
         await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/create");
+    }
+
+    [When("я открываю страницу деталей сертификата {string}")]
+    public async Task ОткрытьСтраницуДеталейСертификата(string description)
+    {
+        var id = await GetCertificateIdAsync(description);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/{id}");
     }
 
     [When("я открываю страницу редактирования сертификата {string}")]

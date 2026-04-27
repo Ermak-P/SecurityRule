@@ -1,0 +1,108 @@
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<MudTable T="ServiceConnection" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@ToggleRow">
+    <HeaderContent>
+        <MudTh Style="width:38%">Источник</MudTh>
+        <MudTh Style="width:5%; text-align:center;"></MudTh>
+        <MudTh Style="width:38%">Назначение</MudTh>
+        <MudTh>Протокол</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        @{
+            var srcServer  = context.SourceServer;
+            var srcService = context.SourceService;
+            var dstServer  = context.DestinationServer;
+            var dstService = context.DestinationService;
+        }
+        <MudTd DataLabel="Источник" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)"
+                         Size="Size.Small" Color="Color.Default" />
+                @if (srcServer != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Dns">@srcServer.Name</MudChip>
+                }
+                @if (srcService != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.MiscellaneousServices">@srcService.Name</MudChip>
+                }
+                @if (srcServer != null || srcService?.Port != null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(srcServer?.IpAddress ?? string.Empty)@(srcService?.Port != null ? $":{srcService.Port}" : string.Empty)
+                    </MudText>
+                }
+            </MudStack>
+        </MudTd>
+        <MudTd Style="text-align:center; vertical-align:middle;">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Default" Size="Size.Small" />
+        </MudTd>
+        <MudTd DataLabel="Назначение">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                @if (dstServer != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Dns">@dstServer.Name</MudChip>
+                }
+                @if (dstService != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.MiscellaneousServices">@dstService.Name</MudChip>
+                }
+                @if (dstServer != null || dstService?.Port != null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(dstServer?.IpAddress ?? string.Empty)@(dstService?.Port != null ? $":{dstService.Port}" : string.Empty)
+                    </MudText>
+                }
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="Протокол">@(string.IsNullOrWhiteSpace(context.Protocol) ? "—" : context.Protocol)</MudTd>
+        <MudTd Style="text-align:right">
+            <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                               Title="Редактировать"
+                               OnClick="@(() => Navigation.NavigateTo($"/connections/edit/{context.Id}"))" />
+            </span>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="connection">
+        @if (_expandedRows.Contains(connection.Id))
+        {
+            <MudTr>
+                <td colspan="5" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-primary); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        <Details Connection="connection" Embedded="true" />
+                    </div>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<ServiceConnection> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+
+    private readonly HashSet<int> _expandedRows = [];
+
+    private async Task ToggleRow(TableRowClickEventArgs<ServiceConnection> args)
+    {
+        if (args.Item is null) return;
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            await JS.InvokeVoidAsync("open", $"/connections/{args.Item.Id}", "_blank");
+            return;
+        }
+        var id = args.Item.Id;
+        if (!_expandedRows.Remove(id))
+            _expandedRows.Add(id);
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e, int id)
+    {
+        if (e.Button == 1)
+            await JS.InvokeVoidAsync("open", $"/connections/{id}", "_blank");
+    }
+}

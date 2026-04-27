@@ -13,6 +13,8 @@
 <MudCard>
     <MudCardContent>
         <MudTextField @bind-Value="_service.Name" Label="Название" Required="true" Class="mb-3" />
+        <MudTextField @bind-Value="_portText" Label="Порт" Class="mb-3"
+                      InputType="InputType.Number" />
         <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServerIds"
                    Label="Серверы" Class="mb-3">
             @foreach (var server in _allServers)
@@ -40,6 +42,7 @@
     private IEnumerable<User> _allUsers = [];
     private IReadOnlyCollection<int> _selectedServerIds = [];
     private int? _selectedUserId;
+    private string _portText = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,6 +56,7 @@
         var selectedUser = _allUsers.FirstOrDefault(u => u.Id == _selectedUserId);
         _service.UserId = selectedUser?.Id;
         _service.UserName = selectedUser?.Name ?? string.Empty;
+        _service.Port = int.TryParse(_portText, out var p) ? p : null;
         await AppServiceRepository.AddAsync(_service);
         Snackbar.Add("Сервис добавлен", Severity.Success);
         Navigation.NavigateTo("/services");

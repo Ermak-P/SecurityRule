@@ -65,6 +65,9 @@ namespace SecurityRule.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
+
                     b.Property<int?>("UserId")
                         .HasColumnType("int");
 
@@ -99,12 +102,27 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("RequestNumber")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SerialNumber")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Thumbprint")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Certificates");
                 });
 
-            modelBuilder.Entity("SecurityRule.Domain.Models.FirewallRule", b =>
+            modelBuilder.Entity("SecurityRule.Domain.Models.ServiceConnection", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -112,27 +130,40 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("DestinationServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DestinationServerId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
+                        .HasDefaultValue("")
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("DestinationIp")
+                    b.Property<string>("Protocol")
                         .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<int?>("SourceServiceId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("SourceIp")
-                        .IsRequired()
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
+                    b.Property<int?>("SourceServerId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.ToTable("FirewallRules");
+                    b.HasIndex("DestinationServiceId");
+
+                    b.HasIndex("DestinationServerId");
+
+                    b.HasIndex("SourceServiceId");
+
+                    b.HasIndex("SourceServerId");
+
+                    b.ToTable("ServiceConnections");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.Group", b =>
@@ -228,6 +259,9 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CertificateId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -240,7 +274,38 @@ namespace SecurityRule.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CertificateId");
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.ServiceConnection", b =>
+                {
+                    b.HasOne("SecurityRule.Domain.Models.Server", "SourceServer")
+                        .WithMany("SourceConnections")
+                        .HasForeignKey("SourceServerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SecurityRule.Domain.Models.AppService", "SourceService")
+                        .WithMany("SourceConnections")
+                        .HasForeignKey("SourceServiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SecurityRule.Domain.Models.Server", "DestinationServer")
+                        .WithMany("DestinationConnections")
+                        .HasForeignKey("DestinationServerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SecurityRule.Domain.Models.AppService", "DestinationService")
+                        .WithMany("DestinationConnections")
+                        .HasForeignKey("DestinationServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SourceServer");
+                    b.Navigation("SourceService");
+                    b.Navigation("DestinationServer");
+                    b.Navigation("DestinationService");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
@@ -285,7 +350,30 @@ namespace SecurityRule.Infrastructure.Migrations
 
             modelBuilder.Entity("SecurityRule.Domain.Models.User", b =>
                 {
+                    b.HasOne("SecurityRule.Domain.Models.Certificate", "Certificate")
+                        .WithMany("Users")
+                        .HasForeignKey("CertificateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Certificate");
                     b.Navigation("Services");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.Server", b =>
+                {
+                    b.Navigation("SourceConnections");
+                    b.Navigation("DestinationConnections");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
+                {
+                    b.Navigation("SourceConnections");
+                    b.Navigation("DestinationConnections");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.Certificate", b =>
+                {
+                    b.Navigation("Users");
                 });
 #pragma warning restore 612, 618
         }

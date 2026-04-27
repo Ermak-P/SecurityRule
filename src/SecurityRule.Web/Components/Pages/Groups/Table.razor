@@ -1,16 +1,67 @@
 @using SecurityRule.Domain.Models
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<MudDataGrid T="Group" Items="@Items" Hover="true" Elevation="@Elevation"
-             RowClick="@(e => Navigation.NavigateTo($"/groups/{e.Item.Id}"))"
-             Style="cursor:pointer">
-    <Columns>
-        <PropertyColumn Property="x => x.Name" Title="Название" />
-        <PropertyColumn Property="x => x.Description" Title="Описание" />
-    </Columns>
-</MudDataGrid>
+<MudTable T="Group" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@ToggleRow">
+    <HeaderContent>
+        <MudTh>Название</MudTh>
+        <MudTh>Описание</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Название" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Color="Color.Secondary" />
+                @context.Name
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="Описание">@context.Description</MudTd>
+        <MudTd Style="text-align:right">
+            <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                               Title="Редактировать"
+                               OnClick="@(() => Navigation.NavigateTo($"/groups/edit/{context.Id}"))" />
+            </span>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="group">
+        @if (_expandedRows.Contains(group.Id))
+        {
+            <MudTr>
+                <td colspan="3" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-secondary); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        <Details Group="group" Embedded="true" />
+                    </div>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
 
 @code {
     [Parameter] public IEnumerable<Group> Items { get; set; } = [];
     [Parameter] public int Elevation { get; set; } = 1;
+
+    private readonly HashSet<int> _expandedRows = [];
+
+    private async Task ToggleRow(TableRowClickEventArgs<Group> args)
+    {
+        if (args.Item is null) return;
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            await JS.InvokeVoidAsync("open", $"/groups/{args.Item.Id}", "_blank");
+            return;
+        }
+        var id = args.Item.Id;
+        if (!_expandedRows.Remove(id))
+            _expandedRows.Add(id);
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e, int id)
+    {
+        if (e.Button == 1)
+            await JS.InvokeVoidAsync("open", $"/groups/{id}", "_blank");
+    }
 }

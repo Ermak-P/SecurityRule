@@ -28,6 +28,18 @@ public class AppServiceRepository : IAppServiceRepository
             .Include(s => s.Servers)
                 .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
+            .Include(s => s.SourceConnections)
+                .ThenInclude(r => r.SourceServer)
+            .Include(s => s.SourceConnections)
+                .ThenInclude(r => r.DestinationServer)
+            .Include(s => s.SourceConnections)
+                .ThenInclude(r => r.DestinationService)
+            .Include(s => s.DestinationConnections)
+                .ThenInclude(r => r.SourceServer)
+            .Include(s => s.DestinationConnections)
+                .ThenInclude(r => r.SourceService)
+            .Include(s => s.DestinationConnections)
+                .ThenInclude(r => r.DestinationServer)
             .FirstOrDefaultAsync(s => s.Id == id);
 
     public async Task AddAsync(AppService service)
@@ -45,6 +57,7 @@ public class AppServiceRepository : IAppServiceRepository
 
         existing.Name = service.Name;
         existing.UserName = service.UserName;
+        existing.Port = service.Port;
 
         var serverIds = service.Servers.Select(s => s.Id).ToList();
         var trackedServers = await _context.Servers

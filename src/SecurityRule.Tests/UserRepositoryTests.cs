@@ -188,4 +188,86 @@ public class UserRepositoryTests
         groups.Should().HaveCount(1);
         groups.First().Name.Should().Be("Admins");
     }
+
+    [Test]
+    public async Task UpdateAsync_ShouldUpdateCertificateId()
+    {
+        // Arrange
+        var cert = new Certificate
+        {
+            SerialNumber = "SN-001",
+            Thumbprint = "THUMB",
+            RequestNumber = "REQ-1",
+            IssuedAt = DateTime.Now.AddYears(-1),
+            ExpiresAt = DateTime.Now.AddYears(1),
+            Description = "Test cert"
+        };
+        _context.Certificates.Add(cert);
+        var user = new User { Name = "domain\\alice", Description = "Alice" };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Act
+        user.CertificateId = cert.Id;
+        await _repository.UpdateAsync(user);
+
+        // Assert
+        var result = await _context.Users.FindAsync(user.Id);
+        result!.CertificateId.Should().Be(cert.Id);
+    }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeCertificate()
+    {
+        // Arrange
+        var cert = new Certificate
+        {
+            SerialNumber = "SN-001",
+            Thumbprint = "THUMB",
+            RequestNumber = "REQ-1",
+            IssuedAt = DateTime.Now.AddYears(-1),
+            ExpiresAt = DateTime.Now.AddYears(1),
+            Description = "SSL cert"
+        };
+        _context.Certificates.Add(cert);
+        var user = new User { Name = "domain\\alice", Description = "Alice", CertificateId = cert.Id };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(user.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Certificate.Should().NotBeNull();
+        result.Certificate!.Description.Should().Be("SSL cert");
+        result.Certificate.SerialNumber.Should().Be("SN-001");
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldClearCertificateId_WhenSetToNull()
+    {
+        // Arrange
+        var cert = new Certificate
+        {
+            SerialNumber = "SN-001",
+            Thumbprint = "THUMB",
+            RequestNumber = "REQ-1",
+            IssuedAt = DateTime.Now.AddYears(-1),
+            ExpiresAt = DateTime.Now.AddYears(1),
+            Description = "Test cert"
+        };
+        _context.Certificates.Add(cert);
+        var user = new User { Name = "domain\\alice", CertificateId = cert.Id };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        // Act
+        user.CertificateId = null;
+        await _repository.UpdateAsync(user);
+
+        // Assert
+        var result = await _context.Users.FindAsync(user.Id);
+        result!.CertificateId.Should().BeNull();
+    }
 }

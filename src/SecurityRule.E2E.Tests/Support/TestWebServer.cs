@@ -59,7 +59,7 @@ public sealed class TestWebServer : IAsyncDisposable
         builder.Services.AddScoped<IServerRepository, ServerRepository>();
         builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
         builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
-        builder.Services.AddScoped<IFirewallRuleRepository, FirewallRuleRepository>();
+        builder.Services.AddScoped<IServiceConnectionRepository, ServiceConnectionRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IOperatingSystemRepository, SecurityRule.Infrastructure.Repositories.OperatingSystemRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IUserRepository, SecurityRule.Infrastructure.Repositories.UserRepository>();
         builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IGroupRepository, SecurityRule.Infrastructure.Repositories.GroupRepository>();
@@ -107,7 +107,7 @@ public sealed class TestWebServer : IAsyncDisposable
 
         db.Servers.RemoveRange(db.Servers);
         db.Certificates.RemoveRange(db.Certificates);
-        db.FirewallRules.RemoveRange(db.FirewallRules);
+        db.ServiceConnections.RemoveRange(db.ServiceConnections);
         db.Groups.RemoveRange(db.Groups);
         db.Users.RemoveRange(db.Users);
         await db.SaveChangesAsync();

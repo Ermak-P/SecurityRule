@@ -33,7 +33,7 @@ else
         <MudCardContent>
             <MudGrid>
                 <MudItem xs="12" sm="6">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">AD учётная запись</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Учётная запись</MudText>
                     @if (!string.IsNullOrWhiteSpace(_displayService.UserName))
                     {
                         <MudButton Variant="Variant.Text" Size="Size.Small"
@@ -50,6 +50,10 @@ else
                     }
                 </MudItem>
                 <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Порт</MudText>
+                    <MudText Typo="Typo.body1">@(_displayService.Port.HasValue ? _displayService.Port.Value.ToString() : "—")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Серверов</MudText>
                     <MudText Typo="Typo.body1">@_displayService.Servers.Count</MudText>
                 </MudItem>
@@ -58,25 +62,25 @@ else
                     <MudText Typo="Typo.body1">@_displayService.Certificates.Count</MudText>
                 </MudItem>
             </MudGrid>
-            @if (_displayService.Certificates.Any())
-            {
-                <MudDivider Class="my-3" />
-                <MudText Typo="Typo.body2" Class="mb-2"><strong>Сертификаты:</strong></MudText>
-                @foreach (var cert in _displayService.Certificates)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">
-                        @cert.Description (@cert.ExpiresAt.ToString("dd.MM.yyyy"))
-                    </MudChip>
-                }
-            }
         </MudCardContent>
     </MudCard>
+
+    @if (_displayService.Certificates.Any())
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.CardMembership" Size="Size.Small" Class="mr-1" />
+            Сертификаты
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden mb-4">
+            <SecurityRule.Web.Components.Pages.Certificates.Table Items="@_displayService.Certificates" Elevation="0" />
+        </MudPaper>
+    }
 
     @if (_userExpanded && !string.IsNullOrWhiteSpace(_displayService.UserName))
     {
         <MudText Typo="Typo.h6" Class="mb-2">
             <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Class="mr-1" />
-            AD учётная запись
+            Учётная запись
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4" style="border-left: 3px solid var(--mud-palette-tertiary);">
             @if (_displayService.UserId.HasValue)
@@ -94,9 +98,22 @@ else
         <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Class="mr-1" />
         Серверы
     </MudText>
-    <MudPaper Elevation="2" Class="overflow-hidden">
+    <MudPaper Elevation="2" Class="overflow-hidden mb-4">
         <SecurityRule.Web.Components.Pages.Servers.Table Items="@_displayService.Servers" Elevation="0" />
     </MudPaper>
+
+    @if (_displayService.SourceConnections.Any() || _displayService.DestinationConnections.Any())
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.CompareArrows" Size="Size.Small" Class="mr-1" />
+            Связи
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden">
+            <SecurityRule.Web.Components.Pages.FirewallRules.Table
+                Items="@(_displayService.SourceConnections.Concat(_displayService.DestinationConnections))"
+                Elevation="0" />
+        </MudPaper>
+    }
 }
 
 @code {

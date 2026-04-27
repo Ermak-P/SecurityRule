@@ -1,17 +1,19 @@
-@page "/firewall-rules"
+@page "/connections"
 @rendermode InteractiveServer
-@inject IFirewallRuleRepository FirewallRuleRepository
+@inject IServiceConnectionRepository ServiceConnectionRepository
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
 
-<PageTitle>Правила фаервола</PageTitle>
+<PageTitle>Связи</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Правила фаервола</MudText>
-
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-           OnClick="@(() => Navigation.NavigateTo("/firewall-rules/create"))" Class="mb-4">
-    Добавить правило
-</MudButton>
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+    <MudText Typo="Typo.h4" GutterBottom="true">Связи</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                   Title="Добавить"
+                   OnClick="@(() => Navigation.NavigateTo($"/connections/create"))" />
+    <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" Color="Color.Primary"
+                   Title="Карта связей"
+                   OnClick="@(() => Navigation.NavigateTo($"/connections/map"))" />
+</MudStack>
 
 @if (_loading)
 {
@@ -19,46 +21,11 @@
 }
 else
 {
-    <MudTable Items="@_rules" Hover="true" Striped="true" Dense="true">
-        <HeaderContent>
-            <MudTh>Исходящий IP</MudTh>
-            <MudTh>Входящий IP</MudTh>
-            <MudTh>Истекает</MudTh>
-            <MudTh>Статус</MudTh>
-            <MudTh>Описание</MudTh>
-            <MudTh>Действия</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Исходящий IP">@context.SourceIp</MudTd>
-            <MudTd DataLabel="Входящий IP">@context.DestinationIp</MudTd>
-            <MudTd DataLabel="Истекает">@context.ExpiresAt.ToString("dd.MM.yyyy")</MudTd>
-            <MudTd DataLabel="Статус">
-                @if (context.ExpiresAt < DateTime.Now)
-                {
-                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Истёк</MudChip>
-                }
-                else if (context.ExpiresAt < DateTime.Now.AddDays(30))
-                {
-                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Скоро истекает</MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Активен</MudChip>
-                }
-            </MudTd>
-            <MudTd DataLabel="Описание">@context.Description</MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
-                               OnClick="@(() => Navigation.NavigateTo($"/firewall-rules/edit/{context.Id}"))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                               OnClick="@(() => DeleteRule(context.Id))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    <Table Items="_connections" />
 }
 
 @code {
-    private IEnumerable<FirewallRule> _rules = [];
+    private IEnumerable<ServiceConnection> _connections = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -69,14 +36,7 @@ else
     private async Task LoadData()
     {
         _loading = true;
-        _rules = await FirewallRuleRepository.GetAllAsync();
+        _connections = await ServiceConnectionRepository.GetAllAsync();
         _loading = false;
-    }
-
-    private async Task DeleteRule(int id)
-    {
-        await FirewallRuleRepository.DeleteAsync(id);
-        Snackbar.Add("Правило удалено", Severity.Success);
-        await LoadData();
     }
 }

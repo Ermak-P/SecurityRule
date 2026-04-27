@@ -180,4 +180,129 @@ public class ServerRepositoryTests
         updated!.Services.Should().HaveCount(1);
         updated.Services.Single().Name.Should().Be("Svc2");
     }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeSourceConnections()
+    {
+        // Arrange
+        var server = new Server { Name = "FW-Server", IpAddress = "10.0.9.1", OperatingSystem = "Linux" };
+        var dstSrv = new Server { Name = "Dst-Server", IpAddress = "10.0.9.2", OperatingSystem = "Linux" };
+        var srcSvc = new AppService { Name = "Src-Service", UserName = "domain\\src" };
+        var dstSvc = new AppService { Name = "Dst-Service", UserName = "domain\\dst" };
+        _context.Servers.AddRange(server, dstSrv);
+        _context.AppServices.AddRange(srcSvc, dstSvc);
+        await _context.SaveChangesAsync();
+
+        var connection = new ServiceConnection
+        {
+            SourceServerId       = server.Id,
+            SourceServiceId      = srcSvc.Id,
+            DestinationServerId  = dstSrv.Id,
+            DestinationServiceId = dstSvc.Id,
+            Protocol = "TCP"
+        };
+        _context.ServiceConnections.Add(connection);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(server.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.SourceConnections.Should().HaveCount(1);
+        result.SourceConnections.First().Protocol.Should().Be("TCP");
+    }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeDestinationConnections()
+    {
+        // Arrange
+        var srcSrv = new Server { Name = "Src-Server", IpAddress = "10.0.8.1", OperatingSystem = "Linux" };
+        var server = new Server { Name = "Dst-FW-Server", IpAddress = "10.0.8.2", OperatingSystem = "Linux" };
+        var srcSvc = new AppService { Name = "Src-Service", UserName = "domain\\src" };
+        var dstSvc = new AppService { Name = "Dst-Service", UserName = "domain\\dst" };
+        _context.Servers.AddRange(srcSrv, server);
+        _context.AppServices.AddRange(srcSvc, dstSvc);
+        await _context.SaveChangesAsync();
+
+        var connection = new ServiceConnection
+        {
+            SourceServerId       = srcSrv.Id,
+            SourceServiceId      = srcSvc.Id,
+            DestinationServerId  = server.Id,
+            DestinationServiceId = dstSvc.Id,
+            Protocol = "UDP"
+        };
+        _context.ServiceConnections.Add(connection);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(server.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.DestinationConnections.Should().HaveCount(1);
+        result.DestinationConnections.First().Protocol.Should().Be("UDP");
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldIncludeServicesLinkedToEachServer()
+    {
+        // Arrange — two servers, each with one service linked
+        var svc1 = new AppService { Name = "Svc-For-Srv1", UserName = "domain\\svc1" };
+        var svc2 = new AppService { Name = "Svc-For-Srv2", UserName = "domain\\svc2" };
+        _context.AppServices.AddRange(svc1, svc2);
+        var srv1 = new Server { Name = "Srv1", IpAddress = "10.0.1.1", OperatingSystem = "Linux", Services = [svc1] };
+        var srv2 = new Server { Name = "Srv2", IpAddress = "10.0.1.2", OperatingSystem = "Linux", Services = [svc2] };
+        _context.Servers.AddRange(srv1, srv2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var servers = (await _repository.GetAllAsync()).ToList();
+
+        // Assert — each server exposes only its own services
+        var result1 = servers.First(s => s.Name == "Srv1");
+        var result2 = servers.First(s => s.Name == "Srv2");
+        result1.Services.Should().HaveCount(1);
+        result1.Services.Single().Name.Should().Be("Svc-For-Srv1");
+        result2.Services.Should().HaveCount(1);
+        result2.Services.Single().Name.Should().Be("Svc-For-Srv2");
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldReturnEmptyServicesCollection_WhenNoServicesLinked()
+    {
+        // Arrange — server with no linked services
+        var svc = new AppService { Name = "UnlinkedSvc", UserName = "domain\\unlinked" };
+        _context.AppServices.Add(svc);
+        var server = new Server { Name = "Srv-NoSvc", IpAddress = "10.0.2.1", OperatingSystem = "Linux" };
+        _context.Servers.Add(server);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var servers = (await _repository.GetAllAsync()).ToList();
+
+        // Assert — server.Services is empty because the service was not linked to it
+        var result = servers.Single(s => s.Name == "Srv-NoSvc");
+        result.Services.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldNotExposeOtherServersServices()
+    {
+        // Arrange — one service linked only to server A, not to server B
+        var svc = new AppService { Name = "SharedSvc", UserName = "domain\\shared" };
+        _context.AppServices.Add(svc);
+        var srvA = new Server { Name = "Srv-A", IpAddress = "10.0.3.1", OperatingSystem = "Linux", Services = [svc] };
+        var srvB = new Server { Name = "Srv-B", IpAddress = "10.0.3.2", OperatingSystem = "Linux" };
+        _context.Servers.AddRange(srvA, srvB);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var servers = (await _repository.GetAllAsync()).ToList();
+
+        // Assert — srvB has no services
+        var resultB = servers.First(s => s.Name == "Srv-B");
+        resultB.Services.Should().BeEmpty();
+    }
 }

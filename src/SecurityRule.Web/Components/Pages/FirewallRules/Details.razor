@@ -1,0 +1,166 @@
+@page "/connections/{Id:int}"
+@rendermode InteractiveServer
+@inject IServiceConnectionRepository ServiceConnectionRepository
+@inject NavigationManager Navigation
+
+@if (_displayConnection == null)
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Связь — ...</PageTitle>
+    }
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    @if (!Embedded)
+    {
+        <PageTitle>Связь — @_title</PageTitle>
+        <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.CompareArrows" Color="Color.Primary" />
+                <MudText Typo="Typo.h4">@_title</MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => Navigation.NavigateTo($"/connections/edit/{_displayConnection.Id}"))">
+                Редактировать
+            </MudButton>
+        </MudStack>
+    }
+
+    <MudCard Class="mb-4" Elevation="@(Embedded ? 0 : 1)">
+        <MudCardContent>
+
+            @* Source / Destination flow *@
+            <MudGrid Class="mb-4" Spacing="2">
+                @* Source box *@
+                <MudItem xs="12" sm="5">
+                    <MudPaper Elevation="0" Class="pa-3"
+                              Style="background: var(--mud-palette-background-grey); border-radius: 8px; border-left: 4px solid var(--mud-palette-info);">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CallMade" Size="Size.Small" Color="Color.Info" />
+                                <MudText Typo="Typo.overline" Color="Color.Info">Источник</MudText>
+                            </MudStack>
+                            @if (_displayConnection.SourceServer != null)
+                            {
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Dns"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
+                                           OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayConnection.SourceServer.Id}"))">
+                                    @_displayConnection.SourceServer.Name
+                                </MudButton>
+                            }
+                            @if (_displayConnection.SourceService != null)
+                            {
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Info"
+                                           StartIcon="@Icons.Material.Filled.MiscellaneousServices"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
+                                           OnClick="@(() => Navigation.NavigateTo($"/services/{_displayConnection.SourceService.Id}"))">
+                                    @_displayConnection.SourceService.Name
+                                    @if (_displayConnection.SourceService.Port.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="ml-1" Color="Color.Secondary">:@_displayConnection.SourceService.Port</MudText>
+                                    }
+                                </MudButton>
+                            }
+                            @if (_displayConnection.SourceServer == null && _displayConnection.SourceService == null)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                @* Arrow *@
+                <MudItem xs="12" sm="2" Class="d-flex align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary" Style="font-size: 2rem;" />
+                </MudItem>
+
+                @* Destination box *@
+                <MudItem xs="12" sm="5">
+                    <MudPaper Elevation="0" Class="pa-3"
+                              Style="background: var(--mud-palette-background-grey); border-radius: 8px; border-left: 4px solid var(--mud-palette-primary);">
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.CallReceived" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.overline" Color="Color.Primary">Назначение</MudText>
+                            </MudStack>
+                            @if (_displayConnection.DestinationServer != null)
+                            {
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Dns"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
+                                           OnClick="@(() => Navigation.NavigateTo($"/servers/{_displayConnection.DestinationServer.Id}"))">
+                                    @_displayConnection.DestinationServer.Name
+                                </MudButton>
+                            }
+                            @if (_displayConnection.DestinationService != null)
+                            {
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.MiscellaneousServices"
+                                           Style="margin-left: -6px; justify-content: flex-start;"
+                                           OnClick="@(() => Navigation.NavigateTo($"/services/{_displayConnection.DestinationService.Id}"))">
+                                    @_displayConnection.DestinationService.Name
+                                    @if (_displayConnection.DestinationService.Port.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="ml-1" Color="Color.Secondary">:@_displayConnection.DestinationService.Port</MudText>
+                                    }
+                                </MudButton>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Протокол</MudText>
+                    <MudText Typo="Typo.body1">@(string.IsNullOrWhiteSpace(_displayConnection.Protocol) ? "—" : _displayConnection.Protocol)</MudText>
+                </MudItem>
+                @if (!string.IsNullOrWhiteSpace(_displayConnection.Description))
+                {
+                    <MudItem xs="12" sm="8">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Описание</MudText>
+                        <MudText Typo="Typo.body1">@_displayConnection.Description</MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Parameter] public ServiceConnection? Connection { get; set; }
+    [Parameter] public bool Embedded { get; set; } = false;
+
+    private ServiceConnection? _displayConnection;
+    private string _title = string.Empty;
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Connection is not null)
+        {
+            _displayConnection = Connection;
+        }
+        else
+        {
+            _displayConnection = await ServiceConnectionRepository.GetByIdAsync(Id);
+        }
+        _title = BuildTitle(_displayConnection, Id);
+        if (!Embedded && Connection is null)
+        {
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Связи", href: "/connections"),
+                new BreadcrumbItem(_title, href: null, disabled: true)
+            ];
+        }
+    }
+
+    private static string BuildTitle(ServiceConnection? c, int fallbackId)
+        => c is null
+            ? fallbackId.ToString()
+            : $"{c.SourceServer?.Name ?? c.SourceService?.Name ?? "—"} → {c.DestinationServer?.Name ?? c.DestinationService?.Name ?? "?"}";
+}

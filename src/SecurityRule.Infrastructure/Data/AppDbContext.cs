@@ -13,7 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Server> Servers => Set<Server>();
     public DbSet<AppService> AppServices => Set<AppService>();
     public DbSet<Certificate> Certificates => Set<Certificate>();
-    public DbSet<FirewallRule> FirewallRules => Set<FirewallRule>();
+    public DbSet<ServiceConnection> ServiceConnections => Set<ServiceConnection>();
     public DbSet<OperatingSystemOption> OperatingSystemOptions => Set<OperatingSystemOption>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Group> Groups => Set<Group>();
@@ -52,15 +52,41 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Certificate>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.SerialNumber).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Thumbprint).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.RequestNumber).IsRequired().HasMaxLength(200);
         });
 
-        modelBuilder.Entity<FirewallRule>(entity =>
+        modelBuilder.Entity<ServiceConnection>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.SourceIp).IsRequired().HasMaxLength(45);
-            entity.Property(e => e.DestinationIp).IsRequired().HasMaxLength(45);
+            entity.Property(e => e.Protocol).HasMaxLength(10);
             entity.Property(e => e.Description).HasMaxLength(1000);
+
+            entity.HasOne(e => e.SourceServer)
+                  .WithMany(s => s.SourceConnections)
+                  .HasForeignKey(e => e.SourceServerId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.SourceService)
+                  .WithMany(s => s.SourceConnections)
+                  .HasForeignKey(e => e.SourceServiceId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.DestinationServer)
+                  .WithMany(s => s.DestinationConnections)
+                  .HasForeignKey(e => e.DestinationServerId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.DestinationService)
+                  .WithMany(s => s.DestinationConnections)
+                  .HasForeignKey(e => e.DestinationServiceId)
+                  .IsRequired()
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<OperatingSystemOption>(entity =>
@@ -78,6 +104,11 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasOne(e => e.Certificate)
+                  .WithMany(c => c.Users)
+                  .HasForeignKey(e => e.CertificateId)
+                  .IsRequired(false)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Group>(entity =>

@@ -61,16 +61,22 @@ public sealed class ОбщиеШаги
     [When("я выбираю {string} в выпадающем списке {string}")]
     public async Task ВыбратьВВыпадающемСписке(string value, string label)
     {
-        // Find the MudSelect container by its visible label text, then click the input root to open
+        // Find the MudSelect container by its visible label text.
+        // In MudBlazor 9, using FocusAsync() on the input opens the dropdown without
+        // the toggle-close that happens when ClickAsync() fires both focus and click events.
         var container = _state.Page.Locator(".mud-input-control")
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
-        await container.Locator(".mud-input-root").First.ClickAsync();
+        var inputEl = container.Locator("input.mud-select-input").First;
+        await inputEl.FocusAsync();
         // Wait for the popover list to appear and click the matching item
-        await _state.Page.WaitForTimeoutAsync(400);
-        var option = _state.Page.GetByRole(AriaRole.Option, new() { Name = value });
-        await option.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
-        await option.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(500);
+        // Use CSS attribute selector for role="option" instead of GetByRole to handle
+        // MudBlazor 9 rendering where accessible name computation may differ
+        var option = _state.Page.Locator("[role='option']")
+            .Filter(new LocatorFilterOptions { HasText = value });
+        await option.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
+        await option.First.ClickAsync();
         await _state.Page.WaitForTimeoutAsync(200);
     }
 
@@ -106,6 +112,75 @@ public sealed class ОбщиеШаги
         await Assertions
             .Expect(_state.Page.GetByText(text, new() { Exact = false }))
             .ToBeHiddenAsync(new() { Timeout = 15_000 });
+    }
+
+    /// <summary>Opens a MudSelect dropdown and asserts that an option with the given text is visible.</summary>
+    [Then("я вижу текст {string} в выпадающем списке {string}")]
+    public async Task ВидетьТекстВВыпадающемСписке(string value, string label)
+    {
+        var container = _state.Page.Locator(".mud-input-control")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await _state.Page.WaitForTimeoutAsync(500);
+
+        var consoleMsgs = new System.Collections.Concurrent.ConcurrentBag<string>();
+        _state.Page.Console += (_, msg) => consoleMsgs.Add($"{msg.Type}: {msg.Text}");
+
+        // Blazor events on select input: only change/keyup/keydown/blur registered - NO click.
+        // Check ancestors of the select input for a click handler
+        await _state.Page.EvaluateAsync(@"() => {
+            const input = document.querySelector('input.mud-select-input');
+            if (!input) return;
+            let el = input;
+            let depth = 0;
+            while (el && depth < 15) {
+                const evts = el._blazorEvents_1;
+                const h = evts?.handlers;
+                if (h && Object.keys(h).length > 0) {
+                    console.log('[ANCESTOR] depth=' + depth, el.tagName, el.className.substring(0,50), 'events:', Object.keys(h).join(','));
+                }
+                el = el.parentElement;
+                depth++;
+            }
+        }");
+
+        var inputEl = container.Locator("input.mud-select-input").First;
+        await inputEl.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(1000);
+
+        await System.IO.File.WriteAllTextAsync("/tmp/debug_propagation.txt", string.Join("\n", consoleMsgs));
+
+        var option = _state.Page.Locator("[role='option']")
+            .Filter(new LocatorFilterOptions { HasText = value });
+
+        await Assertions
+            .Expect(option.First)
+            .ToBeVisibleAsync(new() { Timeout = 10_000 });
+
+        await _state.Page.Keyboard.PressAsync("Escape");
+        await _state.Page.WaitForTimeoutAsync(200);
+    }
+
+    /// <summary>Opens a MudSelect dropdown and asserts that an option with the given text is NOT present.</summary>
+    [Then("в выпадающем списке {string} нет текста {string}")]
+    public async Task НетТекстаВВыпадающемСписке(string label, string value)
+    {
+        var container = _state.Page.Locator(".mud-input-control")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        var inputEl2 = container.Locator("input.mud-select-input").First;
+        await inputEl2.FocusAsync();
+        await _state.Page.WaitForTimeoutAsync(500);
+
+        var option = _state.Page.Locator("[role='option']")
+            .Filter(new LocatorFilterOptions { HasText = value });
+
+        await Assertions
+            .Expect(option.First)
+            .ToBeHiddenAsync(new() { Timeout = 5_000 });
+
+        await _state.Page.Keyboard.PressAsync("Escape");
+        await _state.Page.WaitForTimeoutAsync(200);
     }
 
     /// <summary>Asserts that the current URL contains the given path segment.</summary>

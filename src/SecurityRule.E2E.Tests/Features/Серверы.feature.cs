@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Серверы.feature.ndjson", 7);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Серверы.feature.ndjson", 8);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -294,6 +294,52 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 38
     await testRunner.AndAsync("на странице нет текста \"Temp-Server\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Связи отображаются на странице деталей сервера")]
+        public async global::System.Threading.Tasks.Task СвязиОтображаютсяНаСтраницеДеталейСервера()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "5";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Связи отображаются на странице деталей сервера", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 40
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 41
+    await testRunner.GivenAsync("в системе существует сервер Name \"Web-Firewall\" IP \"10.10.0.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 42
+    await testRunner.AndAsync("в системе существует сервер Name \"FW-Dst-Srv\" IP \"10.10.0.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 43
+    await testRunner.AndAsync("в системе существует сервис Name \"FW-SrcSvc\" UserName \"domain\\fwsrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 44
+    await testRunner.AndAsync("в системе существует сервис Name \"FW-DstSvc\" UserName \"domain\\fwdst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 45
+    await testRunner.AndAsync("в системе существует связь от сервера \"Web-Firewall\" сервиса \"FW-SrcSvc\" до серви" +
+                        "са \"FW-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 46
+    await testRunner.WhenAsync("я открываю страницу деталей сервера \"Web-Firewall\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 47
+    await testRunner.ThenAsync("я вижу текст \"FW-SrcSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

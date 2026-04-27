@@ -1,6 +1,7 @@
 @page "/users/create"
 @rendermode InteractiveServer
 @inject IUserRepository UserRepository
+@inject ICertificateRepository CertificateRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -12,6 +13,12 @@
     <MudCardContent>
         <MudTextField @bind-Value="_user.Name" Label="Название" HelperText="например, domain\user" Required="true" Class="mb-3" />
         <MudTextField @bind-Value="_user.Description" Label="Описание" Lines="3" Class="mb-3" />
+        <MudSelect T="int?" @bind-Value="_user.CertificateId" Label="Сертификат" Clearable="true" Class="mb-3">
+            @foreach (var cert in _allCertificates)
+            {
+                <MudSelectItem T="int?" Value="@((int?)cert.Id)">@cert.Description (@cert.SerialNumber)</MudSelectItem>
+            }
+        </MudSelect>
     </MudCardContent>
     <MudCardActions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -21,6 +28,12 @@
 
 @code {
     private User _user = new();
+    private IEnumerable<Certificate> _allCertificates = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allCertificates = await CertificateRepository.GetAllAsync();
+    }
 
     private async Task Save()
     {

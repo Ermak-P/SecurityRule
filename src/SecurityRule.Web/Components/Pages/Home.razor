@@ -3,7 +3,7 @@
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
 @inject ICertificateRepository CertificateRepository
-@inject IFirewallRuleRepository FirewallRuleRepository
+@inject IServiceConnectionRepository ServiceConnectionRepository
 @inject NavigationManager Navigation
 
 <PageTitle>SecurityRule — Дашборд</PageTitle>
@@ -57,21 +57,21 @@
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/firewall-rules"))">
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/connections"))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
-                <MudAvatar Color="@(_expiredRuleCount > 0 ? Color.Error : Color.Warning)" Variant="Variant.Outlined">
-                    <MudIcon Icon="@Icons.Material.Filled.Shield" />
+                <MudAvatar Color="Color.Warning" Variant="Variant.Outlined">
+                    <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />
                 </MudAvatar>
                 <div>
-                    <MudText Class="stat-number">@_ruleCount</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Правил фаервола</MudText>
+                    <MudText Class="stat-number">@_connectionCount</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Связей</MudText>
                 </div>
             </MudStack>
         </MudPaper>
     </MudItem>
 </MudGrid>
 
-@if (!_loading && (_expiredCertCount > 0 || _soonCertCount > 0 || _expiredRuleCount > 0 || _soonRuleCount > 0))
+@if (!_loading && (_expiredCertCount > 0 || _soonCertCount > 0))
 {
     <div class="section-label mb-2">ТРЕБУЮТ ВНИМАНИЯ</div>
     <MudGrid Spacing="2" Class="mb-4">
@@ -88,22 +88,6 @@
             <MudItem xs="12" sm="6" md="3">
                 <MudAlert Severity="Severity.Warning" Class="py-2">
                     <strong>@_soonCertCount</strong> сертификат(ов) истекает в ближайшие 30 дней
-                </MudAlert>
-            </MudItem>
-        }
-        @if (_expiredRuleCount > 0)
-        {
-            <MudItem xs="12" sm="6" md="3">
-                <MudAlert Severity="Severity.Error" Class="py-2">
-                    <strong>@_expiredRuleCount</strong> правил(о) фаервола истёкло
-                </MudAlert>
-            </MudItem>
-        }
-        @if (_soonRuleCount > 0)
-        {
-            <MudItem xs="12" sm="6" md="3">
-                <MudAlert Severity="Severity.Warning" Class="py-2">
-                    <strong>@_soonRuleCount</strong> правил(о) фаервола истекает в ближайшие 30 дней
                 </MudAlert>
             </MudItem>
         }
@@ -216,8 +200,8 @@
 
 @code {
     private bool _loading = true;
-    private int _serverCount, _serviceCount, _certCount, _ruleCount;
-    private int _expiredCertCount, _soonCertCount, _expiredRuleCount, _soonRuleCount;
+    private int _serverCount, _serviceCount, _certCount, _connectionCount;
+    private int _expiredCertCount, _soonCertCount;
     private IList<Server> _recentServers = [];
     private IList<Certificate> _recentCerts = [];
 
@@ -225,20 +209,18 @@
     {
         var now = DateTime.Now;
 
-        var servers  = (await ServerRepository.GetAllAsync()).ToList();
-        var services = (await AppServiceRepository.GetAllAsync()).ToList();
-        var certs    = (await CertificateRepository.GetAllAsync()).ToList();
-        var rules    = (await FirewallRuleRepository.GetAllAsync()).ToList();
+        var servers      = (await ServerRepository.GetAllAsync()).ToList();
+        var services     = (await AppServiceRepository.GetAllAsync()).ToList();
+        var certs        = (await CertificateRepository.GetAllAsync()).ToList();
+        var connections  = (await ServiceConnectionRepository.GetAllAsync()).ToList();
 
-        _serverCount  = servers.Count;
-        _serviceCount = services.Count;
-        _certCount    = certs.Count;
-        _ruleCount    = rules.Count;
+        _serverCount     = servers.Count;
+        _serviceCount    = services.Count;
+        _certCount       = certs.Count;
+        _connectionCount = connections.Count;
 
         _expiredCertCount = certs.Count(c => c.ExpiresAt < now);
         _soonCertCount    = certs.Count(c => c.ExpiresAt >= now && c.ExpiresAt < now.AddDays(30));
-        _expiredRuleCount = rules.Count(r => r.ExpiresAt < now);
-        _soonRuleCount    = rules.Count(r => r.ExpiresAt >= now && r.ExpiresAt < now.AddDays(30));
 
         _recentServers = servers.Take(6).ToList();
         _recentCerts   = certs.OrderBy(c => c.ExpiresAt).Take(6).ToList();

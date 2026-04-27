@@ -218,4 +218,68 @@ public class AppServiceRepositoryTests
         updated!.Servers.Should().HaveCount(1);
         updated.Servers.Single().Name.Should().Be("Server2");
     }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeSourceConnections()
+    {
+        // Arrange
+        var srcSrv = new Server { Name = "Src-Server", IpAddress = "10.0.7.1", OperatingSystem = "Linux" };
+        var dstSrv = new Server { Name = "Dst-Server", IpAddress = "10.0.7.2", OperatingSystem = "Linux" };
+        _context.Servers.AddRange(srcSrv, dstSrv);
+        var service = new AppService { Name = "InvoiceSvc", UserName = "domain\\invoice" };
+        var dstSvc = new AppService { Name = "Dst-Service", UserName = "domain\\dst" };
+        _context.AppServices.AddRange(service, dstSvc);
+        await _context.SaveChangesAsync();
+
+        var connection = new ServiceConnection
+        {
+            SourceServerId       = srcSrv.Id,
+            SourceServiceId      = service.Id,
+            DestinationServerId  = dstSrv.Id,
+            DestinationServiceId = dstSvc.Id,
+            Protocol = "TCP"
+        };
+        _context.ServiceConnections.Add(connection);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(service.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.SourceConnections.Should().HaveCount(1);
+        result.SourceConnections.First().Protocol.Should().Be("TCP");
+    }
+
+    [Test]
+    public async Task GetByIdAsync_ShouldIncludeDestinationConnections()
+    {
+        // Arrange
+        var srcSrv = new Server { Name = "Src-Server", IpAddress = "10.0.6.1", OperatingSystem = "Linux" };
+        var dstSrv = new Server { Name = "Dst-Server", IpAddress = "10.0.6.2", OperatingSystem = "Linux" };
+        _context.Servers.AddRange(srcSrv, dstSrv);
+        var srcSvc = new AppService { Name = "Src-Service", UserName = "domain\\src" };
+        var service = new AppService { Name = "DestInvoiceSvc", UserName = "domain\\dstinvoice" };
+        _context.AppServices.AddRange(srcSvc, service);
+        await _context.SaveChangesAsync();
+
+        var connection = new ServiceConnection
+        {
+            SourceServerId       = srcSrv.Id,
+            SourceServiceId      = srcSvc.Id,
+            DestinationServerId  = dstSrv.Id,
+            DestinationServiceId = service.Id,
+            Protocol = "UDP"
+        };
+        _context.ServiceConnections.Add(connection);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByIdAsync(service.Id);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.DestinationConnections.Should().HaveCount(1);
+        result.DestinationConnections.First().Protocol.Should().Be("UDP");
+    }
 }

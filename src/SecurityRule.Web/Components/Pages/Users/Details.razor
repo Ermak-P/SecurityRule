@@ -44,7 +44,7 @@ else
                     <MudText Typo="Typo.body1">@_displayName</MudText>
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Групп (AD)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Групп</MudText>
                     <MudText Typo="Typo.body1">@_adGroups.Count</MudText>
                 </MudItem>
                 @if (_displayUser != null)
@@ -52,6 +52,17 @@ else
                     <MudItem xs="12" sm="3">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Сервисов</MudText>
                         <MudText Typo="Typo.body1">@_displayUser.Services.Count</MudText>
+                    </MudItem>
+                }
+                @if (_displayUser?.Certificate != null)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Сертификат</MudText>
+                        <MudText Typo="Typo.body1">
+                            <MudLink Href="@($"/certificates/{_displayUser.Certificate.Id}")">
+                                @_displayUser.Certificate.Description (@_displayUser.Certificate.SerialNumber)
+                            </MudLink>
+                        </MudText>
                     </MudItem>
                 }
                 @if (!string.IsNullOrWhiteSpace(_displayUser?.Description))
@@ -69,10 +80,10 @@ else
     {
         <MudText Typo="Typo.h6" Class="mb-2">
             <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Class="mr-1" />
-            Группы (AD)
+            Группы
         </MudText>
         <MudPaper Elevation="2" Class="overflow-hidden mb-4">
-            <AdGroupsTable Items="@_adGroups" Elevation="0" Nested="@Embedded" />
+            <AdGroupsTable Items="@_adGroups" Elevation="0" Nested="false" />
         </MudPaper>
     }
 

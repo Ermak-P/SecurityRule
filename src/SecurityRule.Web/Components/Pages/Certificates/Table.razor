@@ -1,0 +1,85 @@
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<MudTable T="Certificate" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@ToggleRow">
+    <HeaderContent>
+        <MudTh>Описание</MudTh>
+        <MudTh>SN</MudTh>
+        <MudTh>Выдан</MudTh>
+        <MudTh>Истекает</MudTh>
+        <MudTh>Статус</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Описание" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
+                <MudIcon Icon="@Icons.Material.Filled.CardMembership" Size="Size.Small" Color="Color.Warning" />
+                @context.Description
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="SN">@(string.IsNullOrWhiteSpace(context.SerialNumber) ? "—" : context.SerialNumber)</MudTd>
+        <MudTd DataLabel="Выдан">@context.IssuedAt.ToString("dd.MM.yyyy")</MudTd>
+        <MudTd DataLabel="Истекает">@context.ExpiresAt.ToString("dd.MM.yyyy")</MudTd>
+        <MudTd DataLabel="Статус">
+            @if (context.ExpiresAt < DateTime.Now)
+            {
+                <MudChip T="string" Color="Color.Error" Size="Size.Small">Истёк</MudChip>
+            }
+            else if (context.ExpiresAt < DateTime.Now.AddDays(30))
+            {
+                <MudChip T="string" Color="Color.Warning" Size="Size.Small">Скоро истекает</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small">Активен</MudChip>
+            }
+        </MudTd>
+        <MudTd Style="text-align:right">
+            <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                               Title="Редактировать"
+                               OnClick="@(() => Navigation.NavigateTo($"/certificates/edit/{context.Id}"))" />
+            </span>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="cert">
+        @if (_expandedRows.Contains(cert.Id))
+        {
+            <MudTr>
+                <td colspan="6" style="padding: 0; background: var(--mud-palette-background-grey);">
+                    <div style="border-left: 3px solid var(--mud-palette-warning); margin: 8px 16px 12px 36px; padding-left: 16px;">
+                        <Details Certificate="cert" Embedded="true" />
+                    </div>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+
+@code {
+    [Parameter] public IEnumerable<Certificate> Items { get; set; } = [];
+    [Parameter] public int Elevation { get; set; } = 1;
+
+    private readonly HashSet<int> _expandedRows = [];
+
+    private async Task ToggleRow(TableRowClickEventArgs<Certificate> args)
+    {
+        if (args.Item is null) return;
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            await JS.InvokeVoidAsync("open", $"/certificates/{args.Item.Id}", "_blank");
+            return;
+        }
+        var id = args.Item.Id;
+        if (!_expandedRows.Remove(id))
+            _expandedRows.Add(id);
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e, int id)
+    {
+        if (e.Button == 1)
+            await JS.InvokeVoidAsync("open", $"/certificates/{id}", "_blank");
+    }
+}

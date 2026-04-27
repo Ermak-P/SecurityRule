@@ -28,6 +28,18 @@ public class ServerRepository : IServerRepository
                 .ThenInclude(svc => svc.Servers)
             .Include(s => s.Services)
                 .ThenInclude(svc => svc.Certificates)
+            .Include(s => s.SourceConnections)
+                .ThenInclude(r => r.SourceService)
+            .Include(s => s.SourceConnections)
+                .ThenInclude(r => r.DestinationServer)
+            .Include(s => s.SourceConnections)
+                .ThenInclude(r => r.DestinationService)
+            .Include(s => s.DestinationConnections)
+                .ThenInclude(r => r.SourceServer)
+            .Include(s => s.DestinationConnections)
+                .ThenInclude(r => r.SourceService)
+            .Include(s => s.DestinationConnections)
+                .ThenInclude(r => r.DestinationService)
             .FirstOrDefaultAsync(s => s.Id == id);
 
     public async Task AddAsync(Server server)

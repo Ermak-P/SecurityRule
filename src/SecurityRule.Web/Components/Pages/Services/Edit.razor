@@ -19,6 +19,8 @@ else
     <MudCard>
         <MudCardContent>
             <MudTextField @bind-Value="_service.Name" Label="Название" Required="true" Class="mb-3" />
+            <MudTextField @bind-Value="_portText" Label="Порт" Class="mb-3"
+                          InputType="InputType.Number" />
             <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="_selectedServerIds"
                        Label="Серверы" Class="mb-3">
                 @foreach (var server in _allServers)
@@ -53,6 +55,7 @@ else
     private IEnumerable<User> _allUsers = [];
     private IReadOnlyCollection<int> _selectedServerIds = [];
     private int? _selectedUserId;
+    private string _portText = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -63,6 +66,7 @@ else
         {
             _selectedServerIds = _service.Servers.Select(s => s.Id).ToList();
             _selectedUserId = _service.UserId;
+            _portText = _service.Port?.ToString() ?? string.Empty;
         }
     }
 
@@ -74,6 +78,7 @@ else
             var selectedUser = _allUsers.FirstOrDefault(u => u.Id == _selectedUserId);
             _service.UserId = selectedUser?.Id;
             _service.UserName = selectedUser?.Name ?? string.Empty;
+            _service.Port = int.TryParse(_portText, out var p) ? p : null;
             await AppServiceRepository.UpdateAsync(_service);
             Snackbar.Add("Сервис обновлён", Severity.Success);
             Navigation.NavigateTo($"/services/{Id}");

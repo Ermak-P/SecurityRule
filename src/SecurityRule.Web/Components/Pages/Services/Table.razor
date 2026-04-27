@@ -1,22 +1,24 @@
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <MudTable T="AppService" Items="@Items" Hover="true" Striped="true" Dense="true"
           Elevation="@Elevation" OnRowClick="@ToggleRow">
     <HeaderContent>
         <MudTh>Название</MudTh>
-        <MudTh>AD учётная запись</MudTh>
+        <MudTh>Учётная запись</MudTh>
+        <MudTh>Порт</MudTh>
         <MudTh>Сертификаты</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Название">
+        <MudTd DataLabel="Название" @onmousedown="@(e => HandleMouseDown(e, context.Id))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@(_expandedRows.Contains(context.Id) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)" Size="Size.Small" Color="Color.Default" />
                 <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" Size="Size.Small" Class="mr-1" />
                 @context.Name
             </MudStack>
         </MudTd>
-        <MudTd DataLabel="AD учётная запись">
+        <MudTd DataLabel="Учётная запись">
             @if (!string.IsNullOrWhiteSpace(context.UserName))
             {
                 <span @onclick:stopPropagation="true">
@@ -29,6 +31,7 @@
                 </span>
             }
         </MudTd>
+        <MudTd DataLabel="Порт">@(context.Port.HasValue ? context.Port.Value.ToString() : "—")</MudTd>
         <MudTd DataLabel="Сертификаты">@context.Certificates.Count</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
@@ -42,7 +45,7 @@
         @if (_expandedRows.Contains(svc.Id))
         {
             <MudTr>
-                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="5" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-secondary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         <Details Service="svc" Embedded="true" />
                     </div>
@@ -52,7 +55,7 @@
         @if (_expandedUserRows.Contains(svc.Id) && !string.IsNullOrWhiteSpace(svc.UserName))
         {
             <MudTr>
-                <td colspan="4" style="padding: 0; background: var(--mud-palette-background-grey);">
+                <td colspan="5" style="padding: 0; background: var(--mud-palette-background-grey);">
                     <div style="border-left: 3px solid var(--mud-palette-tertiary); margin: 8px 16px 12px 36px; padding-left: 16px;">
                         @if (svc.UserId.HasValue)
                         {
@@ -76,12 +79,23 @@
     private readonly HashSet<int> _expandedRows = [];
     private readonly HashSet<int> _expandedUserRows = [];
 
-    private void ToggleRow(TableRowClickEventArgs<AppService> args)
+    private async Task ToggleRow(TableRowClickEventArgs<AppService> args)
     {
         if (args.Item is null) return;
+        if (args.MouseEventArgs.CtrlKey || args.MouseEventArgs.MetaKey)
+        {
+            await JS.InvokeVoidAsync("open", $"/services/{args.Item.Id}", "_blank");
+            return;
+        }
         var id = args.Item.Id;
         if (!_expandedRows.Remove(id))
             _expandedRows.Add(id);
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e, int id)
+    {
+        if (e.Button == 1)
+            await JS.InvokeVoidAsync("open", $"/services/{id}", "_blank");
     }
 
     private void ToggleUserRow(AppService svc)

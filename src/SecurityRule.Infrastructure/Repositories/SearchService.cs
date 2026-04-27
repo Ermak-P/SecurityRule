@@ -87,22 +87,6 @@ public class SearchService : ISearchService
                 results.Add(new SearchResult("Сертификат", c.Id, "Описание", c.Description, $"/certificates/edit/{c.Id}"));
         }
 
-        var rules = await _context.FirewallRules
-            .Where(r => r.SourceIp.Contains(query) || r.DestinationIp.Contains(query) ||
-                        r.Description.Contains(query))
-            .Take(50)
-            .ToListAsync();
-
-        foreach (var r in rules)
-        {
-            if (r.SourceIp.Contains(query, StringComparison.OrdinalIgnoreCase))
-                results.Add(new SearchResult("Правило фаервола", r.Id, "IP источника", r.SourceIp, $"/firewall-rules/edit/{r.Id}"));
-            if (r.DestinationIp.Contains(query, StringComparison.OrdinalIgnoreCase))
-                results.Add(new SearchResult("Правило фаервола", r.Id, "IP назначения", r.DestinationIp, $"/firewall-rules/edit/{r.Id}"));
-            if (!string.IsNullOrEmpty(r.Description) && r.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
-                results.Add(new SearchResult("Правило фаервола", r.Id, "Описание", r.Description, $"/firewall-rules/edit/{r.Id}"));
-        }
-
         return results;
     }
 }
