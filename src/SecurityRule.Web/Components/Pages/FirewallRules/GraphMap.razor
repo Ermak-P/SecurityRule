@@ -22,23 +22,17 @@ else
 {
     @* Filter panel – servers only *@
     <MudPaper Class="pa-3 mb-4" Elevation="1">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" sm="10">
-                <MudSelect T="int" Label="Серверы" MultiSelection="true"
-                           SelectedValues="_selectedServerIds"
-                           SelectedValuesChanged="OnServersChanged"
-                           Clearable="true">
-                    @foreach (var s in _allServers)
-                    {
-                        <MudSelectItem T="int" Value="@s.Id">@s.Name (@s.IpAddress)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="2" Class="d-flex align-center">
-                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Clear"
-                           OnClick="ClearFilters">Сбросить</MudButton>
-            </MudItem>
-        </MudGrid>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">Фильтр по серверам:</MudText>
+        <MudChipSet T="int" SelectionMode="SelectionMode.MultiSelection"
+                    SelectedValues="_selectedServerIds"
+                    SelectedValuesChanged="OnServersChanged">
+            @foreach (var s in _allServers)
+            {
+                <MudChip T="int" Value="@s.Id" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                    @s.Name@(string.IsNullOrWhiteSpace(s.IpAddress) ? "" : $" ({s.IpAddress})")
+                </MudChip>
+            }
+        </MudChipSet>
     </MudPaper>
     @* Hidden server list used by E2E tests to verify options without opening the dropdown *@
     <div style="display:none" data-testid="server-filter-options">
@@ -119,26 +113,19 @@ else
         if (!_loading && !_graphInitialized)
         {
             _graphInitialized = true;
-            await RenderGraph();
+            var elements = BuildElements();
+            await JS.InvokeVoidAsync("graphMap.init", "cy-container", elements);
         }
     }
 
     private async Task OnServersChanged(IReadOnlyCollection<int> values)
     {
         _selectedServerIds = values;
-        await RenderGraph();
-    }
-
-    private async Task ClearFilters()
-    {
-        _selectedServerIds = [];
-        await RenderGraph();
-    }
-
-    private async Task RenderGraph()
-    {
-        var elements = BuildElements();
-        await JS.InvokeVoidAsync("graphMap.init", "cy-container", elements);
+        if (_graphInitialized)
+        {
+            var elements = BuildElements();
+            await JS.InvokeVoidAsync("graphMap.update", elements);
+        }
     }
 
     // ── Build Cytoscape elements ──────────────────────────────────────────────
@@ -187,7 +174,6 @@ else
         }
 
         // Edges – only between visible servers
-        int edgeIdx = 0;
         foreach (var conn in _allConnections)
         {
             bool srcInScope = conn.SourceServerId.HasValue && visibleServerIds.Contains(conn.SourceServerId.Value);
@@ -213,7 +199,7 @@ else
             {
                 data = new
                 {
-                    id          = $"edge-{edgeIdx++}",
+                    id          = $"edge-{conn.Id}",
                     source      = srcNodeId,
                     target      = dstNodeId,
                     label,

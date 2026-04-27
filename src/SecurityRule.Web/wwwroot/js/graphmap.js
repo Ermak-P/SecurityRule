@@ -42,24 +42,44 @@ window.graphMap = (function () {
     function update(elements) {
         if (!cy) return;
 
-        /* Fade out existing elements, then swap and animate in */
-        cy.elements().animate({ style: { opacity: 0 } }, {
-            duration: ANIM_DURATION / 2,
-            easing: ANIM_EASING,
-            complete: function () {
-                cy.elements().remove();
+        /* Build lookup for incoming elements by id */
+        const incomingIds = new Set(elements.map(function (el) { return el.data.id; }));
 
-                const invisible = elements.map(function (el) {
+        /* Elements to remove: currently in cy but absent from new set */
+        const toRemove = cy.elements().filter(function (el) { return !incomingIds.has(el.id()); });
+
+        /* Elements to add: in incoming but not yet in cy */
+        const existingIds = new Set();
+        cy.elements().forEach(function (el) { existingIds.add(el.id()); });
+        const toAdd = elements.filter(function (el) { return !existingIds.has(el.data.id); });
+
+        if (toRemove.length === 0 && toAdd.length === 0) return;
+
+        function applyLayout() {
+            if (toAdd.length > 0) {
+                const invisible = toAdd.map(function (el) {
                     return Object.assign({}, el, {
                         data: Object.assign({}, el.data),
                         style: Object.assign({}, el.style, { opacity: 0 })
                     });
                 });
-
                 cy.add(invisible);
-                cy.layout(getLayout()).run();
             }
-        });
+            cy.layout(getLayout()).run();
+        }
+
+        if (toRemove.length > 0) {
+            toRemove.animate({ style: { opacity: 0 } }, {
+                duration: ANIM_DURATION / 2,
+                easing: ANIM_EASING,
+                complete: function () {
+                    toRemove.remove();
+                    applyLayout();
+                }
+            });
+        } else {
+            applyLayout();
+        }
     }
 
     function bindHoverEvents() {
