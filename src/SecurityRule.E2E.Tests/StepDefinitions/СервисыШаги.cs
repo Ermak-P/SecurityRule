@@ -39,6 +39,37 @@ public sealed class СервисыШаги
         await serviceRepo.AddAsync(new AppService { Name = serviceName, UserName = user.Name, UserId = user.Id });
     }
 
+    /// <summary>Creates a service linked to a certificate directly in the database.</summary>
+    [Given("в системе существует сервис {string} с сертификатом {string}")]
+    public async Task ВСистемеСуществуетСервисССертификатом(string serviceName, string certDescription)
+    {
+        using var scope = _state.Services.CreateScope();
+        var certRepo    = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.ICertificateRepository>();
+        var serviceRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+
+        var cert = new Certificate
+        {
+            SerialNumber  = "SN-SVC-CERT",
+            Thumbprint    = "SVCTHUMBPRINT",
+            RequestNumber = "REQ-SVC",
+            Description   = certDescription,
+            IssuedAt      = DateTime.Now.AddYears(-1),
+            ExpiresAt     = DateTime.Now.AddYears(2)
+        };
+        await certRepo.AddAsync(cert);
+
+        var certs = await certRepo.GetAllAsync();
+        var savedCert = certs.First(c => c.Description == certDescription);
+
+        var service = new AppService
+        {
+            Name         = serviceName,
+            UserName     = string.Empty,
+            Certificates = new List<Certificate> { savedCert }
+        };
+        await serviceRepo.AddAsync(service);
+    }
+
     /// <summary>Creates a user directly in the database.</summary>
     [Given("в системе существует пользователь {string}")]
     public async Task ВСистемеСуществуетПользователь(string name)

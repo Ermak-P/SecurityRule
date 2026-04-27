@@ -62,19 +62,19 @@ else
                     <MudText Typo="Typo.body1">@_displayService.Certificates.Count</MudText>
                 </MudItem>
             </MudGrid>
-            @if (_displayService.Certificates.Any())
-            {
-                <MudDivider Class="my-3" />
-                <MudText Typo="Typo.body2" Class="mb-2"><strong>Сертификаты:</strong></MudText>
-                @foreach (var cert in _displayService.Certificates)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mr-1 mb-1">
-                        @cert.Description (@cert.ExpiresAt.ToString("dd.MM.yyyy"))
-                    </MudChip>
-                }
-            }
         </MudCardContent>
     </MudCard>
+
+    @if (_displayService.Certificates.Any())
+    {
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.CardMembership" Size="Size.Small" Class="mr-1" />
+            Сертификаты
+        </MudText>
+        <MudPaper Elevation="2" Class="overflow-hidden mb-4">
+            <SecurityRule.Web.Components.Pages.Certificates.Table Items="@_displayService.Certificates" Elevation="0" />
+        </MudPaper>
+    }
 
     @if (_userExpanded && !string.IsNullOrWhiteSpace(_displayService.UserName))
     {
