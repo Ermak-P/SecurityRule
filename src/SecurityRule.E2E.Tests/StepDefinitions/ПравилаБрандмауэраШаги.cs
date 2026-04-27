@@ -198,6 +198,50 @@ public sealed class ПравилаБрандмауэраШаги
             .ToBeAttachedAsync(new() { Timeout = 10_000 });
     }
 
+    /// <summary>
+    /// Clicks the "Показывать связанные серверы" MudCheckBox to toggle it on/off.
+    /// MudBlazor 9.3 MudCheckBox renders a .mud-checkbox-input span with an @onclick handler
+    /// inside the .mud-checkbox root span.
+    /// </summary>
+    [When("я включаю галочку {string}")]
+    public async Task ВключитьГалочку(string labelText)
+    {
+        var wrapper = _state.Page.Locator("[data-testid='show-related-checkbox']");
+        await wrapper.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        // Try clicking the mud-checkbox-input first; fall back to the root element
+        var inputEl = wrapper.Locator(".mud-checkbox-input");
+        if (await inputEl.CountAsync() > 0)
+            await inputEl.First.ClickAsync();
+        else
+            await wrapper.First.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(600);
+    }
+
+    /// <summary>
+    /// Asserts that a server appears in the hidden graph-dimmed-servers list,
+    /// meaning it is currently shown as a related (dimmed) server.
+    /// </summary>
+    [Then("граф содержит связанный сервер {string}")]
+    public async Task ГрафСодержитСвязанныйСервер(string serverLabel)
+    {
+        var span = _state.Page
+            .Locator("[data-testid='graph-dimmed-servers'] span")
+            .Filter(new LocatorFilterOptions { HasText = serverLabel });
+        await Assertions.Expect(span.First).ToBeAttachedAsync(new() { Timeout = 10_000 });
+    }
+
+    /// <summary>
+    /// Asserts that a server does NOT appear in the hidden graph-dimmed-servers list.
+    /// </summary>
+    [Then("граф не содержит связанный сервер {string}")]
+    public async Task ГрафНеСодержитСвязанныйСервер(string serverLabel)
+    {
+        var span = _state.Page
+            .Locator("[data-testid='graph-dimmed-servers'] span")
+            .Filter(new LocatorFilterOptions { HasText = serverLabel });
+        await Assertions.Expect(span).ToHaveCountAsync(0, new() { Timeout = 10_000 });
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<int> GetConnectionIdAsync(string srcName, string dstServiceName)

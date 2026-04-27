@@ -53,6 +53,13 @@ window.graphMap = (function () {
         cy.elements().forEach(function (el) { existingIds.add(el.id()); });
         const toAdd = elements.filter(function (el) { return !existingIds.has(el.data.id); });
 
+        /* Update data for elements that already exist (handles dimmed attribute changes) */
+        elements.forEach(function (el) {
+            if (existingIds.has(el.data.id)) {
+                cy.getElementById(el.data.id).data(el.data);
+            }
+        });
+
         if (toRemove.length === 0 && toAdd.length === 0) return;
 
         function applyLayout() {
@@ -91,12 +98,13 @@ window.graphMap = (function () {
         });
 
         cy.on('mouseout', 'node', function (e) {
-            const type = e.target.data('type');
+            const type   = e.target.data('type');
+            const dimmed = e.target.data('dimmed') === '1';
             e.target.animate(
                 {
                     style: {
-                        'border-width': type === 'server' ? 2 : 1.5,
-                        'background-opacity': type === 'server' ? 0.65 : 1
+                        'border-width':       type === 'server' ? (dimmed ? 1.5 : 2) : 1.5,
+                        'background-opacity': type === 'server' ? (dimmed ? 0.35 : 0.65) : 1
                     }
                 },
                 { duration: 180, easing: 'ease-in-cubic' }
@@ -181,6 +189,19 @@ window.graphMap = (function () {
                     'min-height': 70
                 }
             },
+            /* ── Related (dimmed) server – visually lighter to distinguish from selected ── */
+            {
+                selector: 'node[type="server"][dimmed="1"]',
+                style: {
+                    'background-color': '#f5f5f5',
+                    'background-opacity': 0.35,
+                    'border-color': '#b0bec5',
+                    'border-width': 1.5,
+                    'border-style': 'dashed',
+                    'color': '#78909c',
+                    'font-weight': 'normal'
+                }
+            },
             /* ── Service node (SBGN macromolecule / process-like) ── */
             {
                 selector: 'node[type="service"]',
@@ -199,6 +220,15 @@ window.graphMap = (function () {
                     'text-max-width': '115px',
                     'width': 130,
                     'height': 36
+                }
+            },
+            /* ── Service node inside a related (dimmed) server ── */
+            {
+                selector: 'node[type="service"][dimmed="1"]',
+                style: {
+                    'background-color': '#fafafa',
+                    'border-color': '#b0bec5',
+                    'color': '#90a4ae'
                 }
             },
             /* ── Default edge ── */

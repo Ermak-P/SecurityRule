@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 15);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 17);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -693,6 +693,124 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 119
     await testRunner.ThenAsync("чип сервера \"ChipFlt-Srv1 (10.80.1.1)\" не выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Выбрать все и снять все серверы в фильтре")]
+        public async global::System.Threading.Tasks.Task ВыбратьВсеИСнятьВсеСерверыВФильтре()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "13";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Выбрать все и снять все серверы в фильтре", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 121
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 122
+    await testRunner.GivenAsync("в системе существует сервер Name \"SelAll-Srv1\" IP \"10.90.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 123
+    await testRunner.AndAsync("в системе существует сервер Name \"SelAll-Srv2\" IP \"10.90.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 124
+    await testRunner.WhenAsync("я перехожу на страницу карты связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 125
+    await testRunner.ThenAsync("чип сервера \"SelAll-Srv1 (10.90.1.1)\" выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 126
+    await testRunner.WhenAsync("я нажимаю кнопку \"Снять все\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 127
+    await testRunner.ThenAsync("чип сервера \"SelAll-Srv1 (10.90.1.1)\" не выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 128
+    await testRunner.AndAsync("чип сервера \"SelAll-Srv2 (10.90.1.2)\" не выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 129
+    await testRunner.WhenAsync("я нажимаю кнопку \"Выбрать все\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 130
+    await testRunner.ThenAsync("чип сервера \"SelAll-Srv1 (10.90.1.1)\" выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 131
+    await testRunner.AndAsync("чип сервера \"SelAll-Srv2 (10.90.1.2)\" выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Показывать связанные серверы при активации галочки")]
+        public async global::System.Threading.Tasks.Task ПоказыватьСвязанныеСерверыПриАктивацииГалочки()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "14";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Показывать связанные серверы при активации галочки", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 133
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 134
+    await testRunner.GivenAsync("в системе существует сервер Name \"Related-Srv1\" IP \"10.91.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 135
+    await testRunner.AndAsync("в системе существует сервер Name \"Related-Srv2\" IP \"10.91.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 136
+    await testRunner.AndAsync("в системе существует сервер Name \"Related-Srv3\" IP \"10.91.1.3\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 137
+    await testRunner.AndAsync("в системе существует сервис Name \"Related-Svc1\" UserName \"domain\\rel1\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 138
+    await testRunner.AndAsync("в системе существует сервис Name \"Related-Svc2\" UserName \"domain\\rel2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 139
+    await testRunner.AndAsync("сервис \"Related-Svc1\" прикреплён к серверу \"Related-Srv1\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 140
+    await testRunner.AndAsync("сервис \"Related-Svc2\" прикреплён к серверу \"Related-Srv3\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 141
+    await testRunner.AndAsync("в системе существует связь от сервера \"Related-Srv1\" сервиса \"Related-Svc1\" до се" +
+                        "рвиса \"Related-Svc2\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 142
+    await testRunner.WhenAsync("я перехожу на страницу карты связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 143
+    await testRunner.AndAsync("я снимаю выделение с чипа сервера \"Related-Srv3 (10.91.1.3)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 144
+    await testRunner.ThenAsync("граф не содержит связанный сервер \"Related-Srv3 (10.91.1.3)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 145
+    await testRunner.WhenAsync("я включаю галочку \"Показывать связанные серверы\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 146
+    await testRunner.ThenAsync("граф содержит связанный сервер \"Related-Srv3 (10.91.1.3)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
