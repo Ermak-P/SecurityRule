@@ -49,15 +49,29 @@ else
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Обозначения:</MudText>
                     <div style="display:inline-flex; align-items:center; gap:6px;">
-                        <div style="width:22px; height:14px; background:#e8f4fc; border:2px solid #1565c0; border-radius:4px;"></div>
+                        <svg width="22" height="14" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="0" width="20" height="6" rx="1" fill="#e8f4fc" stroke="#1565c0" stroke-width="1.2"/>
+                            <circle cx="3.5" cy="3" r="1" fill="#1565c0"/>
+                            <rect x="1" y="8" width="20" height="6" rx="1" fill="#e8f4fc" stroke="#1565c0" stroke-width="1.2"/>
+                            <circle cx="3.5" cy="11" r="1" fill="#1565c0"/>
+                        </svg>
                         <MudText Typo="Typo.caption">Сервер</MudText>
                     </div>
                     <div style="display:inline-flex; align-items:center; gap:6px;">
-                        <div style="width:22px; height:14px; background:#f5f5f5; border:1.5px dashed #b0bec5; border-radius:4px;"></div>
+                        <svg width="22" height="14" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="0" width="20" height="6" rx="1" fill="#f5f5f5" stroke="#b0bec5" stroke-width="1.2" stroke-dasharray="3,2"/>
+                            <circle cx="3.5" cy="3" r="1" fill="#b0bec5"/>
+                            <rect x="1" y="8" width="20" height="6" rx="1" fill="#f5f5f5" stroke="#b0bec5" stroke-width="1.2" stroke-dasharray="3,2"/>
+                            <circle cx="3.5" cy="11" r="1" fill="#b0bec5"/>
+                        </svg>
                         <MudText Typo="Typo.caption">Связанный сервер</MudText>
                     </div>
                     <div style="display:inline-flex; align-items:center; gap:6px;">
-                        <div style="width:22px; height:14px; background:#ffffff; border:1.5px solid #42a5f5; border-radius:4px;"></div>
+                        <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="1" width="14" height="14" rx="2" fill="white" stroke="#42a5f5" stroke-width="1.2"/>
+                            <rect x="3" y="4" width="10" height="2.5" rx="0.5" fill="#42a5f5"/>
+                            <rect x="3" y="8.5" width="6" height="2.5" rx="0.5" fill="#42a5f5"/>
+                        </svg>
                         <MudText Typo="Typo.caption">Сервис</MudText>
                     </div>
                     <div style="display:inline-flex; align-items:center; gap:6px;">
@@ -259,15 +273,12 @@ else
                     {
                         data = new
                         {
-                            id     = $"svc-{svc.Id}",
-                            label  = svc.Name,
-                            parent = $"srv-{srv.Id}",
-                            type   = "service",
-                            @class = "macromolecule",
-                            dimmed = isDimmed ? "1" : "0",
-                            stateVariables    = Array.Empty<object>(),
-                            unitsOfInformation = Array.Empty<object>(),
-                            clonemarker       = false
+                            id       = $"svc-{svc.Id}",
+                            label    = svc.Name,
+                            parent   = $"srv-{srv.Id}",
+                            type     = "service",
+                            nodeType = "app",
+                            dimmed   = isDimmed ? "1" : "0"
                         }
                     });
                 }
@@ -325,8 +336,7 @@ else
     }
 
     /// <summary>
-    /// Builds a Cytoscape node element for a server (compound / compartment node).
-    /// Includes the SBGN data fields required by cytoscape-sbgn-stylesheet.
+    /// Builds a Cytoscape node element for a server (compound node).
     /// </summary>
     private static object CreateServerElement(Server srv, bool dimmed)
     {
@@ -338,14 +348,11 @@ else
         {
             data = new
             {
-                id                 = $"srv-{srv.Id}",
+                id       = $"srv-{srv.Id}",
                 label,
-                type               = "server",
-                @class             = "compartment",
-                dimmed             = dimmed ? "1" : "0",
-                stateVariables     = Array.Empty<object>(),
-                unitsOfInformation = Array.Empty<object>(),
-                clonemarker        = false
+                type     = "server",
+                nodeType = "server",
+                dimmed   = dimmed ? "1" : "0"
             }
         };
     }
