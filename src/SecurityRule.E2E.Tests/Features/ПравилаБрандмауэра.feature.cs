@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 13);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 14);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -507,10 +507,10 @@ namespace SecurityRule.E2E.Tests.Features
     await testRunner.WhenAsync("я перехожу на страницу карты связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
 #line hidden
 #line 82
-    await testRunner.ThenAsync("я вижу текст \"Map-Src\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+    await testRunner.ThenAsync("я вижу текст \"Map-Src (10.20.1.1)\" в выпадающем списке \"Серверы\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
 #line 83
-    await testRunner.AndAsync("я вижу текст \"Map-DstSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+    await testRunner.AndAsync("граф карты связей содержит canvas элемент", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -609,6 +609,45 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 103
     await testRunner.AndAsync("я вижу текст \"Tbl-DstSvc\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Фильтр серверов на карте связей показывает доступные серверы")]
+        public async global::System.Threading.Tasks.Task ФильтрСерверовНаКартеСвязейПоказываетДоступныеСерверы()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "11";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Фильтр серверов на карте связей показывает доступные серверы", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 105
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 106
+    await testRunner.GivenAsync("в системе существует сервер Name \"FMap-Srv1\" IP \"10.70.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 107
+    await testRunner.AndAsync("в системе существует сервер Name \"FMap-Srv2\" IP \"10.70.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 108
+    await testRunner.WhenAsync("я перехожу на страницу карты связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 109
+    await testRunner.ThenAsync("я вижу текст \"FMap-Srv1 (10.70.1.1)\" в выпадающем списке \"Серверы\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 110
+    await testRunner.AndAsync("я вижу текст \"FMap-Srv2 (10.70.1.2)\" в выпадающем списке \"Серверы\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
