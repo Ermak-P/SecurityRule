@@ -7,6 +7,9 @@ window.graphMap = (function () {
 
     let cy = null;
 
+    const ANIM_DURATION = 600;
+    const ANIM_EASING   = 'ease-in-out-cubic';
+
     function init(containerId, elements) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -16,25 +19,100 @@ window.graphMap = (function () {
             cy = null;
         }
 
+        /* Start nodes invisible so we can fade them in after layout */
+        const invisible = elements.map(function (el) {
+            return Object.assign({}, el, {
+                data: Object.assign({}, el.data),
+                style: Object.assign({}, el.style, { opacity: 0 })
+            });
+        });
+
         cy = cytoscape({
             container: container,
-            elements: elements,
+            elements: invisible,
             style: getStyle(),
-            layout: getLayout()
+            layout: { name: 'preset' }   /* position-less placeholder */
         });
+
+        bindHoverEvents();
+
+        cy.layout(getLayout()).run();
     }
 
     function update(elements) {
         if (!cy) return;
-        cy.elements().remove();
-        cy.add(elements);
-        cy.layout(getLayout()).run();
+
+        /* Fade out existing elements, then swap and animate in */
+        cy.elements().animate({ style: { opacity: 0 } }, {
+            duration: ANIM_DURATION / 2,
+            easing: ANIM_EASING,
+            complete: function () {
+                cy.elements().remove();
+
+                const invisible = elements.map(function (el) {
+                    return Object.assign({}, el, {
+                        data: Object.assign({}, el.data),
+                        style: Object.assign({}, el.style, { opacity: 0 })
+                    });
+                });
+
+                cy.add(invisible);
+                cy.layout(getLayout()).run();
+            }
+        });
+    }
+
+    function bindHoverEvents() {
+        cy.on('mouseover', 'node', function (e) {
+            e.target.animate(
+                { style: { 'border-width': 3, 'background-opacity': 0.9 } },
+                { duration: 180, easing: 'ease-out-cubic' }
+            );
+        });
+
+        cy.on('mouseout', 'node', function (e) {
+            const type = e.target.data('type');
+            e.target.animate(
+                {
+                    style: {
+                        'border-width': type === 'server' ? 2 : 1.5,
+                        'background-opacity': type === 'server' ? 0.65 : 1
+                    }
+                },
+                { duration: 180, easing: 'ease-in-cubic' }
+            );
+        });
+
+        cy.on('mouseover', 'edge', function (e) {
+            e.target.animate(
+                { style: { width: 2.5 } },
+                { duration: 150, easing: 'ease-out-cubic' }
+            );
+        });
+
+        cy.on('mouseout', 'edge', function (e) {
+            e.target.animate(
+                { style: { width: 1.5 } },
+                { duration: 150, easing: 'ease-in-cubic' }
+            );
+        });
     }
 
     function getLayout() {
         return {
             name: 'fcose',
-            animate: false,
+            animate: true,
+            animationDuration: ANIM_DURATION,
+            animationEasing: ANIM_EASING,
+            /* Fade elements in once layout animation finishes */
+            ready: function () {
+                if (cy) {
+                    cy.elements().animate(
+                        { style: { opacity: 1 } },
+                        { duration: ANIM_DURATION / 2, easing: ANIM_EASING }
+                    );
+                }
+            },
             quality: 'proof',
             randomize: true,
             fit: true,
