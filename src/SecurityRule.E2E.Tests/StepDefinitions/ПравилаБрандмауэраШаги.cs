@@ -131,7 +131,7 @@ public sealed class ПравилаБрандмауэраШаги
     [Then("граф карты связей содержит canvas элемент")]
     public async Task ГрафСодержитCanvasЭлемент()
     {
-        var canvas = _state.Page.Locator("[data-testid='connections-graph'] canvas");
+        var canvas = _state.Page.Locator("[data-testid='connections-graph'] canvas").First;
         await canvas.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 15_000 });
     }
 

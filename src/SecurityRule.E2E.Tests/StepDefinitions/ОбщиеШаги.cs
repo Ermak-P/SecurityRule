@@ -67,10 +67,13 @@ public sealed class ОбщиеШаги
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await container.Locator(".mud-input-root").First.ClickAsync();
         // Wait for the popover list to appear and click the matching item
-        await _state.Page.WaitForTimeoutAsync(800);
-        var option = _state.Page.GetByRole(AriaRole.Option, new() { Name = value });
-        await option.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
-        await option.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(500);
+        // Use CSS attribute selector for role="option" instead of GetByRole to handle
+        // MudBlazor 9 rendering where accessible name computation may differ
+        var option = _state.Page.Locator("[role='option']")
+            .Filter(new LocatorFilterOptions { HasText = value });
+        await option.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
+        await option.First.ClickAsync();
         await _state.Page.WaitForTimeoutAsync(200);
     }
 
@@ -116,11 +119,20 @@ public sealed class ОбщиеШаги
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await container.Locator(".mud-input-root").First.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(800);
+        await _state.Page.WaitForTimeoutAsync(2000);
+
+        // DEBUG: capture HTML after click
+        var debugHtml = await _state.Page.ContentAsync();
+        await System.IO.File.WriteAllTextAsync("/tmp/debug_after_click.html", debugHtml);
+
+        // Use CSS attribute selector for role="option" to avoid GetByRole accessible-name
+        // computation issues with MudBlazor 9 dropdown rendering
+        var option = _state.Page.Locator("[role='option']")
+            .Filter(new LocatorFilterOptions { HasText = value });
 
         await Assertions
-            .Expect(_state.Page.GetByRole(AriaRole.Option, new() { Name = value }))
-            .ToBeVisibleAsync(new() { Timeout = 20_000 });
+            .Expect(option.First)
+            .ToBeVisibleAsync(new() { Timeout = 5_000 });
 
         await _state.Page.Keyboard.PressAsync("Escape");
         await _state.Page.WaitForTimeoutAsync(200);
@@ -134,10 +146,13 @@ public sealed class ОбщиеШаги
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await container.Locator(".mud-input-root").First.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(800);
+        await _state.Page.WaitForTimeoutAsync(500);
+
+        var option = _state.Page.Locator("[role='option']")
+            .Filter(new LocatorFilterOptions { HasText = value });
 
         await Assertions
-            .Expect(_state.Page.GetByRole(AriaRole.Option, new() { Name = value }))
+            .Expect(option.First)
             .ToBeHiddenAsync(new() { Timeout = 5_000 });
 
         await _state.Page.Keyboard.PressAsync("Escape");
