@@ -146,6 +146,43 @@ public sealed class ПравилаБрандмауэраШаги
     }
 
     /// <summary>
+    /// Verifies that a server chip is currently selected (has mud-chip-selected class).
+    /// </summary>
+    [Then("чип сервера {string} выбран")]
+    public async Task ЧипСервераВыбран(string label)
+    {
+        var chip = _state.Page
+            .Locator("[data-testid='server-filter-chips'] .mud-chip-selected")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await Assertions.Expect(chip.First).ToBeAttachedAsync(new() { Timeout = 10_000 });
+    }
+
+    /// <summary>
+    /// Verifies that a server chip is NOT selected (does not have mud-chip-selected class).
+    /// </summary>
+    [Then("чип сервера {string} не выбран")]
+    public async Task ЧипСервераНеВыбран(string label)
+    {
+        var chip = _state.Page
+            .Locator("[data-testid='server-filter-chips'] .mud-chip-selected")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await Assertions.Expect(chip).ToHaveCountAsync(0, new() { Timeout = 10_000 });
+    }
+
+    /// <summary>
+    /// Clicks a server chip to toggle its selection state.
+    /// </summary>
+    [When("я снимаю выделение с чипа сервера {string}")]
+    public async Task СнятьВыделениеСЧипаСервера(string label)
+    {
+        var chip = _state.Page
+            .Locator("[data-testid='server-filter-chips'] .mud-chip")
+            .Filter(new LocatorFilterOptions { HasText = label });
+        await chip.First.ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(600);
+    }
+
+    /// <summary>
     /// Verifies that a server appears in the hidden server-filter-options list
     /// rendered by GraphMap.razor. This avoids opening the MudSelect dropdown,
     /// which is unreliable after SSR-prerender → InteractiveServer adoption.

@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 14);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 15);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -648,6 +648,51 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 110
     await testRunner.AndAsync("в фильтре серверов доступен сервер \"FMap-Srv2 (10.70.1.2)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Изменение фильтра серверов на карте связей")]
+        public async global::System.Threading.Tasks.Task ИзменениеФильтраСерверовНаКартеСвязей()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "12";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Изменение фильтра серверов на карте связей", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 112
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 113
+    await testRunner.GivenAsync("в системе существует сервер Name \"ChipFlt-Srv1\" IP \"10.80.1.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 114
+    await testRunner.AndAsync("в системе существует сервер Name \"ChipFlt-Srv2\" IP \"10.80.1.2\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 115
+    await testRunner.WhenAsync("я перехожу на страницу карты связей", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 116
+    await testRunner.ThenAsync("чип сервера \"ChipFlt-Srv1 (10.80.1.1)\" выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 117
+    await testRunner.AndAsync("чип сервера \"ChipFlt-Srv2 (10.80.1.2)\" выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 118
+    await testRunner.WhenAsync("я снимаю выделение с чипа сервера \"ChipFlt-Srv1 (10.80.1.1)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 119
+    await testRunner.ThenAsync("чип сервера \"ChipFlt-Srv1 (10.80.1.1)\" не выбран", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
