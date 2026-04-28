@@ -20,74 +20,116 @@
 }
 else
 {
-    @* Filter panel – servers only *@
-    <MudPaper Class="pa-3 mb-4" Elevation="1">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" sm="10">
-                <MudSelect T="int" Label="Серверы" MultiSelection="true"
-                           SelectedValues="_selectedServerIds"
-                           SelectedValuesChanged="OnServersChanged"
-                           Clearable="true">
-                    @foreach (var s in _allServers)
-                    {
-                        <MudSelectItem T="int" Value="@s.Id">@s.Name (@s.IpAddress)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="2" Class="d-flex align-center">
-                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Clear"
-                           OnClick="ClearFilters">Сбросить</MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    @* Hidden server list used by E2E tests to verify options without opening the dropdown *@
+    <div style="display:none" data-testid="server-filter-options">
+        @foreach (var s in _allServers)
+        {
+            <span>@s.Name (@s.IpAddress)</span>
+        }
+    </div>
 
-    <MudPaper Elevation="1" Style="height: 620px;" data-testid="connections-map-container">
-        <div id="cy-container" style="width: 100%; height: 100%;" data-testid="connections-graph"></div>
-    </MudPaper>
+    @* Hidden list of currently dimmed (related) servers for E2E assertions *@
+    <div style="display:none" data-testid="graph-dimmed-servers">
+        @foreach (var srvId in _relatedServerIds)
+        {
+            var srv = _allServers.First(s => s.Id == srvId);
+            <span>@srv.Name@(string.IsNullOrWhiteSpace(srv.IpAddress) ? "" : $" ({srv.IpAddress})")</span>
+        }
+    </div>
 
-    @* Legend *@
-    <MudPaper Elevation="0" Class="pa-2 mt-2" Style="border: 1px solid #eee;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
-            <MudText Typo="Typo.caption" Color="Color.Secondary">Обозначения:</MudText>
-            <div style="display:inline-flex; align-items:center; gap:6px;">
-                <div style="width:22px; height:14px; background:#e8f4fc; border:2px solid #1565c0; border-radius:4px;"></div>
-                <MudText Typo="Typo.caption">Сервер</MudText>
-            </div>
-            <div style="display:inline-flex; align-items:center; gap:6px;">
-                <div style="width:22px; height:14px; background:#ffffff; border:1.5px solid #42a5f5; border-radius:4px;"></div>
-                <MudText Typo="Typo.caption">Сервис</MudText>
-            </div>
-            <div style="display:inline-flex; align-items:center; gap:6px;">
-                <svg width="30" height="12" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <marker id="leg-srv" markerWidth="6" markerHeight="5" refX="1" refY="2.5" orient="auto">
-                            <polygon points="0 0, 6 2.5, 0 5" fill="#1565c0" />
-                        </marker>
-                    </defs>
-                    <line x1="0" y1="6" x2="22" y2="6" stroke="#1565c0" stroke-width="1.5" marker-end="url(#leg-srv)" />
-                </svg>
-                <MudText Typo="Typo.caption">Связь от сервера</MudText>
-            </div>
-            <div style="display:inline-flex; align-items:center; gap:6px;">
-                <svg width="30" height="12" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <marker id="leg-svc" markerWidth="6" markerHeight="5" refX="1" refY="2.5" orient="auto">
-                            <polygon points="0 0, 6 2.5, 0 5" fill="#00796b" />
-                        </marker>
-                    </defs>
-                    <line x1="0" y1="6" x2="22" y2="6" stroke="#00796b" stroke-width="1.5" marker-end="url(#leg-svc)" />
-                </svg>
-                <MudText Typo="Typo.caption">Связь от сервиса</MudText>
-            </div>
-        </MudStack>
-    </MudPaper>
+    <MudGrid Spacing="3">
+        @* Graph + Legend *@
+        <MudItem xs="12" md="9">
+            <MudPaper Elevation="1" Style="height: 620px;" data-testid="connections-map-container">
+                <div id="cy-container" style="width: 100%; height: 100%;" data-testid="connections-graph"></div>
+            </MudPaper>
+
+            @* Legend *@
+            <MudPaper Elevation="0" Class="pa-2 mt-2" Style="border: 1px solid #eee;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Обозначения:</MudText>
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" fill="#1565c0"/>
+                        </svg>
+                        <MudText Typo="Typo.caption">Сервер</MudText>
+                    </div>
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" fill="#b0bec5"/>
+                        </svg>
+                        <MudText Typo="Typo.caption">Связанный сервер</MudText>
+                    </div>
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M14.17,13.71l1.4-2.42c0.09-0.15,0.05-0.34-0.08-0.45l-1.48-1.16c0.03-0.22,0.05-0.45,0.05-0.68s-0.02-0.46-0.05-0.69l1.48-1.16c0.13-0.11,0.17-0.3,0.08-0.45l-1.4-2.42c-0.09-0.15-0.27-0.21-0.43-0.15L12,4.83c-0.36-0.28-0.75-0.51-1.18-0.69l-0.26-1.85C10.53,2.13,10.38,2,10.21,2h-2.8C7.24,2,7.09,2.13,7.06,2.3L6.8,4.15C6.38,4.33,5.98,4.56,5.62,4.84l-1.74-0.7c-0.16-0.06-0.34,0-0.43,0.15l-1.4,2.42C1.96,6.86,2,7.05,2.13,7.16l1.48,1.16C3.58,8.54,3.56,8.77,3.56,9s0.02,0.46,0.05,0.69l-1.48,1.16C2,10.96,1.96,11.15,2.05,11.3l1.4,2.42c0.09,0.15,0.27,0.21,0.43,0.15l1.74-0.7c0.36,0.28,0.75,0.51,1.18,0.69l0.26,1.85C7.09,15.87,7.24,16,7.41,16h2.8c0.17,0,0.32-0.13,0.35-0.3l0.26-1.85c0.42-0.18,0.82-0.41,1.18-0.69l1.74,0.7C13.9,13.92,14.08,13.86,14.17,13.71zM8.81,11c-1.1,0-2-0.9-2-2c0-1.1,0.9-2,2-2s2,0.9,2,2C10.81,10.1,9.91,11,8.81,11z" fill="#1565c0"/>
+                            <path d="M21.92,18.67l-0.96-0.74c0.02-0.14,0.04-0.29,0.04-0.44c0-0.15-0.01-0.3-0.04-0.44l0.95-0.74c0.08-0.07,0.11-0.19,0.05-0.29l-0.9-1.55c-0.05-0.1-0.17-0.13-0.28-0.1l-1.11,0.45c-0.23-0.18-0.48-0.33-0.76-0.44l-0.17-1.18C18.73,13.08,18.63,13,18.53,13h-1.79c-0.11,0-0.21,0.08-0.22,0.19l-0.17,1.18c-0.27,0.12-0.53,0.26-0.76,0.44l-1.11-0.45c-0.1-0.04-0.22,0-0.28,0.1l-0.9,1.55c-0.05,0.1-0.04,0.22,0.05,0.29l0.95,0.74c-0.02,0.14-0.03,0.29-0.03,0.44c0,0.15,0.01,0.3,0.03,0.44l-0.95,0.74c-0.08,0.07-0.11,0.19-0.05,0.29l0.9,1.55c0.05,0.1,0.17,0.13,0.28,0.1l1.11-0.45c0.23,0.18,0.48,0.33,0.76,0.44l0.17,1.18c0.02,0.11,0.11,0.19,0.22,0.19h1.79c0.11,0,0.21-0.08,0.22-0.19l0.17-1.18c0.27-0.12,0.53-0.26,0.75-0.44l1.12,0.45c0.1,0.04,0.22,0,0.28-0.1l0.9-1.55C22.03,18.86,22,18.74,21.92,18.67zM17.63,18.83c-0.74,0-1.35-0.6-1.35-1.35s0.6-1.35,1.35-1.35s1.35,0.6,1.35,1.35S18.37,18.83,17.63,18.83z" fill="#1565c0"/>
+                        </svg>
+                        <MudText Typo="Typo.caption">Сервис</MudText>
+                    </div>
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="30" height="12" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <marker id="leg-srv" markerWidth="6" markerHeight="5" refX="1" refY="2.5" orient="auto">
+                                    <polygon points="0 0, 6 2.5, 0 5" fill="#1565c0" />
+                                </marker>
+                            </defs>
+                            <line x1="0" y1="6" x2="22" y2="6" stroke="#1565c0" stroke-width="1.5" marker-end="url(#leg-srv)" />
+                        </svg>
+                        <MudText Typo="Typo.caption">Связь от сервера</MudText>
+                    </div>
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="30" height="12" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <marker id="leg-svc" markerWidth="6" markerHeight="5" refX="1" refY="2.5" orient="auto">
+                                    <polygon points="0 0, 6 2.5, 0 5" fill="#00796b" />
+                                </marker>
+                            </defs>
+                            <line x1="0" y1="6" x2="22" y2="6" stroke="#00796b" stroke-width="1.5" marker-end="url(#leg-svc)" />
+                        </svg>
+                        <MudText Typo="Typo.caption">Связь от сервиса</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Filter panel – servers only (right side) *@
+        <MudItem xs="12" md="3">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">Фильтр по серверам:</MudText>
+                <MudStack Row="true" Spacing="1" Class="mb-2">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectAll">Выбрать все</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="DeselectAll">Снять все</MudButton>
+                </MudStack>
+                <div data-testid="server-filter-chips">
+                    <MudChipSet T="int" SelectionMode="SelectionMode.MultiSelection"
+                                SelectedValues="_selectedServerIds"
+                                SelectedValuesChanged="OnServersChanged"
+                                Class="d-flex flex-column align-start">
+                        @foreach (var s in _allServers)
+                        {
+                            <MudChip T="int" Value="@s.Id" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                                @s.Name@(string.IsNullOrWhiteSpace(s.IpAddress) ? "" : $" ({s.IpAddress})")
+                            </MudChip>
+                        }
+                    </MudChipSet>
+                </div>
+                <div data-testid="show-related-checkbox">
+                    <MudCheckBox T="bool" Value="_showRelated" ValueChanged="OnShowRelatedChanged"
+                                 Label="Показывать связанные серверы" Class="mt-2" />
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 }
 
 @code {
     private bool _loading = true;
     private bool _graphInitialized = false;
+    private bool _showRelated = false;
 
     private IReadOnlyCollection<int> _selectedServerIds = [];
+    private HashSet<int> _relatedServerIds = [];
 
     private IEnumerable<ServiceConnection> _allConnections = [];
     private IEnumerable<Server>            _allServers     = [];
@@ -104,6 +146,7 @@ else
         _allConnections = await ServiceConnectionRepository.GetAllAsync();
         _allServers     = await ServerRepository.GetAllAsync();
         _allServices    = await AppServiceRepository.GetAllAsync();
+        _selectedServerIds = _allServers.Select(s => s.Id).ToList();
         _loading = false;
     }
 
@@ -112,26 +155,43 @@ else
         if (!_loading && !_graphInitialized)
         {
             _graphInitialized = true;
-            await RenderGraph();
+            var elements = BuildElements();
+            await JS.InvokeVoidAsync("graphMap.init", "cy-container", elements);
         }
+    }
+
+    private async Task SelectAll()
+    {
+        _selectedServerIds = _allServers.Select(s => s.Id).ToList();
+        await RefreshGraph();
+    }
+
+    private async Task DeselectAll()
+    {
+        _selectedServerIds = [];
+        await RefreshGraph();
     }
 
     private async Task OnServersChanged(IReadOnlyCollection<int> values)
     {
         _selectedServerIds = values;
-        await RenderGraph();
+        await RefreshGraph();
     }
 
-    private async Task ClearFilters()
+    private async Task OnShowRelatedChanged(bool value)
     {
-        _selectedServerIds = [];
-        await RenderGraph();
+        _showRelated = value;
+        await RefreshGraph();
     }
 
-    private async Task RenderGraph()
+    private async Task RefreshGraph()
     {
-        var elements = BuildElements();
-        await JS.InvokeVoidAsync("graphMap.init", "cy-container", elements);
+        if (_graphInitialized)
+        {
+            var elements = BuildElements();
+            // Wrap in object[] so the params overload passes 'elements' as a single JS argument.
+            await JS.InvokeVoidAsync("graphMap.update", new object[] { elements });
+        }
     }
 
     // ── Build Cytoscape elements ──────────────────────────────────────────────
@@ -139,28 +199,65 @@ else
     {
         var selectedIds = _selectedServerIds.ToHashSet();
 
-        var visibleServers = selectedIds.Count == 0
+        var primaryServers = selectedIds.Count == 0
             ? _allServers.ToList()
             : _allServers.Where(s => selectedIds.Contains(s.Id)).ToList();
 
-        var visibleServerIds = visibleServers.Select(s => s.Id).ToHashSet();
+        var primaryServerIds = primaryServers.Select(s => s.Id).ToHashSet();
+
+        // Build service→server lookup to infer server when DestinationServerId is not set.
+        var svcToSrvId = new Dictionary<int, int>();
+        foreach (var srv in _allServers)
+            foreach (var svc in srv.Services)
+                svcToSrvId.TryAdd(svc.Id, srv.Id);
+
+        // Helper: resolve the effective server for a connection endpoint.
+        int? EffectiveServer(int? explicitServerId, int? serviceId)
+        {
+            if (explicitServerId.HasValue) return explicitServerId;
+            if (serviceId.HasValue && svcToSrvId.TryGetValue(serviceId.Value, out int sid)) return sid;
+            return null;
+        }
+
+        // Find related servers: connected to a primary server but not selected.
+        var relatedServerIdSet = new HashSet<int>();
+        if (_showRelated && primaryServerIds.Count > 0 && selectedIds.Count > 0)
+        {
+            foreach (var conn in _allConnections)
+            {
+                int? srcSrv = EffectiveServer(conn.SourceServerId, conn.SourceServiceId);
+                int? dstSrv = EffectiveServer(conn.DestinationServerId, conn.DestinationServiceId);
+
+                if (srcSrv.HasValue && primaryServerIds.Contains(srcSrv.Value)
+                    && dstSrv.HasValue && !primaryServerIds.Contains(dstSrv.Value))
+                    relatedServerIdSet.Add(dstSrv.Value);
+
+                if (dstSrv.HasValue && primaryServerIds.Contains(dstSrv.Value)
+                    && srcSrv.HasValue && !primaryServerIds.Contains(srcSrv.Value))
+                    relatedServerIdSet.Add(srcSrv.Value);
+            }
+        }
+        _relatedServerIds = relatedServerIdSet;
+
+        var relatedServers  = _allServers.Where(s => relatedServerIdSet.Contains(s.Id)).ToList();
+        var allVisibleServers = primaryServers.Concat(relatedServers).ToList();
+        var allVisibleServerIds = allVisibleServers.Select(s => s.Id).ToHashSet();
 
         var elements = new List<object>();
 
-        // Server compound nodes
-        foreach (var srv in visibleServers.OrderBy(s => s.Name))
-        {
-            string label = string.IsNullOrWhiteSpace(srv.IpAddress)
-                ? srv.Name
-                : $"{srv.Name}\n{srv.IpAddress}";
+        // Primary server compound nodes
+        foreach (var srv in primaryServers.OrderBy(s => s.Name))
+            elements.Add(CreateServerElement(srv, dimmed: false));
 
-            elements.Add(new { data = new { id = $"srv-{srv.Id}", label, type = "server" } });
-        }
+        // Related (dimmed) server compound nodes
+        foreach (var srv in relatedServers.OrderBy(s => s.Name))
+            elements.Add(CreateServerElement(srv, dimmed: true));
 
-        // Service nodes (children of their servers; each service appears once under its first visible server)
+        // Service nodes (children of their servers)
         var addedServiceIds = new HashSet<int>();
-        foreach (var srv in visibleServers.OrderBy(s => s.Name))
+        foreach (var srv in allVisibleServers.OrderBy(s => s.Name))
         {
+            bool isDimmed = relatedServerIdSet.Contains(srv.Id);
             foreach (var svc in srv.Services.OrderBy(s => s.Name))
             {
                 if (addedServiceIds.Add(svc.Id))
@@ -169,32 +266,35 @@ else
                     {
                         data = new
                         {
-                            id     = $"svc-{svc.Id}",
-                            label  = svc.Name,
-                            parent = $"srv-{srv.Id}",
-                            type   = "service"
+                            id       = $"svc-{svc.Id}",
+                            label    = svc.Name,
+                            parent   = $"srv-{srv.Id}",
+                            type     = "service",
+                            nodeType = "app",
+                            dimmed   = isDimmed ? "1" : "0"
                         }
                     });
                 }
             }
         }
 
-        // Edges – only between visible servers
-        int edgeIdx = 0;
+        // Edges – between visible servers (using effective server IDs to handle null DestinationServerId)
         foreach (var conn in _allConnections)
         {
-            bool srcInScope = conn.SourceServerId.HasValue && visibleServerIds.Contains(conn.SourceServerId.Value);
-            bool dstInScope = conn.DestinationServerId.HasValue && visibleServerIds.Contains(conn.DestinationServerId.Value);
+            int? srcSrv = EffectiveServer(conn.SourceServerId, conn.SourceServiceId);
+            int? dstSrv = EffectiveServer(conn.DestinationServerId, conn.DestinationServiceId);
+
+            bool srcInScope = srcSrv.HasValue && allVisibleServerIds.Contains(srcSrv.Value);
+            bool dstInScope = dstSrv.HasValue && allVisibleServerIds.Contains(dstSrv.Value);
             if (!srcInScope || !dstInScope) continue;
 
-            // At this point SourceServerId and DestinationServerId are guaranteed to have values (checked above)
             string srcNodeId = conn.SourceServiceId.HasValue && addedServiceIds.Contains(conn.SourceServiceId.Value)
                 ? $"svc-{conn.SourceServiceId.Value}"
-                : $"srv-{conn.SourceServerId.GetValueOrDefault()}";
+                : $"srv-{srcSrv.GetValueOrDefault()}";
 
             string dstNodeId = addedServiceIds.Contains(conn.DestinationServiceId)
                 ? $"svc-{conn.DestinationServiceId}"
-                : $"srv-{conn.DestinationServerId.GetValueOrDefault()}";
+                : $"srv-{dstSrv.GetValueOrDefault()}";
 
             bool fromService = conn.SourceServiceId.HasValue;
             string label = BuildEdgeLabel(
@@ -206,11 +306,12 @@ else
             {
                 data = new
                 {
-                    id          = $"edge-{edgeIdx++}",
+                    id          = $"edge-{conn.Id}",
                     source      = srcNodeId,
                     target      = dstNodeId,
                     label,
-                    fromService = fromService ? "1" : "0"
+                    fromService = fromService ? "1" : "0",
+                    description = conn.Description ?? ""
                 }
             });
         }
@@ -226,5 +327,27 @@ else
         if (hasPort)             return $"{port}";
         if (hasProto)            return protocol!;
         return "";
+    }
+
+    /// <summary>
+    /// Builds a Cytoscape node element for a server (compound node).
+    /// </summary>
+    private static object CreateServerElement(Server srv, bool dimmed)
+    {
+        string label = string.IsNullOrWhiteSpace(srv.IpAddress)
+            ? srv.Name
+            : $"{srv.Name}\n{srv.IpAddress}";
+
+        return new
+        {
+            data = new
+            {
+                id       = $"srv-{srv.Id}",
+                label,
+                type     = "server",
+                nodeType = "server",
+                dimmed   = dimmed ? "1" : "0"
+            }
+        };
     }
 }

@@ -62,18 +62,21 @@ public sealed class ОбщиеШаги
     public async Task ВыбратьВВыпадающемСписке(string value, string label)
     {
         // Find the MudSelect container by its visible label text.
-        // In MudBlazor 9, using FocusAsync() on the input opens the dropdown without
-        // the toggle-close that happens when ClickAsync() fires both focus and click events.
         var container = _state.Page.Locator(".mud-input-control")
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
-        var inputEl = container.Locator("input.mud-select-input").First;
-        await inputEl.FocusAsync();
-        // Wait for the popover list to appear and click the matching item
+
+        // MudBlazor 9 opens the dropdown via @onmousedown="HandleMouseDown" on MudInputControl
+        // (exposed as a typed OnMouseDown EventCallback parameter). ClickAsync fires mousedown
+        // which triggers HandleMouseDown → ToggleMenu → OpenMenu. The subsequent click event
+        // has no handler that closes the menu, so the popover stays open.
+        await container.First.ClickAsync();
+
+        // Wait for the popover list to appear.
+        // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
         await _state.Page.WaitForTimeoutAsync(500);
-        // Use CSS attribute selector for role="option" instead of GetByRole to handle
-        // MudBlazor 9 rendering where accessible name computation may differ
-        var option = _state.Page.Locator("[role='option']")
+
+        var option = _state.Page.Locator(".mud-list-item")
             .Filter(new LocatorFilterOptions { HasText = value });
         await option.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
         await option.First.ClickAsync();
@@ -121,36 +124,13 @@ public sealed class ОбщиеШаги
         var container = _state.Page.Locator(".mud-input-control")
             .Filter(new LocatorFilterOptions { HasText = label });
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+
+        // ClickAsync fires mousedown → HandleMouseDown → ToggleMenu → OpenMenu (MudBlazor 9).
+        await container.First.ClickAsync();
         await _state.Page.WaitForTimeoutAsync(500);
 
-        var consoleMsgs = new System.Collections.Concurrent.ConcurrentBag<string>();
-        _state.Page.Console += (_, msg) => consoleMsgs.Add($"{msg.Type}: {msg.Text}");
-
-        // Blazor events on select input: only change/keyup/keydown/blur registered - NO click.
-        // Check ancestors of the select input for a click handler
-        await _state.Page.EvaluateAsync(@"() => {
-            const input = document.querySelector('input.mud-select-input');
-            if (!input) return;
-            let el = input;
-            let depth = 0;
-            while (el && depth < 15) {
-                const evts = el._blazorEvents_1;
-                const h = evts?.handlers;
-                if (h && Object.keys(h).length > 0) {
-                    console.log('[ANCESTOR] depth=' + depth, el.tagName, el.className.substring(0,50), 'events:', Object.keys(h).join(','));
-                }
-                el = el.parentElement;
-                depth++;
-            }
-        }");
-
-        var inputEl = container.Locator("input.mud-select-input").First;
-        await inputEl.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(1000);
-
-        await System.IO.File.WriteAllTextAsync("/tmp/debug_propagation.txt", string.Join("\n", consoleMsgs));
-
-        var option = _state.Page.Locator("[role='option']")
+        // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
+        var option = _state.Page.Locator(".mud-list-item")
             .Filter(new LocatorFilterOptions { HasText = value });
 
         await Assertions
@@ -172,7 +152,11 @@ public sealed class ОбщиеШаги
         await inputEl2.FocusAsync();
         await _state.Page.WaitForTimeoutAsync(500);
 
-        var option = _state.Page.Locator("[role='option']")
+        // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
+        // When the dropdown is closed the popover content is not in the DOM at all,
+        // so ToBeHiddenAsync passes immediately; the FocusAsync above is just a
+        // precaution to trigger any pending render.
+        var option = _state.Page.Locator(".mud-list-item")
             .Filter(new LocatorFilterOptions { HasText = value });
 
         await Assertions

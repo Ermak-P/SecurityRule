@@ -18,7 +18,18 @@ namespace SecurityRule.E2E.Tests.Support;
 /// </summary>
 public sealed class TestWebServer : IAsyncDisposable
 {
+    private readonly string _dbName;
     private WebApplication? _app;
+
+    /// <summary>
+    /// Creates a new test web server.
+    /// Each instance should use a unique <paramref name="dbName"/> so that parallel
+    /// feature executions do not share the same in-memory EF Core database.
+    /// </summary>
+    public TestWebServer(string? dbName = null)
+    {
+        _dbName = dbName ?? Guid.NewGuid().ToString("N");
+    }
 
     /// <summary>Base URL of the server, e.g. "http://127.0.0.1:54321".</summary>
     public string BaseUrl { get; private set; } = string.Empty;
@@ -48,13 +59,14 @@ public sealed class TestWebServer : IAsyncDisposable
 
         builder.Services.AddMudServices();
 
-        // Replace SQL Server with EF InMemory for test isolation
+        // Replace SQL Server with EF InMemory for test isolation.
+        // Each TestWebServer instance uses a unique database name to support parallel test execution.
         builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase("E2ETestDb"));
+            options.UseInMemoryDatabase(_dbName));
 
         // FakeAd also uses an in-memory database for test isolation
         builder.Services.AddDbContextFactory<FakeAdDbContext>(options =>
-            options.UseInMemoryDatabase("E2EFakeAdDb"));
+            options.UseInMemoryDatabase(_dbName + "_FakeAd"));
 
         builder.Services.AddScoped<IServerRepository, ServerRepository>();
         builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();

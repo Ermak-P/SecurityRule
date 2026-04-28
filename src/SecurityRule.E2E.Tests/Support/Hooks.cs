@@ -5,44 +5,61 @@ namespace SecurityRule.E2E.Tests.Support;
 
 /// <summary>
 /// Reqnroll lifecycle hooks.
-/// • [BeforeTestRun]  – start the Blazor test server and a headless Chromium instance once.
-/// • [AfterTestRun]   – dispose browser and server.
+/// <para>
+/// Parallelism model: NUnit runs each feature (fixture) in parallel via
+/// <c>[assembly: Parallelizable(ParallelScope.Fixtures)]</c>.  Each feature gets
+/// its own <see cref="TestWebServer"/> (unique in-memory database), its own
+/// Playwright instance and browser, stored in the <see cref="FeatureContext"/>.
+/// Scenarios within a feature still execute sequentially and share one server,
+/// resetting the database between them.
+/// </para>
+/// • [BeforeFeature]  – start the Blazor test server and a headless Chromium instance.
+/// • [AfterFeature]   – dispose browser and server.
 /// • [BeforeScenario] – reset the database and open a fresh browser page.
 /// • [AfterScenario]  – close the browser context used by the scenario.
 /// </summary>
 [Binding]
 public sealed class Hooks
 {
-    // ── Static resources shared across all scenarios ──────────────────────────
-    private static TestWebServer? _server;
-    private static IPlaywright?   _playwright;
-    private static IBrowser?      _browser;
-
     private readonly ScenarioState _state;
+    private readonly FeatureContext _featureContext;
 
-    public Hooks(ScenarioState state) => _state = state;
-
-    // ── One-time setup / teardown ─────────────────────────────────────────────
-
-    [BeforeTestRun]
-    public static async Task BeforeTestRunAsync()
+    public Hooks(ScenarioState state, FeatureContext featureContext)
     {
-        _server = new TestWebServer();
-        await _server.StartAsync();
+        _state = state;
+        _featureContext = featureContext;
+    }
 
-        _playwright = await Playwright.CreateAsync();
-        _browser    = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+    // ── Per-feature setup / teardown ──────────────────────────────────────────
+
+    [BeforeFeature]
+    public static async Task BeforeFeatureAsync(FeatureContext featureContext)
+    {
+        var server = new TestWebServer();
+        await server.StartAsync();
+
+        var playwright = await Playwright.CreateAsync();
+        var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
             Headless = true
         });
+
+        featureContext.Set(server);
+        featureContext.Set(playwright);
+        featureContext.Set(browser);
     }
 
-    [AfterTestRun]
-    public static async Task AfterTestRunAsync()
+    [AfterFeature]
+    public static async Task AfterFeatureAsync(FeatureContext featureContext)
     {
-        if (_browser is not null) await _browser.DisposeAsync();
-        _playwright?.Dispose();
-        if (_server is not null) await _server.DisposeAsync();
+        if (featureContext.TryGetValue<IBrowser>(out var browser))
+            await browser.DisposeAsync();
+
+        if (featureContext.TryGetValue<IPlaywright>(out var playwright))
+            playwright.Dispose();
+
+        if (featureContext.TryGetValue<TestWebServer>(out var server))
+            await server.DisposeAsync();
     }
 
     // ── Per-scenario setup / teardown ─────────────────────────────────────────
@@ -50,21 +67,28 @@ public sealed class Hooks
     [BeforeScenario]
     public async Task BeforeScenarioAsync()
     {
+        if (!_featureContext.TryGetValue<TestWebServer>(out var server))
+            throw new InvalidOperationException(
+                "TestWebServer not found in FeatureContext. Did BeforeFeatureAsync fail?");
+
+        if (!_featureContext.TryGetValue<IBrowser>(out var browser))
+            throw new InvalidOperationException(
+                "IBrowser not found in FeatureContext. Did BeforeFeatureAsync fail?");
+
         // Start each scenario with a clean in-memory database
-        await _server!.ResetDatabaseAsync();
+        await server.ResetDatabaseAsync();
 
         // Create an isolated browser context (own cookies / storage) per scenario
-        var context = await _browser!.NewContextAsync(new BrowserNewContextOptions
+        var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
-            // Ignore SSL errors if any (not expected since we use HTTP)
             IgnoreHTTPSErrors = true
         });
 
         var page = await context.NewPageAsync();
 
         _state.Page     = page;
-        _state.BaseUrl  = _server.BaseUrl;
-        _state.Services = _server.Services;
+        _state.BaseUrl  = server.BaseUrl;
+        _state.Services = server.Services;
     }
 
     [AfterScenario]
