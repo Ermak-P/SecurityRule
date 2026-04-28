@@ -166,3 +166,7 @@ A task is complete ONLY if:
 - Write self-documenting code
 - Add comments only for complex logic
 - If unsure — ask instead of guessing
+
+---
+
+_End of instructions_
