@@ -160,10 +160,15 @@ window.graphMap = (function () {
         /* Double-click: navigate to server or service details page */
         cy.on('dbltap', 'node', function (e) {
             var data = e.target.data();
+            var rawId, numId;
             if (data.type === 'server') {
-                window.location.href = '/servers/' + data.id.replace('srv-', '');
+                rawId = String(data.id).replace('srv-', '');
+                numId = parseInt(rawId, 10);
+                if (numId > 0) window.location.href = '/servers/' + numId;
             } else if (data.type === 'service') {
-                window.location.href = '/services/' + data.id.replace('svc-', '');
+                rawId = String(data.id).replace('svc-', '');
+                numId = parseInt(rawId, 10);
+                if (numId > 0) window.location.href = '/services/' + numId;
             }
         });
     }
