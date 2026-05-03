@@ -4,65 +4,38 @@
 
 This project is built using **.NET (C#)** — a Blazor Server web application with Clean Architecture.
 
-**Solution structure:**
-- `src/SecurityRule.Domain` — entities, interfaces, domain logic
-- `src/SecurityRule.Application` — use cases, application services
-- `src/SecurityRule.Infrastructure` — EF Core, repositories, FakeAdService, ActiveDirectoryService
-- `src/SecurityRule.Web` — Blazor Server UI (MudBlazor), Razor components
-- `src/SecurityRule.Tests` — unit and integration tests (NUnit, InMemory DB)
-- `src/SecurityRule.E2E.Tests` — end-to-end tests (NUnit + SpecFlow + Playwright)
+**Solution structure (`src/`):**
+- `SecurityRule.Domain` — entities (`Models/`), repository interfaces (`Interfaces/`), no external dependencies
+- `SecurityRule.Infrastructure` — EF Core (`AppDbContext`), repository implementations (`Repositories/`), services (`Services/`: `FakeAdService`, `ActiveDirectoryService`)
+- `SecurityRule.Web` — Blazor Server UI (MudBlazor components), Razor pages (`Components/Pages/`), application services (`Services/`)
+- `SecurityRule.Tests` — unit + integration tests (NUnit, EF Core InMemory DB)
+- `SecurityRule.E2E.Tests` — end-to-end tests (NUnit + SpecFlow + Playwright)
+
+> **Note:** There is NO `SecurityRule.Application` project. Business logic lives in `SecurityRule.Domain`; orchestration lives in `SecurityRule.Infrastructure/Services/` or `SecurityRule.Web/Services/`.
 
 **Key commands:**
 ```bash
 # Build
-dotnet build src/SecurityRule.sln
+dotnet build src/SecurityRule.slnx
 
-# Unit + Integration tests (81 tests, no browser required)
+# Unit + Integration tests (~129 tests, no browser required) — always run after changes
 dotnet test src/SecurityRule.Tests/
 
-# E2E tests (require Playwright browser — run in CI only)
+# E2E tests (require Playwright browser — run in CI only, NOT in agent sandbox)
 dotnet test src/SecurityRule.E2E.Tests/
 ```
-
-All code must be production-ready, maintainable, and aligned with modern engineering practices.
-
----
-
-## Development Principles
-
-Always follow these methodologies:
-
-- **TDD (Test-Driven Development)** — write tests before implementation
-- **BDD (Behavior-Driven Development)** — focus on behavior and business scenarios
-- **DDD (Domain-Driven Design)** — model the domain explicitly
-- **FDD (Feature-Driven Development)** — implement features incrementally
-- **MDD (Model-Driven Development)** — rely on domain models as the foundation
-
----
-
-## General Rules
-
-- Follow clean architecture principles
-- Prefer small, modular functions
-- Write readable and maintainable code
-- Always include error handling
-- Add logging where appropriate
 
 ---
 
 ## Architecture & Design
 
-- Follow **Clean Architecture** with strict layer separation:
-  - **Domain** — entities, interfaces, no external dependencies
-  - **Application** — use cases, orchestration
-  - **Infrastructure** — EF Core (`AppDbContext`), repositories, `FakeAdService`
-  - **Presentation** — Blazor Server pages and components
-
-- Apply SOLID principles
-- Use dependency injection
-- Avoid tight coupling
-- Keep business logic inside the Domain layer
-- Do not mix infrastructure concerns with business logic
+- **Clean Architecture** layer rules:
+  - **Domain** — entities, interfaces. Zero external dependencies. Never reference Infrastructure or Web.
+  - **Infrastructure** — implements Domain interfaces. Contains `AppDbContext` (EF Core), repositories, `FakeAdService`, `ActiveDirectoryService`.
+  - **Web** — Blazor Server pages/components (MudBlazor), page-scoped services (e.g. `GraphMapElementsBuilder`). References Domain and Infrastructure.
+- Apply SOLID principles; use dependency injection everywhere.
+- Keep business logic in Domain. Do not put it in repositories or Blazor components.
+- Do not mix infrastructure concerns (DB, AD) with business logic.
 
 ---
 
@@ -72,46 +45,47 @@ Always follow these methodologies:
 
 - Use **NUnit** for all tests (both unit/integration and E2E)
 - E2E tests use **SpecFlow** (Gherkin `.feature` files) + **Playwright**
-- Use `InMemory` EF Core database for `AppDbContext` in tests
-- Use `FakeAdService` singleton (not real AD) in all tests
+  - `.feature` files are written **in Russian** (Given/When/Then на русском)
+  - Step definitions go in `StepDefinitions/` folder, grouped by domain
+- Use `InMemory` EF Core database for `AppDbContext` in tests — never use a real SQL Server connection
+- Use `FakeAdService` singleton (not real AD) in all tests; real `ActiveDirectoryService` is Windows-only
 
 ### General Rules
 
-- Tests are mandatory for all changes
+- Tests are **mandatory** for all changes
 - Always run `dotnet test src/SecurityRule.Tests/` after completing any task
 - A task is NOT complete if any test fails
+- **E2E tests cannot run in the agent sandbox** — write correct `.feature` + step definitions; they run in CI
 
 ---
 
 ## Test Strategy
 
-### Web-related functionality (Blazor pages/components, routes, UI behavior)
+### When to write what type of test
 
-If functionality involves UI, pages, or routes:
+| Changed area | Required test type |
+|---|---|
+| Domain entity, interface | Unit test |
+| Repository method | Integration test (InMemory DB) |
+| Infrastructure service (FakeAdService, etc.) | Unit test with mocks or integration test |
+| Blazor page, route, UI behavior | E2E `.feature` scenario + step definitions |
 
-- MUST create or update **E2E tests** (`.feature` file + step definitions in `SecurityRule.E2E.Tests`)
-- Cover real user scenarios in Gherkin (Given/When/Then in Russian)
-- Validate full page rendering and interaction via Playwright
-- Step definitions go in `StepDefinitions/` folder, grouped by domain
+### Concrete rules
 
-### Non-Web functionality (domain logic, repositories, services)
-
-If changes affect business logic, repositories, or infrastructure:
-
-- MUST create or update:
-  - **Unit tests** — isolated logic with mocked dependencies
-  - **Integration tests** — using `InMemoryDbContext` and real repository implementations
+- Unit tests: mock all external dependencies; test a single class in isolation
+- Integration tests: use real repository classes with `InMemory` `AppDbContext`; no mocks for the DB
+- E2E tests: cover full user flows; use `data-testid` attributes for locators (already placed in components)
 
 ---
 
 ## Strict TDD Workflow
 
-1. Write or update tests FIRST
-2. Run tests (they MUST fail at this point)
-3. Implement the functionality
-4. Run tests again
-5. Ensure ALL tests pass
-6. Refactor safely (tests must remain green)
+1. Write or update tests FIRST (they must fail before implementation — confirm this before proceeding)
+2. Implement the functionality
+3. Run `dotnet test src/SecurityRule.Tests/` — ensure ALL tests pass
+4. Refactor safely (tests must remain green)
+
+> For E2E-only changes (new Blazor page), write the `.feature` + step definitions first, then implement the page. E2E execution happens in CI.
 
 ---
 
@@ -153,47 +127,40 @@ Before closing the task, confirm:
 - Every new public method has at least one test
 - Every deleted method's tests are removed
 - No tests reference code that no longer exists
-- All 81+ unit/integration tests are green
+- All unit/integration tests pass (`dotnet test src/SecurityRule.Tests/` — 0 failures)
 
 ---
 
 ## Code Quality Rules
 
-- Prefer `async`/`await` for all I/O operations
-- Avoid blocking calls (no `.Result` or `.Wait()`)
-- Use meaningful naming — classes, methods, variables, test names
-- Avoid overengineering and unnecessary abstractions
+- Prefer `async`/`await` for all I/O operations; never use `.Result` or `.Wait()`
+- Use meaningful naming for classes, methods, variables, and tests
 - Keep methods short and focused (single responsibility)
+- Add comments only for non-obvious or complex logic; code should be self-documenting otherwise
 
 ---
 
 ## Error Handling & Logging
 
-- Always handle exceptions properly
-- Never swallow exceptions silently
-- Use structured logging (`ILogger<T>`)
-- Log:
-  - Errors and exceptions
-  - Important business events
-  - External service interactions (AD, DB)
+- Always handle exceptions explicitly; never swallow them silently (no empty `catch {}`)
+- Use structured logging: `ILogger<T>` injected via DI
+- Log: errors/exceptions, important business events, external service calls (AD, DB)
 
 ---
 
 ## Dependencies
 
 - Only use **open-source NuGet packages**
-- Prefer well-maintained, widely adopted libraries
-- Avoid adding dependencies without a clear need
-- Check for known vulnerabilities before adding new packages
+- Avoid adding packages without a clear need; prefer libraries already used in the project
+- Before adding a new package, check for known vulnerabilities
 
 ---
 
 ## Workflow Rules
 
-- Analyze existing code before making changes
-- Follow existing architecture and patterns
-- Do not introduce conflicting approaches
-- If something is unclear — ASK before implementing
+- Always read the relevant existing code before making changes
+- Follow existing patterns; do not introduce inconsistent approaches
+- When something is ambiguous, make the **safest, minimal-scope assumption** and implement accordingly — do not guess wildly or add unused abstractions
 
 ---
 
@@ -203,9 +170,9 @@ A task is complete ONLY if ALL of the following are true:
 
 - [ ] Tests are written/updated/deleted as required by the Post-Task Test Analysis
 - [ ] `dotnet test src/SecurityRule.Tests/` passes with 0 failures
-- [ ] E2E `.feature` files and step definitions are updated (if UI changed)
-- [ ] Code follows Clean Architecture rules
-- [ ] No critical warnings or errors remain
+- [ ] E2E `.feature` files and step definitions are added/updated (if UI changed)
+- [ ] Code follows Clean Architecture layer rules
+- [ ] No build errors or critical warnings remain
 - [ ] All new public functionality is covered by tests
 - [ ] No orphaned tests reference deleted code
 
@@ -213,13 +180,11 @@ A task is complete ONLY if ALL of the following are true:
 
 ## Additional Guidance
 
-- Prefer simplicity over cleverness
-- Write self-documenting code
-- Add comments only for non-obvious or complex logic
-- If unsure — ask instead of guessing
-- Test names should describe the scenario, not the implementation:
+- Test names must describe the scenario, not the method name:
   - ✅ `Returns_Empty_List_When_No_Servers_Exist`
   - ❌ `Test_GetAll_001`
+- Prefer simplicity — avoid over-engineering or premature abstractions
+- Do not create files outside the standard project structure without a clear reason
 
 ---
 
