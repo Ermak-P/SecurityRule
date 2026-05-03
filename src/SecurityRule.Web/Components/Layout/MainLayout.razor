@@ -51,6 +51,7 @@
             var isDark = stored == null || stored == "true";
             if (isDark != ThemeState.IsDarkMode)
                 ThemeState.SetDarkMode(isDark);
+            try { await JS.InvokeVoidAsync("clearThemePreload"); } catch { /* ignore if preload script not available */ }
         }
     }
 

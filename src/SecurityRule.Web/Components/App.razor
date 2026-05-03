@@ -13,6 +13,18 @@
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
+    <script>
+        (function () {
+            var stored = localStorage.getItem('darkMode');
+            var isDark = stored === null || stored === 'true';
+            document.documentElement.style.backgroundColor = isDark ? '#0D1117' : '#F6F8FA';
+            document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        })();
+        window.clearThemePreload = function () {
+            document.documentElement.style.backgroundColor = '';
+            document.documentElement.style.colorScheme = '';
+        };
+    </script>
 </head>
 
 <body>
