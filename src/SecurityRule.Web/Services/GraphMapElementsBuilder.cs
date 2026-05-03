@@ -143,7 +143,7 @@ public sealed class GraphMapElementsBuilder
 
     private static GraphElement CreateEdgeElement(
         string id, string source, string target,
-        string label, bool fromService, string description)
+        string label, bool fromService, string? description)
         => new(new GraphElementData
         {
             Id          = id,
@@ -151,7 +151,7 @@ public sealed class GraphMapElementsBuilder
             Source      = source,
             Target      = target,
             FromService = fromService ? "1" : "0",
-            Description = description
+            Description = description ?? string.Empty
         });
 
     // ── Private helpers ───────────────────────────────────────────────────────
