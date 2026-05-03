@@ -1,5 +1,6 @@
 @page "/connections/map"
 @rendermode InteractiveServer
+@using System.Text.Json
 @inject IServiceConnectionRepository ServiceConnectionRepository
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
@@ -133,6 +134,14 @@ else
 }
 
 @code {
+    private sealed record GraphMapSettings(
+        bool  ShowRelated,
+        bool  ShowEdgeLabels,
+        bool  ShowServerIp,
+        int[] SelectedServerIds);
+
+    private const string SettingsKey = "graphmap-settings";
+
     private bool _loading          = true;
     private bool _graphInitialized = false;
     private bool _showRelated      = false;
@@ -166,46 +175,93 @@ else
         if (!_loading && !_graphInitialized)
         {
             _graphInitialized = true;
+
+            await LoadSettingsAsync();
+
             var result = BuildGraphElements();
             _relatedServerIds = result.RelatedServerIds;
+            await InvokeAsync(StateHasChanged);
             await JS.InvokeVoidAsync("graphMap.init", "cy-container", result.Elements);
         }
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("localStorage.getItem", SettingsKey);
+            if (json is null) return;
+
+            var settings = JsonSerializer.Deserialize<GraphMapSettings>(json);
+            if (settings is null) return;
+
+            _showRelated    = settings.ShowRelated;
+            _showEdgeLabels = settings.ShowEdgeLabels;
+            _showServerIp   = settings.ShowServerIp;
+
+            if (settings.SelectedServerIds.Length > 0)
+            {
+                var validIds = _allServers.Select(s => s.Id).ToHashSet();
+                var filtered = settings.SelectedServerIds.Where(id => validIds.Contains(id)).ToList();
+                if (filtered.Count > 0)
+                    _selectedServerIds = filtered;
+            }
+        }
+        catch (JsonException) { /* ignore corrupt stored data */ }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        var settings = new GraphMapSettings(
+            _showRelated,
+            _showEdgeLabels,
+            _showServerIp,
+            _selectedServerIds.ToArray());
+
+        var json = JsonSerializer.Serialize(settings);
+        await JS.InvokeVoidAsync("localStorage.setItem", SettingsKey, json);
     }
 
     private async Task SelectAll()
     {
         _selectedServerIds = _allServers.Select(s => s.Id).ToList();
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task DeselectAll()
     {
         _selectedServerIds = [];
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task OnServersChanged(IReadOnlyCollection<int> values)
     {
         _selectedServerIds = values;
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task OnShowRelatedChanged(bool value)
     {
         _showRelated = value;
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task OnShowEdgeLabelsChanged(bool value)
     {
         _showEdgeLabels = value;
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task OnShowServerIpChanged(bool value)
     {
         _showServerIp = value;
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task RefreshGraph()
