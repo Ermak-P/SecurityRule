@@ -119,6 +119,14 @@ else
                     <MudCheckBox T="bool" Value="_showRelated" ValueChanged="OnShowRelatedChanged"
                                  Label="Показывать связанные серверы" Class="mt-2" />
                 </div>
+                <div data-testid="show-edge-labels-checkbox">
+                    <MudCheckBox T="bool" Value="_showEdgeLabels" ValueChanged="OnShowEdgeLabelsChanged"
+                                 Label="Показывать порт/протокол" Class="mt-1" />
+                </div>
+                <div data-testid="show-server-ip-checkbox">
+                    <MudCheckBox T="bool" Value="_showServerIp" ValueChanged="OnShowServerIpChanged"
+                                 Label="Показывать IP сервера" Class="mt-1" />
+                </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -128,6 +136,8 @@ else
     private bool _loading          = true;
     private bool _graphInitialized = false;
     private bool _showRelated      = false;
+    private bool _showEdgeLabels   = true;
+    private bool _showServerIp     = true;
 
     private IReadOnlyCollection<int> _selectedServerIds = [];
     private IReadOnlySet<int>        _relatedServerIds  = new HashSet<int>();
@@ -186,6 +196,18 @@ else
         await RefreshGraph();
     }
 
+    private async Task OnShowEdgeLabelsChanged(bool value)
+    {
+        _showEdgeLabels = value;
+        await RefreshGraph();
+    }
+
+    private async Task OnShowServerIpChanged(bool value)
+    {
+        _showServerIp = value;
+        await RefreshGraph();
+    }
+
     private async Task RefreshGraph()
     {
         if (!_graphInitialized) return;
@@ -197,5 +219,5 @@ else
     }
 
     private GraphMapResult BuildGraphElements()
-        => ElementsBuilder.Build(_allConnections, _allServers, _allServices, _selectedServerIds, _showRelated);
+        => ElementsBuilder.Build(_allConnections, _allServers, _allServices, _selectedServerIds, _showRelated, _showEdgeLabels, _showServerIp);
 }

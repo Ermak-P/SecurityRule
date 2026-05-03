@@ -320,6 +320,80 @@ public class GraphMapElementsBuilderTests
         Assert.That(edge!.Target, Is.EqualTo("svc-5"));
     }
 
+    // ── showEdgeLabels option ─────────────────────────────────────────────────
+
+    [Test]
+    public void Build_ShowEdgeLabels_True_IncludesPortProtocolLabel()
+    {
+        var dstSvc = MakeService(2, "API", port: 443);
+        var srv    = MakeServer(1, "Srv", services: [dstSvc]);
+        var conn   = new ServiceConnection
+        {
+            Id                   = 1,
+            SourceServerId       = 1,
+            DestinationServerId  = 1,
+            DestinationServiceId = 2,
+            Protocol             = "HTTPS"
+        };
+
+        var result = _builder.Build([conn], [srv], [dstSvc], [1], showRelated: false, showEdgeLabels: true);
+
+        var edge = result.Elements.First(e => e.Data.Id == "edge-1").Data;
+        Assert.That(edge.Label, Is.EqualTo("443/HTTPS"));
+    }
+
+    [Test]
+    public void Build_ShowEdgeLabels_False_EdgeLabelIsEmpty()
+    {
+        var dstSvc = MakeService(2, "API", port: 443);
+        var srv    = MakeServer(1, "Srv", services: [dstSvc]);
+        var conn   = new ServiceConnection
+        {
+            Id                   = 1,
+            SourceServerId       = 1,
+            DestinationServerId  = 1,
+            DestinationServiceId = 2,
+            Protocol             = "HTTPS"
+        };
+
+        var result = _builder.Build([conn], [srv], [dstSvc], [1], showRelated: false, showEdgeLabels: false);
+
+        var edge = result.Elements.First(e => e.Data.Id == "edge-1").Data;
+        Assert.That(edge.Label, Is.EqualTo(string.Empty));
+    }
+
+    // ── showServerIp option ───────────────────────────────────────────────────
+
+    [Test]
+    public void Build_ShowServerIp_True_IncludesIpInLabel()
+    {
+        var server = MakeServer(1, "WebServer", "192.168.1.1");
+
+        var result = _builder.Build([], [server], [], [1], showRelated: false, showServerIp: true);
+
+        Assert.That(result.Elements[0].Data.Label, Is.EqualTo("WebServer\n192.168.1.1"));
+    }
+
+    [Test]
+    public void Build_ShowServerIp_False_LabelIsNameOnly()
+    {
+        var server = MakeServer(1, "WebServer", "192.168.1.1");
+
+        var result = _builder.Build([], [server], [], [1], showRelated: false, showServerIp: false);
+
+        Assert.That(result.Elements[0].Data.Label, Is.EqualTo("WebServer"));
+    }
+
+    [Test]
+    public void Build_ShowServerIp_False_ServerWithoutIp_LabelIsNameOnly()
+    {
+        var server = MakeServer(1, "NoIpServer", ipAddress: null);
+
+        var result = _builder.Build([], [server], [], [1], showRelated: false, showServerIp: false);
+
+        Assert.That(result.Elements[0].Data.Label, Is.EqualTo("NoIpServer"));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static Server MakeServer(

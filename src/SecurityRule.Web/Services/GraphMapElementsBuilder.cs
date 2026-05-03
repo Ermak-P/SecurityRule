@@ -23,12 +23,22 @@ public sealed class GraphMapElementsBuilder
     ///     When <see langword="true"/>, servers that are connected to selected servers but not
     ///     themselves selected are included as dimmed (related) nodes.
     /// </param>
+    /// <param name="showEdgeLabels">
+    ///     When <see langword="true"/>, edge labels display port/protocol.
+    ///     When <see langword="false"/>, edge labels are empty.
+    /// </param>
+    /// <param name="showServerIp">
+    ///     When <see langword="true"/>, server node labels include the IP address on a second line.
+    ///     When <see langword="false"/>, only the server name is shown.
+    /// </param>
     public GraphMapResult Build(
         IEnumerable<ServiceConnection> connections,
         IEnumerable<Server>            servers,
         IEnumerable<AppService>        services,
         IReadOnlyCollection<int>       selectedServerIds,
-        bool                           showRelated)
+        bool                           showRelated,
+        bool                           showEdgeLabels = true,
+        bool                           showServerIp   = true)
     {
         var allServers      = servers.ToList();
         var allServicesList = services.ToList();
@@ -60,11 +70,11 @@ public sealed class GraphMapElementsBuilder
 
         // Primary server compound nodes.
         foreach (var srv in primaryServers.OrderBy(s => s.Name))
-            elements.Add(CreateServerElement(srv, dimmed: false));
+            elements.Add(CreateServerElement(srv, dimmed: false, showIp: showServerIp));
 
         // Related (dimmed) server compound nodes.
         foreach (var srv in relatedServers.OrderBy(s => s.Name))
-            elements.Add(CreateServerElement(srv, dimmed: true));
+            elements.Add(CreateServerElement(srv, dimmed: true, showIp: showServerIp));
 
         // Service nodes — children of their server compound nodes.
         foreach (var srv in allVisibleServers.OrderBy(s => s.Name))
@@ -95,10 +105,12 @@ public sealed class GraphMapElementsBuilder
                 ? $"svc-{conn.DestinationServiceId}"
                 : $"srv-{dstSrvId!.Value}";
 
-            string label = BuildEdgeLabel(
-                conn.DestinationService?.Port
-                    ?? allServicesList.FirstOrDefault(s => s.Id == conn.DestinationServiceId)?.Port,
-                conn.Protocol);
+            string label = showEdgeLabels
+                ? BuildEdgeLabel(
+                    conn.DestinationService?.Port
+                        ?? allServicesList.FirstOrDefault(s => s.Id == conn.DestinationServiceId)?.Port,
+                    conn.Protocol)
+                : string.Empty;
 
             elements.Add(CreateEdgeElement(
                 id:          $"edge-{conn.Id}",
@@ -114,11 +126,11 @@ public sealed class GraphMapElementsBuilder
 
     // ── Private factory methods ───────────────────────────────────────────────
 
-    private static GraphElement CreateServerElement(Server srv, bool dimmed)
+    private static GraphElement CreateServerElement(Server srv, bool dimmed, bool showIp)
     {
-        string label = string.IsNullOrWhiteSpace(srv.IpAddress)
-            ? srv.Name
-            : $"{srv.Name}\n{srv.IpAddress}";
+        string label = showIp && !string.IsNullOrWhiteSpace(srv.IpAddress)
+            ? $"{srv.Name}\n{srv.IpAddress}"
+            : srv.Name;
 
         return new GraphElement(new GraphElementData
         {
