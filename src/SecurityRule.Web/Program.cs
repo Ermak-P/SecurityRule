@@ -34,6 +34,7 @@ builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddSingleton<IAdService, FakeAdService>();
 builder.Services.AddScoped<ThemeState>();
+builder.Services.AddScoped<GraphMapElementsBuilder>();
 
 var app = builder.Build();
 

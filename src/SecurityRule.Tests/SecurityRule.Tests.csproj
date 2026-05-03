@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SecurityRule.Domain\SecurityRule.Domain.csproj" />
     <ProjectReference Include="..\SecurityRule.Infrastructure\SecurityRule.Infrastructure.csproj" />
+    <ProjectReference Include="..\SecurityRule.Web\SecurityRule.Web.csproj" />
   </ItemGroup>
 
 </Project>
