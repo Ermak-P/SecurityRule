@@ -16,7 +16,7 @@
     <script>
         (function () {
             var stored = localStorage.getItem('darkMode');
-            var isDark = stored === null || stored === 'true';
+            var isDark = stored === 'true';
             document.documentElement.style.backgroundColor = isDark ? '#0D1117' : '#F6F8FA';
             document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
         })();

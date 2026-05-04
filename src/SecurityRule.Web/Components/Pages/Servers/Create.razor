@@ -28,7 +28,7 @@
             }
         </MudSelect>
         <MudAutocomplete T="string" Label="Теги" Class="mb-3"
-                         SearchFunc="@SearchTags" CoerceText="true"
+                         SearchFunc="@SearchTags" CoerceValue="true"
                          Value="@_tagInput" ValueChanged="@AddTag"
                          Placeholder="Введите тег и нажмите Enter" />
         @if (_selectedTags.Count > 0)

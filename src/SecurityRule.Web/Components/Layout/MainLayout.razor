@@ -48,7 +48,7 @@
         if (firstRender)
         {
             var stored = await JS.InvokeAsync<string?>("localStorage.getItem", "darkMode");
-            var isDark = stored == null || stored == "true";
+            var isDark = stored == "true";
             if (isDark != ThemeState.IsDarkMode)
                 ThemeState.SetDarkMode(isDark);
             try { await JS.InvokeVoidAsync("clearThemePreload"); } catch { /* ignore if preload script not available */ }
