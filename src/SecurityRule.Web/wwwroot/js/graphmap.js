@@ -171,6 +171,26 @@ window.graphMap = (function () {
                 if (numId > 0) window.location.href = '/services/' + numId;
             }
         });
+
+        /* Delete key: remove selected nodes (and their edges) from the graph */
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Delete') return;
+            /* Skip when focus is inside an input / editable field */
+            var active = document.activeElement;
+            if (active) {
+                var tag = active.tagName.toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || active.isContentEditable) return;
+            }
+            if (!cy) return;
+            var selected = cy.$(':selected');
+            if (selected.length === 0) return;
+            /* Include edges connected to selected nodes so nothing is left dangling */
+            var toRemove = selected.union(selected.connectedEdges());
+            toRemove.animate(
+                { style: { opacity: 0 } },
+                { duration: 200, easing: 'ease-in-cubic', complete: function () { toRemove.remove(); } }
+            );
+        });
     }
 
     function getLayout() {

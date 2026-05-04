@@ -107,12 +107,15 @@ else
                     <MudNavMenu>
                         @foreach (var group in _serversByTag)
                         {
-                            <MudNavGroup Title="@group.Key" Expanded="true">
+                            var tagSelectedCount = group.Value.Count(s => _selectedServerIds.Contains(s.Id));
+                            var groupTitle = $"{group.Key} ({tagSelectedCount})";
+                            <MudNavGroup Title="@groupTitle" Expanded="true">
                                 @foreach (var s in group.Value)
                                 {
                                     var serverId = s.Id;
                                     var isSelected = _selectedServerIds.Contains(serverId);
-                                    <MudNavLink OnClick="@(() => ToggleServer(serverId))"
+                                    <MudNavLink Icon="@(isSelected ? Icons.Material.Filled.CheckBox : Icons.Material.Outlined.CheckBoxOutlineBlank)"
+                                               OnClick="@(() => ToggleServer(serverId))"
                                                Style="@(isSelected ? "color: var(--mud-palette-primary)" : "color: var(--mud-palette-text-secondary)")">
                                         @s.Name@(string.IsNullOrWhiteSpace(s.IpAddress) ? "" : $" ({s.IpAddress})")
                                     </MudNavLink>
