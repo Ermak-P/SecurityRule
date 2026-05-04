@@ -1,0 +1,77 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+
+<MudAutocomplete T="string" @ref="_autocomplete"
+                 Label="@Label" Class="@Class"
+                 SearchFunc="@SearchAvailable"
+                 TextChanged="@OnTextChanged"
+                 ValueChanged="@OnItemSelected"
+                 OnKeyDown="@HandleKeyDown"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="false"
+                 CoerceValue="false"
+                 Placeholder="@Placeholder" />
+
+@if (_state.SelectedTags.Count > 0)
+{
+    <MudChipSet T="string" Class="mt-1 mb-2">
+        @foreach (var tag in _state.SelectedTags)
+        {
+            <MudChip T="string" Value="@tag" OnClose="@(() => RemoveTag(tag))" Color="Color.Info" Size="Size.Small">@tag</MudChip>
+        }
+    </MudChipSet>
+}
+
+@code {
+    [Parameter] public string Label       { get; set; } = "Теги";
+    [Parameter] public string Class       { get; set; } = "";
+    [Parameter] public string Placeholder { get; set; } = "Введите тег и нажмите Enter";
+
+    /// <summary>All known tags (from DB) provided by the parent.</summary>
+    [Parameter] public IEnumerable<string> AllTags { get; set; } = [];
+
+    /// <summary>Currently selected tags — two-way bindable.</summary>
+    [Parameter] public HashSet<string> SelectedTags { get; set; } = [];
+    [Parameter] public EventCallback<HashSet<string>> SelectedTagsChanged { get; set; }
+
+    private MudAutocomplete<string> _autocomplete = null!;
+    private TagInputState _state = null!;
+    private string _typedText = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        // Re-create state only when the inputs change; keep existing selection.
+        _state = new TagInputState(AllTags, SelectedTags);
+    }
+
+    private Task<IEnumerable<string>> SearchAvailable(string value, CancellationToken _)
+        => Task.FromResult(_state.SearchAvailable(value));
+
+    private void OnTextChanged(string value) => _typedText = value ?? string.Empty;
+
+    private async Task OnItemSelected(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        await CommitTag(value.Trim());
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !string.IsNullOrWhiteSpace(_typedText))
+            await CommitTag(_typedText.Trim());
+    }
+
+    private async Task CommitTag(string tag)
+    {
+        if (!_state.AddTag(tag)) return;
+        _typedText = string.Empty;
+        await _autocomplete.ClearAsync();
+        await SelectedTagsChanged.InvokeAsync(_state.SelectedTags.ToHashSet());
+    }
+
+    private async Task RemoveTag(string tag)
+    {
+        _state.RemoveTag(tag);
+        await SelectedTagsChanged.InvokeAsync(_state.SelectedTags.ToHashSet());
+    }
+}

@@ -27,19 +27,7 @@
                 <MudSelectItem Value="@service.Id">@service.Name</MudSelectItem>
             }
         </MudSelect>
-        <MudAutocomplete T="string" Label="Теги" Class="mb-3"
-                         SearchFunc="@SearchTags" CoerceValue="true"
-                         Value="@_tagInput" ValueChanged="@AddTag"
-                         Placeholder="Введите тег и нажмите Enter" />
-        @if (_selectedTags.Count > 0)
-        {
-            <MudChipSet T="string" Class="mb-2">
-                @foreach (var tag in _selectedTags)
-                {
-                    <MudChip T="string" Value="@tag" OnClose="@(() => RemoveTag(tag))" Color="Color.Info" Size="Size.Small">@tag</MudChip>
-                }
-            </MudChipSet>
-        }
+        <TagInput AllTags="@_allTagNames" @bind-SelectedTags="_selectedTags" Class="mb-3" />
     </MudCardContent>
     <MudCardActions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -54,7 +42,6 @@
     private IEnumerable<string> _osOptions = [];
     private IEnumerable<string> _allTagNames = [];
     private HashSet<string> _selectedTags = [];
-    private string _tagInput = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -69,25 +56,6 @@
             return Task.FromResult(_osOptions);
         return Task.FromResult(_osOptions.Where(o => o.Contains(value, StringComparison.OrdinalIgnoreCase)));
     }
-
-    private Task<IEnumerable<string>> SearchTags(string value, CancellationToken _)
-    {
-        var available = _allTagNames.Where(t => !_selectedTags.Contains(t));
-        if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult(available);
-        return Task.FromResult(available.Where(t => t.Contains(value, StringComparison.OrdinalIgnoreCase)));
-    }
-
-    private void AddTag(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return;
-        var trimmed = value.Trim();
-        if (_selectedTags.Add(trimmed) && !_allTagNames.Contains(trimmed))
-            _allTagNames = _allTagNames.Append(trimmed);
-        _tagInput = string.Empty;
-    }
-
-    private void RemoveTag(string tag) => _selectedTags.Remove(tag);
 
     private async Task Save()
     {
