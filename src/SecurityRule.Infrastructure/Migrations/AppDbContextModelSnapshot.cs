@@ -451,6 +451,11 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.Navigation("SourceConnections");
                     b.Navigation("DestinationConnections");
                 });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.Certificate", b =>
+                {
+                    b.Navigation("Users");
+                });
 #pragma warning restore 612, 618
         }
     }

@@ -97,14 +97,13 @@ else
         return Task.FromResult(available.Where(t => t.Contains(value, StringComparison.OrdinalIgnoreCase)));
     }
 
-    private async Task AddTag(string value)
+    private void AddTag(string value)
     {
         if (string.IsNullOrWhiteSpace(value)) return;
         var trimmed = value.Trim();
         if (_selectedTags.Add(trimmed) && !_allTagNames.Contains(trimmed))
             _allTagNames = _allTagNames.Append(trimmed);
         _tagInput = string.Empty;
-        await Task.CompletedTask;
     }
 
     private void RemoveTag(string tag) => _selectedTags.Remove(tag);
