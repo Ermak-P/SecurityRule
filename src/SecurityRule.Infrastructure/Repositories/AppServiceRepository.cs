@@ -20,6 +20,7 @@ public class AppServiceRepository : IAppServiceRepository
             .Include(s => s.Servers)
                 .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
+            .Include(s => s.Tags)
             .ToListAsync();
 
     public async Task<AppService?> GetByIdAsync(int id)
@@ -28,6 +29,7 @@ public class AppServiceRepository : IAppServiceRepository
             .Include(s => s.Servers)
                 .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
+            .Include(s => s.Tags)
             .Include(s => s.SourceConnections)
                 .ThenInclude(r => r.SourceServer)
             .Include(s => s.SourceConnections)
@@ -52,6 +54,7 @@ public class AppServiceRepository : IAppServiceRepository
     {
         var existing = await _context.AppServices
             .Include(s => s.Servers)
+            .Include(s => s.Tags)
             .FirstOrDefaultAsync(s => s.Id == service.Id);
         if (existing == null) return;
 
@@ -67,6 +70,15 @@ public class AppServiceRepository : IAppServiceRepository
         existing.Servers.Clear();
         foreach (var server in trackedServers)
             existing.Servers.Add(server);
+
+        var tagIds = service.Tags.Select(t => t.Id).ToList();
+        var trackedTags = await _context.Tags
+            .Where(t => tagIds.Contains(t.Id))
+            .ToListAsync();
+
+        existing.Tags.Clear();
+        foreach (var tag in trackedTags)
+            existing.Tags.Add(tag);
 
         await _context.SaveChangesAsync();
     }

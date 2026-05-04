@@ -305,4 +305,70 @@ public class ServerRepositoryTests
         var resultB = servers.First(s => s.Name == "Srv-B");
         resultB.Services.Should().BeEmpty();
     }
+
+    [Test]
+    public async Task AddAsync_ShouldSaveServerWithTags()
+    {
+        // Arrange
+        var tag1 = new Tag { Name = "production" };
+        var tag2 = new Tag { Name = "europe" };
+        _context.Tags.AddRange(tag1, tag2);
+        await _context.SaveChangesAsync();
+
+        var server = new Server
+        {
+            Name = "TaggedServer",
+            IpAddress = "10.5.0.1",
+            OperatingSystem = "Linux",
+            Tags = [tag1, tag2]
+        };
+
+        // Act
+        await _repository.AddAsync(server);
+
+        // Assert
+        var result = await _context.Servers.Include(s => s.Tags).FirstAsync(s => s.Name == "TaggedServer");
+        result.Tags.Should().HaveCount(2);
+        result.Tags.Select(t => t.Name).Should().BeEquivalentTo(["production", "europe"]);
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldIncludeTagsForEachServer()
+    {
+        // Arrange
+        var tag = new Tag { Name = "web" };
+        _context.Tags.Add(tag);
+        var server = new Server { Name = "WebSrv", IpAddress = "10.6.0.1", OperatingSystem = "Linux", Tags = [tag] };
+        _context.Servers.Add(server);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var servers = (await _repository.GetAllAsync()).ToList();
+
+        // Assert
+        var result = servers.Single(s => s.Name == "WebSrv");
+        result.Tags.Should().HaveCount(1);
+        result.Tags.Single().Name.Should().Be("web");
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldReplaceTags()
+    {
+        // Arrange
+        var tagA = new Tag { Name = "tag-a" };
+        var tagB = new Tag { Name = "tag-b" };
+        _context.Tags.AddRange(tagA, tagB);
+        var server = new Server { Name = "Srv", IpAddress = "10.7.0.1", OperatingSystem = "Linux", Tags = [tagA] };
+        _context.Servers.Add(server);
+        await _context.SaveChangesAsync();
+
+        // Act — replace tagA with tagB
+        server.Tags = [tagB];
+        await _repository.UpdateAsync(server);
+
+        // Assert
+        var updated = await _repository.GetByIdAsync(server.Id);
+        updated!.Tags.Should().HaveCount(1);
+        updated.Tags.Single().Name.Should().Be("tag-b");
+    }
 }

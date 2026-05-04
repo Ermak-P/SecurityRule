@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<OperatingSystemOption> OperatingSystemOptions => Set<OperatingSystemOption>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Group> Groups => Set<Group>();
+    public DbSet<Tag> Tags => Set<Tag>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -116,6 +117,19 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<Tag>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasMany(e => e.Servers)
+                  .WithMany(s => s.Tags)
+                  .UsingEntity(j => j.ToTable("ServerTags"));
+            entity.HasMany(e => e.Services)
+                  .WithMany(s => s.Tags)
+                  .UsingEntity(j => j.ToTable("ServiceTags"));
         });
     }
 }

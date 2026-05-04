@@ -3,6 +3,7 @@
 @inject IAppServiceRepository AppServiceRepository
 @inject IServerRepository ServerRepository
 @inject IUserRepository UserRepository
+@inject ITagRepository TagRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -35,6 +36,19 @@ else
                     <MudSelectItem T="int?" Value="@((int?)user.Id)">@user.Name</MudSelectItem>
                 }
             </MudSelect>
+            <MudAutocomplete T="string" Label="Теги" Class="mb-3"
+                             SearchFunc="@SearchTags" CoerceText="true"
+                             Value="@_tagInput" ValueChanged="@AddTag"
+                             Placeholder="Введите тег и нажмите Enter" />
+            @if (_selectedTags.Count > 0)
+            {
+                <MudChipSet T="string" Class="mb-2">
+                    @foreach (var tag in _selectedTags)
+                    {
+                        <MudChip T="string" Value="@tag" OnClose="@(() => RemoveTag(tag))" Color="Color.Info" Size="Size.Small">@tag</MudChip>
+                    }
+                </MudChipSet>
+            }
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -56,19 +70,44 @@ else
     private IReadOnlyCollection<int> _selectedServerIds = [];
     private int? _selectedUserId;
     private string _portText = string.Empty;
+    private IEnumerable<string> _allTagNames = [];
+    private HashSet<string> _selectedTags = [];
+    private string _tagInput = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         _service = await AppServiceRepository.GetByIdAsync(Id);
         _allServers = await ServerRepository.GetAllAsync();
         _allUsers = await UserRepository.GetAllAsync();
+        _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
         if (_service != null)
         {
             _selectedServerIds = _service.Servers.Select(s => s.Id).ToList();
             _selectedUserId = _service.UserId;
             _portText = _service.Port?.ToString() ?? string.Empty;
+            _selectedTags = _service.Tags.Select(t => t.Name).ToHashSet();
         }
     }
+
+    private Task<IEnumerable<string>> SearchTags(string value, CancellationToken _)
+    {
+        var available = _allTagNames.Where(t => !_selectedTags.Contains(t));
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(available);
+        return Task.FromResult(available.Where(t => t.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private async Task AddTag(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        var trimmed = value.Trim();
+        if (_selectedTags.Add(trimmed) && !_allTagNames.Contains(trimmed))
+            _allTagNames = _allTagNames.Append(trimmed);
+        _tagInput = string.Empty;
+        await Task.CompletedTask;
+    }
+
+    private void RemoveTag(string tag) => _selectedTags.Remove(tag);
 
     private async Task Save()
     {
@@ -79,6 +118,9 @@ else
             _service.UserId = selectedUser?.Id;
             _service.UserName = selectedUser?.Name ?? string.Empty;
             _service.Port = int.TryParse(_portText, out var p) ? p : null;
+            _service.Tags = [];
+            foreach (var tagName in _selectedTags)
+                _service.Tags.Add(await TagRepository.GetOrCreateAsync(tagName));
             await AppServiceRepository.UpdateAsync(_service);
             Snackbar.Add("Сервис обновлён", Severity.Success);
             Navigation.NavigateTo($"/services/{Id}");
