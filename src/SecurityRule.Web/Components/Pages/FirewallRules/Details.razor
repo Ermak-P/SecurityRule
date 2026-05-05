@@ -22,10 +22,16 @@ else
                 <MudIcon Icon="@Icons.Material.Filled.CompareArrows" Color="Color.Primary" />
                 <MudText Typo="Typo.h4">@_title</MudText>
             </MudStack>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                       OnClick="@(() => Navigation.NavigateTo($"/connections/edit/{_displayConnection.Id}"))">
-                Редактировать
-            </MudButton>
+            <MudStack Row="true" Spacing="1">
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.ContentCopy"
+                           OnClick="@(() => Navigation.NavigateTo($"/connections/create?cloneFrom={_displayConnection.Id}"))">
+                    Клонировать
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => Navigation.NavigateTo($"/connections/edit/{_displayConnection.Id}"))">
+                    Редактировать
+                </MudButton>
+            </MudStack>
         </MudStack>
     }
 

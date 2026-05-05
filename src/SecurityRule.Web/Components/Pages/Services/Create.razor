@@ -39,6 +39,8 @@
 </MudCard>
 
 @code {
+    [SupplyParameterFromQuery] public int? CloneFrom { get; set; }
+
     private AppService _service = new();
     private IEnumerable<Server> _allServers = [];
     private IEnumerable<User> _allUsers = [];
@@ -53,6 +55,19 @@
         _allServers = await ServerRepository.GetAllAsync();
         _allUsers = await UserRepository.GetAllAsync();
         _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
+
+        if (CloneFrom.HasValue)
+        {
+            var source = await AppServiceRepository.GetByIdAsync(CloneFrom.Value);
+            if (source != null)
+            {
+                _service.Name = source.Name;
+                _portText = source.Port?.ToString() ?? string.Empty;
+                _selectedServerIds = source.Servers.Select(s => s.Id).ToArray();
+                _selectedUserId = source.UserId;
+                _selectedTags = source.Tags.Select(t => t.Name).ToHashSet();
+            }
+        }
     }
 
     private async Task Save()

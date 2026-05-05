@@ -22,10 +22,16 @@ else
                 <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary" />
                 <MudText Typo="Typo.h4">@_displayServer.Name</MudText>
             </MudStack>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                       OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{_displayServer.Id}"))">
-                Редактировать
-            </MudButton>
+            <MudStack Row="true" Spacing="1">
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.ContentCopy"
+                           OnClick="@(() => Navigation.NavigateTo($"/servers/create?cloneFrom={_displayServer.Id}"))">
+                    Клонировать
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => Navigation.NavigateTo($"/servers/edit/{_displayServer.Id}"))">
+                    Редактировать
+                </MudButton>
+            </MudStack>
         </MudStack>
     }
 

@@ -36,6 +36,8 @@
 </MudCard>
 
 @code {
+    [SupplyParameterFromQuery] public int? CloneFrom { get; set; }
+
     private Server _server = new();
     private IEnumerable<AppService> _allServices = [];
     private IReadOnlyCollection<int> _selectedServiceIds = [];
@@ -48,6 +50,20 @@
         _allServices = await AppServiceRepository.GetAllAsync();
         _osOptions = (await OperatingSystemRepository.GetAllAsync()).Select(o => o.Name);
         _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
+
+        if (CloneFrom.HasValue)
+        {
+            var source = await ServerRepository.GetByIdAsync(CloneFrom.Value);
+            if (source != null)
+            {
+                _server.Name = source.Name;
+                _server.IpAddress = source.IpAddress;
+                _server.OperatingSystem = source.OperatingSystem;
+                _server.Description = source.Description;
+                _selectedServiceIds = source.Services.Select(s => s.Id).ToArray();
+                _selectedTags = source.Tags.Select(t => t.Name).ToHashSet();
+            }
+        }
     }
 
     private Task<IEnumerable<string>> SearchOs(string value, CancellationToken _)
