@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 17);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/ПравилаБрандмауэра.feature.ndjson", 18);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -811,6 +811,50 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 146
     await testRunner.ThenAsync("граф содержит связанный сервер \"Related-Srv3 (10.91.1.3)\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Клонирование связи открывает форму создания")]
+        public async global::System.Threading.Tasks.Task КлонированиеСвязиОткрываетФормуСоздания()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "15";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Клонирование связи открывает форму создания", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 148
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 149
+    await testRunner.GivenAsync("в системе существует сервер Name \"Clone-Src\" IP \"10.60.0.1\" OS \"Linux\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 150
+    await testRunner.AndAsync("в системе существует сервис Name \"Clone-SrcSvc\" UserName \"domain\\clonesrc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 151
+    await testRunner.AndAsync("в системе существует сервис Name \"Clone-DstSvc\" UserName \"domain\\clonedst\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 152
+    await testRunner.AndAsync("в системе существует связь от сервера \"Clone-Src\" сервиса \"Clone-SrcSvc\" до серви" +
+                        "са \"Clone-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 153
+    await testRunner.WhenAsync("я открываю страницу клонирования связи с источником \"Clone-Src\" и назначением \"Cl" +
+                        "one-DstSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 154
+    await testRunner.ThenAsync("я вижу текст \"Добавить связь\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

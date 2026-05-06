@@ -107,6 +107,13 @@ public sealed class СервисыШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/services/edit/{id}");
     }
 
+    [When("я открываю страницу клонирования сервиса {string}")]
+    public async Task ОткрытьСтраницуКлонированияСервиса(string name)
+    {
+        var id = await GetServiceIdAsync(name);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/services/create?cloneFrom={id}");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<int> GetServiceIdAsync(string name)

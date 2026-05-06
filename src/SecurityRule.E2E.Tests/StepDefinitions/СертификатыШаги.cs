@@ -62,6 +62,13 @@ public sealed class СертификатыШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/edit/{id}");
     }
 
+    [When("я открываю страницу клонирования сертификата {string}")]
+    public async Task ОткрытьСтраницуКлонированияСертификата(string description)
+    {
+        var id = await GetCertificateIdAsync(description);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/create?cloneFrom={id}");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<int> GetCertificateIdAsync(string description)

@@ -124,6 +124,13 @@ public sealed class ПравилаБрандмауэраШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/edit/{id}");
     }
 
+    [When("я открываю страницу клонирования связи с источником {string} и назначением {string}")]
+    public async Task ОткрытьСтраницуКлонированияСвязи(string srcName, string dstServiceName)
+    {
+        var id = await GetConnectionIdAsync(srcName, dstServiceName);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/create?cloneFrom={id}");
+    }
+
     [When("я открываю страницу редактирования связи без сервера источника с назначением {string}")]
     public async Task ОткрытьСтраницуРедактированияСвязиБезСервера(string dstServiceName)
     {

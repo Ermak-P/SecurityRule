@@ -50,12 +50,15 @@ dotnet test src/SecurityRule.E2E.Tests/
 - Use `InMemory` EF Core database for `AppDbContext` in tests — never use a real SQL Server connection
 - Use `FakeAdService` singleton (not real AD) in all tests; real `ActiveDirectoryService` is Windows-only
 
-### General Rules
+### General Rules — MANDATORY
 
-- Tests are **mandatory** for all changes
-- Always run `dotnet test src/SecurityRule.Tests/` after completing any task
-- A task is NOT complete if any test fails
+> ⛔ **A task without new or updated tests is INCOMPLETE — do not consider it done.**
+
+- Tests **must** be written or updated for **every** task, no exceptions
+- Any UI change (new button, new page, new form field, new route) **requires** at minimum one new E2E `.feature` scenario and the corresponding step definitions
+- Always run `dotnet test src/SecurityRule.Tests/` after completing any task — 0 failures required
 - **E2E tests cannot run in the agent sandbox** — write correct `.feature` + step definitions; they run in CI
+- The PR description **must** list exactly which test files were added or modified
 
 ---
 
@@ -80,12 +83,16 @@ dotnet test src/SecurityRule.E2E.Tests/
 
 ## Strict TDD Workflow
 
-1. Write or update tests FIRST (they must fail before implementation — confirm this before proceeding)
+1. **Write or update tests FIRST** — they must fail (or be non-existent) before implementation; confirm this before proceeding
 2. Implement the functionality
 3. Run `dotnet test src/SecurityRule.Tests/` — ensure ALL tests pass
 4. Refactor safely (tests must remain green)
 
-> For E2E-only changes (new Blazor page), write the `.feature` + step definitions first, then implement the page. E2E execution happens in CI.
+> **For any Blazor UI change** (new page, new button, new route, new form field):
+> write the `.feature` scenario + step definitions FIRST, then implement the UI.
+> E2E execution happens in CI, but the test code must always be committed alongside the feature code.
+>
+> ⛔ It is **never acceptable** to commit a UI change without the corresponding E2E scenario.
 
 ---
 
@@ -169,8 +176,10 @@ Before closing the task, confirm:
 A task is complete ONLY if ALL of the following are true:
 
 - [ ] Tests are written/updated/deleted as required by the Post-Task Test Analysis
+- [ ] **At least one new test file was modified or created** (this is non-negotiable)
 - [ ] `dotnet test src/SecurityRule.Tests/` passes with 0 failures
-- [ ] E2E `.feature` files and step definitions are added/updated (if UI changed)
+- [ ] For any UI change: at least one new E2E `.feature` scenario was added with the corresponding step definitions
+- [ ] The PR description lists every test file that was added or modified
 - [ ] Code follows Clean Architecture layer rules
 - [ ] No build errors or critical warnings remain
 - [ ] All new public functionality is covered by tests

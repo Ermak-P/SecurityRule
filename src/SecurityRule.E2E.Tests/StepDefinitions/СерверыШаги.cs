@@ -57,6 +57,13 @@ public sealed class СерверыШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/servers/edit/{id}");
     }
 
+    [When("я открываю страницу клонирования сервера {string}")]
+    public async Task ОткрытьСтраницуКлонированияСервера(string name)
+    {
+        var id = await GetServerIdAsync(name);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/servers/create?cloneFrom={id}");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<int> GetServerIdAsync(string name)
