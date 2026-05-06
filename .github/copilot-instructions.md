@@ -21,7 +21,9 @@ dotnet build src/SecurityRule.slnx
 # Unit + Integration tests (~129 tests, no browser required) — always run after changes
 dotnet test src/SecurityRule.Tests/
 
-# E2E tests (require Playwright browser — run in CI only, NOT in agent sandbox)
+# E2E tests (Playwright + Chromium) — run via CI workflow (.github/workflows/ci.yml)
+# The project auto-installs Playwright after build via an MSBuild AfterTargets target.
+# On a machine with PowerShell and Chromium system deps, you can also run locally:
 dotnet test src/SecurityRule.E2E.Tests/
 ```
 
@@ -57,7 +59,8 @@ dotnet test src/SecurityRule.E2E.Tests/
 - Tests **must** be written or updated for **every** task, no exceptions
 - Any UI change (new button, new page, new form field, new route) **requires** at minimum one new E2E `.feature` scenario and the corresponding step definitions
 - Always run `dotnet test src/SecurityRule.Tests/` after completing any task — 0 failures required
-- **E2E tests cannot run in the agent sandbox** — write correct `.feature` + step definitions; they run in CI
+- E2E tests run via the CI workflow (`.github/workflows/ci.yml`) — they **must pass** there before the task is considered done
+- The agent cannot run E2E tests directly in its sandbox (no browser), but must write correct `.feature` + step definitions that will pass in CI; verify by checking CI results after the PR is pushed
 - The PR description **must** list exactly which test files were added or modified
 
 ---
@@ -86,7 +89,8 @@ dotnet test src/SecurityRule.E2E.Tests/
 1. **Write or update tests FIRST** — they must fail (or be non-existent) before implementation; confirm this before proceeding
 2. Implement the functionality
 3. Run `dotnet test src/SecurityRule.Tests/` — ensure ALL tests pass
-4. Refactor safely (tests must remain green)
+4. Push the PR and verify CI passes — **both** the unit/integration job and the E2E job must be green
+5. Refactor safely (tests must remain green)
 
 > **For any Blazor UI change** (new page, new button, new route, new form field):
 > write the `.feature` scenario + step definitions FIRST, then implement the UI.
@@ -126,7 +130,7 @@ Determine which layers and components were affected:
 
 - Write/update/delete tests as determined in Step 2
 - Run `dotnet test src/SecurityRule.Tests/` and verify all pass
-- For E2E changes: write correct `.feature` + step definitions (run in CI)
+- For E2E changes: write correct `.feature` + step definitions and verify they pass in CI after pushing
 
 ### Step 4 — Verify coverage
 
@@ -135,6 +139,7 @@ Before closing the task, confirm:
 - Every deleted method's tests are removed
 - No tests reference code that no longer exists
 - All unit/integration tests pass (`dotnet test src/SecurityRule.Tests/` — 0 failures)
+- CI is green for **both** jobs: unit/integration tests **and** E2E tests (`.github/workflows/ci.yml`)
 
 ---
 
@@ -179,6 +184,7 @@ A task is complete ONLY if ALL of the following are true:
 - [ ] **At least one test file was modified or created** (exception: purely internal refactoring with no behaviour change)
 - [ ] `dotnet test src/SecurityRule.Tests/` passes with 0 failures
 - [ ] For any UI change: at least one new E2E `.feature` scenario was added with the corresponding step definitions
+- [ ] **CI is green** — both the unit/integration job and the E2E job in `.github/workflows/ci.yml` pass with 0 failures
 - [ ] The PR description lists every test file that was added or modified
 - [ ] Code follows Clean Architecture layer rules
 - [ ] No build errors or critical warnings remain
