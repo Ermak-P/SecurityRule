@@ -21,10 +21,13 @@ dotnet build src/SecurityRule.slnx
 # Unit + Integration tests (~129 tests, no browser required) — always run after changes
 dotnet test src/SecurityRule.Tests/
 
-# E2E tests (Playwright + Chromium) — run via CI workflow (.github/workflows/ci.yml)
-# The project auto-installs Playwright after build via an MSBuild AfterTargets target.
-# On a machine with PowerShell and Chromium system deps, you can also run locally:
-dotnet test src/SecurityRule.E2E.Tests/
+# E2E tests (Playwright + Chromium) — ALWAYS run after completing any task
+# Step 1: Build (auto-downloads Playwright Chromium via MSBuild AfterTargets)
+dotnet build src/SecurityRule.E2E.Tests/
+# Step 2: Install Playwright system dependencies (required once per environment)
+pwsh src/SecurityRule.E2E.Tests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+# Step 3: Run E2E tests
+dotnet test src/SecurityRule.E2E.Tests/ --no-build
 ```
 
 ---
@@ -59,8 +62,8 @@ dotnet test src/SecurityRule.E2E.Tests/
 - Tests **must** be written or updated for **every** task, no exceptions
 - Any UI change (new button, new page, new form field, new route) **requires** at minimum one new E2E `.feature` scenario and the corresponding step definitions
 - Always run `dotnet test src/SecurityRule.Tests/` after completing any task — 0 failures required
-- E2E tests run via the CI workflow (`.github/workflows/ci.yml`) — they **must pass** there before the task is considered done
-- The agent cannot run E2E tests directly in its sandbox (no browser), but must write correct `.feature` + step definitions that will pass in CI; verify by checking CI results after the PR is pushed
+- **Always run E2E tests after completing any task** — build, install deps, and run: `dotnet build src/SecurityRule.E2E.Tests/ && pwsh src/SecurityRule.E2E.Tests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps && dotnet test src/SecurityRule.E2E.Tests/ --no-build` — 0 failures required
+- E2E tests CAN and MUST run in the agent sandbox — `pwsh` and Chromium are available; Playwright is auto-installed during build
 - The PR description **must** list exactly which test files were added or modified
 
 ---
@@ -89,12 +92,13 @@ dotnet test src/SecurityRule.E2E.Tests/
 1. **Write or update tests FIRST** — they must fail (or be non-existent) before implementation; confirm this before proceeding
 2. Implement the functionality
 3. Run `dotnet test src/SecurityRule.Tests/` — ensure ALL tests pass
-4. Push the PR and verify CI passes — **both** the unit/integration job and the E2E job must be green
-5. Refactor safely (tests must remain green)
+4. Run E2E tests: `dotnet build src/SecurityRule.E2E.Tests/ && pwsh src/SecurityRule.E2E.Tests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps && dotnet test src/SecurityRule.E2E.Tests/ --no-build` — ensure ALL E2E tests pass
+5. Push the PR and verify CI passes — **both** the unit/integration job and the E2E job must be green
+6. Refactor safely (tests must remain green)
 
 > **For any Blazor UI change** (new page, new button, new route, new form field):
 > write the `.feature` scenario + step definitions FIRST, then implement the UI.
-> E2E execution happens in CI, but the test code must always be committed alongside the feature code.
+> Run E2E tests locally (in the agent sandbox) to confirm they pass before pushing.
 >
 > ⛔ It is **never acceptable** to commit a UI change without the corresponding E2E scenario.
 
@@ -130,7 +134,7 @@ Determine which layers and components were affected:
 
 - Write/update/delete tests as determined in Step 2
 - Run `dotnet test src/SecurityRule.Tests/` and verify all pass
-- For E2E changes: write correct `.feature` + step definitions and verify they pass in CI after pushing
+- Run E2E tests: `dotnet build src/SecurityRule.E2E.Tests/ && pwsh src/SecurityRule.E2E.Tests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps && dotnet test src/SecurityRule.E2E.Tests/ --no-build` and verify all pass
 
 ### Step 4 — Verify coverage
 
@@ -139,6 +143,7 @@ Before closing the task, confirm:
 - Every deleted method's tests are removed
 - No tests reference code that no longer exists
 - All unit/integration tests pass (`dotnet test src/SecurityRule.Tests/` — 0 failures)
+- All E2E tests pass (`dotnet test src/SecurityRule.E2E.Tests/ --no-build` — 0 failures)
 - CI is green for **both** jobs: unit/integration tests **and** E2E tests (`.github/workflows/ci.yml`)
 
 ---

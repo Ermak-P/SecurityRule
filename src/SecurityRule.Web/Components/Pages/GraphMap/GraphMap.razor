@@ -30,6 +30,18 @@ else
         }
     </div>
 
+    @* Hidden list of currently selected servers for E2E assertions *@
+    <div style="display:none" data-testid="server-filter-selected">
+        @foreach (var srvId in _selectedServerIds)
+        {
+            var srv = _allServers.FirstOrDefault(s => s.Id == srvId);
+            if (srv is not null)
+            {
+                <span>@srv.Name@(string.IsNullOrWhiteSpace(srv.IpAddress) ? "" : $" ({srv.IpAddress})")</span>
+            }
+        }
+    </div>
+
     @* Hidden list of currently dimmed (related) servers for E2E assertions *@
     <div style="display:none" data-testid="graph-dimmed-servers">
         @foreach (var srvId in _relatedServerIds)
