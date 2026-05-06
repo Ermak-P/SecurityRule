@@ -88,6 +88,8 @@ public sealed class ОбщиеШаги
     /// <summary>
     /// Asserts that an input field (identified by its visible label) has the given value.
     /// Used to verify that clone forms are pre-filled with source entity data.
+    /// Note: works for standard MudTextField fields; complex autocomplete fields may need
+    /// alternative locator strategies.
     /// </summary>
     [Then("поле {string} содержит значение {string}")]
     public async Task ПолеСодержитЗначение(string label, string expectedValue)

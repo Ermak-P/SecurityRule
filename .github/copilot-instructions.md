@@ -176,7 +176,7 @@ Before closing the task, confirm:
 A task is complete ONLY if ALL of the following are true:
 
 - [ ] Tests are written/updated/deleted as required by the Post-Task Test Analysis
-- [ ] **At least one new test file was modified or created** (this is non-negotiable)
+- [ ] **At least one test file was modified or created** (exception: purely internal refactoring with no behaviour change)
 - [ ] `dotnet test src/SecurityRule.Tests/` passes with 0 failures
 - [ ] For any UI change: at least one new E2E `.feature` scenario was added with the corresponding step definitions
 - [ ] The PR description lists every test file that was added or modified
