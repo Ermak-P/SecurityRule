@@ -4,9 +4,9 @@ namespace SecurityRule.Domain.Interfaces;
 
 public interface IAppServiceRepository
 {
-    Task<IEnumerable<AppService>> GetAllAsync();
-    Task<AppService?> GetByIdAsync(int id);
-    Task AddAsync(AppService service);
-    Task UpdateAsync(AppService service);
-    Task DeleteAsync(int id);
+    Task<IEnumerable<AppService>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<AppService?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task AddAsync(AppService service, CancellationToken cancellationToken = default);
+    Task UpdateAsync(AppService service, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 }

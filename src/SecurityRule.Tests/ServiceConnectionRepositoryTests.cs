@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using SecurityRule.Domain.Models;
+using SecurityRule.Domain.Validation;
 using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Repositories;
 
@@ -323,5 +324,16 @@ public class ServiceConnectionRepositoryTests
         var stored = await _context.ServiceConnections.FindAsync(connection.Id);
         stored!.DestinationServerId.Should().BeNull();
         stored.DestinationServiceId.Should().Be(dstSvc.Id);
+    }
+
+    [Test]
+    public async Task AddAsync_ShouldThrow_WhenProtocolIsNotAllowed()
+    {
+        var (srcSrv, srcSvc, dstSrv, dstSvc) = await SeedEntitiesAsync();
+        var connection = BuildConnection(srcSrv, srcSvc, dstSrv, dstSvc, protocol: "SMTP");
+
+        var act = async () => await _repository.AddAsync(connection);
+
+        await act.Should().ThrowAsync<DomainValidationException>();
     }
 }

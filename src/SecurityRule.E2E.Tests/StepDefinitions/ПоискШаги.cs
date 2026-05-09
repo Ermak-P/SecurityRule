@@ -50,12 +50,17 @@ public sealed class ПоискШаги
     [When("я ввожу в поле поиска текст {string}")]
     public async Task ВвестиВПолеПоискаТекст(string text)
     {
-        // The search input has placeholder "Поиск по всем записям..."
         var input = _state.Page.GetByPlaceholder("Поиск по всем записям...");
         await input.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await input.FillAsync(text);
-        // Wait for debounce (300ms) + server search + render
-        await _state.Page.WaitForTimeoutAsync(800);
+
+        if (text.Length < 2)
+            return;
+
+        await _state.Page.WaitForFunctionAsync(
+            "() => !!document.querySelector('[data-testid=\"search-results\"]') || !!document.querySelector('[data-testid=\"search-no-results\"]')",
+            null,
+            new() { Timeout = 10_000, PollingInterval = 100 });
     }
 
     [When("я нажимаю на первый результат поиска")]
@@ -67,7 +72,7 @@ public sealed class ПоискШаги
         var firstResult = resultsPanel.Locator(".mud-list-item").First;
         await firstResult.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await firstResult.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(500);
+        await Assertions.Expect(resultsPanel).ToHaveCountAsync(0, new() { Timeout = 10_000 });
     }
 
     // ── Then: search assertions ───────────────────────────────────────────────
@@ -108,8 +113,6 @@ public sealed class ПоискШаги
     [Then("выпадающий список поиска не отображается")]
     public async Task ВыпадающийСписокНеОтображается()
     {
-        // When query length < 2, no dropdown should appear
-        await _state.Page.WaitForTimeoutAsync(600);
         await Assertions.Expect(_state.Page.Locator("[data-testid='search-results']")).ToHaveCountAsync(0, new() { Timeout = 5_000 });
         await Assertions.Expect(_state.Page.Locator("[data-testid='search-no-results']")).ToHaveCountAsync(0, new() { Timeout = 5_000 });
     }

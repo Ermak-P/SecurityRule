@@ -1,9 +1,6 @@
 @page "/servers/create"
 @rendermode InteractiveServer
-@inject IServerRepository ServerRepository
-@inject IAppServiceRepository AppServiceRepository
-@inject IOperatingSystemRepository OperatingSystemRepository
-@inject ITagRepository TagRepository
+@inject ServerFormService ServerFormService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -47,23 +44,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _allServices = await AppServiceRepository.GetAllAsync();
-        _osOptions = (await OperatingSystemRepository.GetAllAsync()).Select(o => o.Name);
-        _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
-
-        if (CloneFrom.HasValue)
-        {
-            var source = await ServerRepository.GetByIdAsync(CloneFrom.Value);
-            if (source != null)
-            {
-                _server.Name = source.Name;
-                _server.IpAddress = source.IpAddress;
-                _server.OperatingSystem = source.OperatingSystem;
-                _server.Description = source.Description;
-                _selectedServiceIds = source.Services.Select(s => s.Id).ToArray();
-                _selectedTags = source.Tags.Select(t => t.Name).ToHashSet();
-            }
-        }
+        var model = await ServerFormService.GetCreateModelAsync(CloneFrom);
+        _server = model.Server;
+        _allServices = model.AllServices;
+        _osOptions = model.OperatingSystems;
+        _allTagNames = model.AllTagNames;
+        _selectedServiceIds = model.SelectedServiceIds;
+        _selectedTags = model.SelectedTags.ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private Task<IEnumerable<string>> SearchOs(string value, CancellationToken _)
@@ -75,11 +62,7 @@
 
     private async Task Save()
     {
-        _server.Services = _allServices.Where(s => _selectedServiceIds.Contains(s.Id)).ToList();
-        _server.Tags = [];
-        foreach (var tagName in _selectedTags)
-            _server.Tags.Add(await TagRepository.GetOrCreateAsync(tagName));
-        await ServerRepository.AddAsync(_server);
+        await ServerFormService.CreateAsync(_server, _selectedServiceIds, _selectedTags.ToArray());
         Snackbar.Add("Сервер добавлен", Severity.Success);
         Navigation.NavigateTo("/servers");
     }

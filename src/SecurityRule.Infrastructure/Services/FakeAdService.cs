@@ -106,39 +106,39 @@ public class FakeAdService : IAdService
 
     // ── IAdService ────────────────────────────────────────────────────────────
 
-    public async Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName)
+    public async Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName, CancellationToken cancellationToken = default)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.AdUserGroupMemberships
             .Where(m => m.User.Name == userName)
             .Select(m => m.Group.Name)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName, CancellationToken cancellationToken = default)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.AdUserGroupMemberships
             .Where(m => m.Group.Name == groupName)
             .Select(m => m.User.Name)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName, CancellationToken cancellationToken = default)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.AdGroupGroupMemberships
             .Where(m => m.ParentGroup.Name == groupName)
             .Select(m => m.ChildGroup.Name)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName, CancellationToken cancellationToken = default)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.AdGroupGroupMemberships
             .Where(m => m.ChildGroup.Name == groupName)
             .Select(m => m.ParentGroup.Name)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 }

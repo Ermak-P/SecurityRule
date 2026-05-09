@@ -10,10 +10,7 @@ namespace SecurityRule.Infrastructure.Data;
 /// </summary>
 public class FakeAdDbContext : DbContext
 {
-    public FakeAdDbContext(DbContextOptions<FakeAdDbContext> options) : base(options)
-    {
-        Database.EnsureCreated();
-    }
+    public FakeAdDbContext(DbContextOptions<FakeAdDbContext> options) : base(options) { }
 
     public DbSet<AdUser> AdUsers => Set<AdUser>();
     public DbSet<AdGroup> AdGroups => Set<AdGroup>();

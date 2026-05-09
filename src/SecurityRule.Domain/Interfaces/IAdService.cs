@@ -6,14 +6,14 @@ namespace SecurityRule.Domain.Interfaces;
 public interface IAdService
 {
     /// <summary>Returns the names of AD groups the given user belongs to.</summary>
-    Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName);
+    Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName, CancellationToken cancellationToken = default);
 
     /// <summary>Returns the user names that are direct members of the given group.</summary>
-    Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName);
+    Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName, CancellationToken cancellationToken = default);
 
     /// <summary>Returns the names of child groups (groups that belong to the given group).</summary>
-    Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName);
+    Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName, CancellationToken cancellationToken = default);
 
     /// <summary>Returns the names of parent groups (groups that the given group belongs to).</summary>
-    Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName);
+    Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName, CancellationToken cancellationToken = default);
 }

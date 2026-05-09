@@ -1,9 +1,7 @@
 @page "/servers/edit/{Id:int}"
 @rendermode InteractiveServer
+@inject ServerFormService ServerFormService
 @inject IServerRepository ServerRepository
-@inject IAppServiceRepository AppServiceRepository
-@inject IOperatingSystemRepository OperatingSystemRepository
-@inject ITagRepository TagRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -58,15 +56,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _server = await ServerRepository.GetByIdAsync(Id);
-        _allServices = await AppServiceRepository.GetAllAsync();
-        _osOptions = (await OperatingSystemRepository.GetAllAsync()).Select(o => o.Name);
-        _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
-        if (_server != null)
-        {
-            _selectedServiceIds = _server.Services.Select(s => s.Id).ToArray();
-            _selectedTags = _server.Tags.Select(t => t.Name).ToHashSet();
-        }
+        var model = await ServerFormService.GetEditModelAsync(Id);
+        if (model is null)
+            return;
+
+        _server = model.Server;
+        _allServices = model.AllServices;
+        _osOptions = model.OperatingSystems;
+        _allTagNames = model.AllTagNames;
+        _selectedServiceIds = model.SelectedServiceIds;
+        _selectedTags = model.SelectedTags.ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private Task<IEnumerable<string>> SearchOs(string value, CancellationToken _)
@@ -80,11 +79,7 @@ else
     {
         if (_server != null)
         {
-            _server.Services = _allServices.Where(s => _selectedServiceIds.Contains(s.Id)).ToList();
-            _server.Tags = [];
-            foreach (var tagName in _selectedTags)
-                _server.Tags.Add(await TagRepository.GetOrCreateAsync(tagName));
-            await ServerRepository.UpdateAsync(_server);
+            await ServerFormService.UpdateAsync(_server, _selectedServiceIds, _selectedTags.ToArray());
             Snackbar.Add("Сервер обновлён", Severity.Success);
             Navigation.NavigateTo($"/servers/{Id}");
         }

@@ -31,6 +31,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAdService, FakeAdService>();
         services.AddScoped<ThemeState>();
         services.AddScoped<GraphMapElementsBuilder>();
+        services.AddScoped<ServerFormService>();
 
         return services;
     }

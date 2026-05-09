@@ -11,7 +11,7 @@ public class SearchService : ISearchService
 
     public SearchService(AppDbContext context) => _context = context;
 
-    public async Task<IEnumerable<SearchResult>> SearchAsync(string query)
+    public async Task<IEnumerable<SearchResult>> SearchAsync(string query, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
             return [];
@@ -19,11 +19,12 @@ public class SearchService : ISearchService
         var results = new List<SearchResult>();
 
         var servers = await _context.Servers
+            .AsNoTracking()
             .Where(s => s.Name.Contains(query) || s.IpAddress.Contains(query) ||
                         s.OperatingSystem.Contains(query) ||
                         (s.Description != null && s.Description.Contains(query)))
             .Take(50)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         foreach (var s in servers)
         {
@@ -38,9 +39,10 @@ public class SearchService : ISearchService
         }
 
         var services = await _context.AppServices
+            .AsNoTracking()
             .Where(s => s.Name.Contains(query) || s.UserName.Contains(query))
             .Take(50)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         foreach (var s in services)
         {
@@ -51,9 +53,10 @@ public class SearchService : ISearchService
         }
 
         var users = await _context.Users
+            .AsNoTracking()
             .Where(u => u.Name.Contains(query) || u.Description.Contains(query))
             .Take(50)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         foreach (var u in users)
         {
@@ -64,9 +67,10 @@ public class SearchService : ISearchService
         }
 
         var groups = await _context.Groups
+            .AsNoTracking()
             .Where(g => g.Name.Contains(query) || g.Description.Contains(query))
             .Take(50)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         foreach (var g in groups)
         {
@@ -77,9 +81,10 @@ public class SearchService : ISearchService
         }
 
         var certs = await _context.Certificates
+            .AsNoTracking()
             .Where(c => c.Description.Contains(query))
             .Take(50)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         foreach (var c in certs)
         {

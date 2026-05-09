@@ -4,9 +4,9 @@ namespace SecurityRule.Domain.Interfaces;
 
 public interface ICertificateRepository
 {
-    Task<IEnumerable<Certificate>> GetAllAsync();
-    Task<Certificate?> GetByIdAsync(int id);
-    Task AddAsync(Certificate certificate);
-    Task UpdateAsync(Certificate certificate);
-    Task DeleteAsync(int id);
+    Task<IEnumerable<Certificate>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Certificate?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task AddAsync(Certificate certificate, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Certificate certificate, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 }

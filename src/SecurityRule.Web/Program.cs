@@ -25,6 +25,16 @@ builder.Services.AddApplicationServices();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+
+    var fakeAdFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<FakeAdDbContext>>();
+    using var fakeAdDb = fakeAdFactory.CreateDbContext();
+    fakeAdDb.Database.EnsureCreated();
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);

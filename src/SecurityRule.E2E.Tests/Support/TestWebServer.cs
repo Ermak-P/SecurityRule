@@ -76,6 +76,16 @@ public sealed class TestWebServer : IAsyncDisposable
         // ── Build and configure pipeline ──────────────────────────────────────
         var app = builder.Build();
 
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Database.EnsureCreatedAsync();
+
+            var fakeAdFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<FakeAdDbContext>>();
+            await using var fakeAdDb = await fakeAdFactory.CreateDbContextAsync();
+            await fakeAdDb.Database.EnsureCreatedAsync();
+        }
+
         // In Development mode, UseStaticFiles() automatically includes the static web
         // asset file providers (UseStaticWebAssets), which serve _framework/blazor.web.js
         // and _content/* package assets from embedded assembly resources.
