@@ -1,8 +1,10 @@
 @page "/connections/map"
 @rendermode InteractiveServer
+@using System.Text.Json
 @inject IServiceConnectionRepository ServiceConnectionRepository
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
+@inject GraphMapElementsBuilder ElementsBuilder
 @inject IJSRuntime JS
 
 <PageTitle>Карта связей</PageTitle>
@@ -25,6 +27,18 @@ else
         @foreach (var s in _allServers)
         {
             <span>@s.Name (@s.IpAddress)</span>
+        }
+    </div>
+
+    @* Hidden list of currently selected servers for E2E assertions *@
+    <div style="display:none" data-testid="server-filter-selected">
+        @foreach (var srvId in _selectedServerIds)
+        {
+            var srv = _allServers.FirstOrDefault(s => s.Id == srvId);
+            if (srv is not null)
+            {
+                <span>@srv.Name@(string.IsNullOrWhiteSpace(srv.IpAddress) ? "" : $" ({srv.IpAddress})")</span>
+            }
         }
     </div>
 
@@ -93,7 +107,7 @@ else
             </MudPaper>
         </MudItem>
 
-        @* Filter panel – servers only (right side) *@
+        @* Filter panel – servers grouped by tag (right side) *@
         <MudItem xs="12" md="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">Фильтр по серверам:</MudText>
@@ -102,21 +116,37 @@ else
                     <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="DeselectAll">Снять все</MudButton>
                 </MudStack>
                 <div data-testid="server-filter-chips">
-                    <MudChipSet T="int" SelectionMode="SelectionMode.MultiSelection"
-                                SelectedValues="_selectedServerIds"
-                                SelectedValuesChanged="OnServersChanged"
-                                Class="d-flex flex-column align-start">
-                        @foreach (var s in _allServers)
+                    <MudNavMenu>
+                        @foreach (var group in _serversByTag)
                         {
-                            <MudChip T="int" Value="@s.Id" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
-                                @s.Name@(string.IsNullOrWhiteSpace(s.IpAddress) ? "" : $" ({s.IpAddress})")
-                            </MudChip>
+                            var tagSelectedCount = group.Value.Count(s => _selectedServerIds.Contains(s.Id));
+                            var groupTitle = $"{group.Key} ({tagSelectedCount})";
+                            <MudNavGroup Title="@groupTitle" Expanded="true">
+                                @foreach (var s in group.Value)
+                                {
+                                    var serverId = s.Id;
+                                    var isSelected = _selectedServerIds.Contains(serverId);
+                                    <MudNavLink Icon="@(isSelected ? Icons.Material.Filled.CheckBox : Icons.Material.Outlined.CheckBoxOutlineBlank)"
+                                               OnClick="@(() => ToggleServer(serverId))"
+                                               Style="@(isSelected ? "color: var(--mud-palette-primary)" : "color: var(--mud-palette-text-secondary)")">
+                                        @s.Name@(string.IsNullOrWhiteSpace(s.IpAddress) ? "" : $" ({s.IpAddress})")
+                                    </MudNavLink>
+                                }
+                            </MudNavGroup>
                         }
-                    </MudChipSet>
+                    </MudNavMenu>
                 </div>
                 <div data-testid="show-related-checkbox">
                     <MudCheckBox T="bool" Value="_showRelated" ValueChanged="OnShowRelatedChanged"
                                  Label="Показывать связанные серверы" Class="mt-2" />
+                </div>
+                <div data-testid="show-edge-labels-checkbox">
+                    <MudCheckBox T="bool" Value="_showEdgeLabels" ValueChanged="OnShowEdgeLabelsChanged"
+                                 Label="Показывать порт/протокол" Class="mt-1" />
+                </div>
+                <div data-testid="show-server-ip-checkbox">
+                    <MudCheckBox T="bool" Value="_showServerIp" ValueChanged="OnShowServerIpChanged"
+                                 Label="Показывать IP сервера" Class="mt-1" />
                 </div>
             </MudPaper>
         </MudItem>
@@ -124,12 +154,23 @@ else
 }
 
 @code {
-    private bool _loading = true;
+    private sealed record GraphMapSettings(
+        bool  ShowRelated,
+        bool  ShowEdgeLabels,
+        bool  ShowServerIp,
+        int[] SelectedServerIds);
+
+    private const string SettingsKey = "graphmap-settings";
+
+    private bool _loading          = true;
     private bool _graphInitialized = false;
-    private bool _showRelated = false;
+    private bool _showRelated      = false;
+    private bool _showEdgeLabels   = true;
+    private bool _showServerIp     = true;
 
     private IReadOnlyCollection<int> _selectedServerIds = [];
-    private HashSet<int> _relatedServerIds = [];
+    private IReadOnlySet<int>        _relatedServerIds  = new HashSet<int>();
+    private Dictionary<string, List<Server>> _serversByTag = [];
 
     private IEnumerable<ServiceConnection> _allConnections = [];
     private IEnumerable<Server>            _allServers     = [];
@@ -143,11 +184,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _allConnections = await ServiceConnectionRepository.GetAllAsync();
-        _allServers     = await ServerRepository.GetAllAsync();
-        _allServices    = await AppServiceRepository.GetAllAsync();
+        _allConnections    = await ServiceConnectionRepository.GetAllAsync();
+        _allServers        = await ServerRepository.GetAllAsync();
+        _allServices       = await AppServiceRepository.GetAllAsync();
         _selectedServerIds = _allServers.Select(s => s.Id).ToList();
-        _loading = false;
+        _serversByTag      = BuildServersByTag();
+        _loading           = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -155,199 +197,133 @@ else
         if (!_loading && !_graphInitialized)
         {
             _graphInitialized = true;
-            var elements = BuildElements();
-            await JS.InvokeVoidAsync("graphMap.init", "cy-container", elements);
+
+            await LoadSettingsAsync();
+
+            var result = BuildGraphElements();
+            _relatedServerIds = result.RelatedServerIds;
+            await InvokeAsync(StateHasChanged);
+            await JS.InvokeVoidAsync("graphMap.init", "cy-container", result.Elements);
         }
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string?>("localStorage.getItem", SettingsKey);
+            if (json is null) return;
+
+            var settings = JsonSerializer.Deserialize<GraphMapSettings>(json);
+            if (settings is null) return;
+
+            _showRelated    = settings.ShowRelated;
+            _showEdgeLabels = settings.ShowEdgeLabels;
+            _showServerIp   = settings.ShowServerIp;
+
+            if (settings.SelectedServerIds.Length > 0)
+            {
+                var validIds = _allServers.Select(s => s.Id).ToHashSet();
+                var filtered = settings.SelectedServerIds.Where(id => validIds.Contains(id)).ToList();
+                if (filtered.Count > 0)
+                    _selectedServerIds = filtered;
+            }
+        }
+        catch (JsonException) { /* ignore corrupt stored data */ }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        var settings = new GraphMapSettings(
+            _showRelated,
+            _showEdgeLabels,
+            _showServerIp,
+            _selectedServerIds.ToArray());
+
+        var json = JsonSerializer.Serialize(settings);
+        await JS.InvokeVoidAsync("localStorage.setItem", SettingsKey, json);
     }
 
     private async Task SelectAll()
     {
         _selectedServerIds = _allServers.Select(s => s.Id).ToList();
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task DeselectAll()
     {
         _selectedServerIds = [];
         await RefreshGraph();
+        await SaveSettingsAsync();
+    }
+
+    private async Task ToggleServer(int serverId)
+    {
+        var current = _selectedServerIds.ToHashSet();
+        if (!current.Remove(serverId))
+            current.Add(serverId);
+        _selectedServerIds = current;
+        await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task OnServersChanged(IReadOnlyCollection<int> values)
     {
         _selectedServerIds = values;
         await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task OnShowRelatedChanged(bool value)
     {
         _showRelated = value;
         await RefreshGraph();
+        await SaveSettingsAsync();
+    }
+
+    private async Task OnShowEdgeLabelsChanged(bool value)
+    {
+        _showEdgeLabels = value;
+        await RefreshGraph();
+        await SaveSettingsAsync();
+    }
+
+    private async Task OnShowServerIpChanged(bool value)
+    {
+        _showServerIp = value;
+        await RefreshGraph();
+        await SaveSettingsAsync();
     }
 
     private async Task RefreshGraph()
     {
-        if (_graphInitialized)
-        {
-            var elements = BuildElements();
-            // Wrap in object[] so the params overload passes 'elements' as a single JS argument.
-            await JS.InvokeVoidAsync("graphMap.update", new object[] { elements });
-        }
+        if (!_graphInitialized) return;
+
+        var result = BuildGraphElements();
+        _relatedServerIds = result.RelatedServerIds;
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("graphMap.update", result.Elements);
     }
 
-    // ── Build Cytoscape elements ──────────────────────────────────────────────
-    private object[] BuildElements()
+    private Dictionary<string, List<Server>> BuildServersByTag()
     {
-        var selectedIds = _selectedServerIds.ToHashSet();
-
-        var primaryServers = selectedIds.Count == 0
-            ? _allServers.ToList()
-            : _allServers.Where(s => selectedIds.Contains(s.Id)).ToList();
-
-        var primaryServerIds = primaryServers.Select(s => s.Id).ToHashSet();
-
-        // Build service→server lookup to infer server when DestinationServerId is not set.
-        var svcToSrvId = new Dictionary<int, int>();
-        foreach (var srv in _allServers)
-            foreach (var svc in srv.Services)
-                svcToSrvId.TryAdd(svc.Id, srv.Id);
-
-        // Helper: resolve the effective server for a connection endpoint.
-        int? EffectiveServer(int? explicitServerId, int? serviceId)
+        var result = new Dictionary<string, List<Server>>();
+        foreach (var server in _allServers)
         {
-            if (explicitServerId.HasValue) return explicitServerId;
-            if (serviceId.HasValue && svcToSrvId.TryGetValue(serviceId.Value, out int sid)) return sid;
-            return null;
-        }
-
-        // Find related servers: connected to a primary server but not selected.
-        var relatedServerIdSet = new HashSet<int>();
-        if (_showRelated && primaryServerIds.Count > 0 && selectedIds.Count > 0)
-        {
-            foreach (var conn in _allConnections)
+            var tags = server.Tags.Select(t => t.Name).ToList();
+            if (tags.Count == 0)
+                tags.Add("Без тега");
+            foreach (var tag in tags)
             {
-                int? srcSrv = EffectiveServer(conn.SourceServerId, conn.SourceServiceId);
-                int? dstSrv = EffectiveServer(conn.DestinationServerId, conn.DestinationServiceId);
-
-                if (srcSrv.HasValue && primaryServerIds.Contains(srcSrv.Value)
-                    && dstSrv.HasValue && !primaryServerIds.Contains(dstSrv.Value))
-                    relatedServerIdSet.Add(dstSrv.Value);
-
-                if (dstSrv.HasValue && primaryServerIds.Contains(dstSrv.Value)
-                    && srcSrv.HasValue && !primaryServerIds.Contains(srcSrv.Value))
-                    relatedServerIdSet.Add(srcSrv.Value);
+                if (!result.TryGetValue(tag, out var list))
+                    result[tag] = list = [];
+                list.Add(server);
             }
         }
-        _relatedServerIds = relatedServerIdSet;
-
-        var relatedServers  = _allServers.Where(s => relatedServerIdSet.Contains(s.Id)).ToList();
-        var allVisibleServers = primaryServers.Concat(relatedServers).ToList();
-        var allVisibleServerIds = allVisibleServers.Select(s => s.Id).ToHashSet();
-
-        var elements = new List<object>();
-
-        // Primary server compound nodes
-        foreach (var srv in primaryServers.OrderBy(s => s.Name))
-            elements.Add(CreateServerElement(srv, dimmed: false));
-
-        // Related (dimmed) server compound nodes
-        foreach (var srv in relatedServers.OrderBy(s => s.Name))
-            elements.Add(CreateServerElement(srv, dimmed: true));
-
-        // Service nodes (children of their servers)
-        var addedServiceIds = new HashSet<int>();
-        foreach (var srv in allVisibleServers.OrderBy(s => s.Name))
-        {
-            bool isDimmed = relatedServerIdSet.Contains(srv.Id);
-            foreach (var svc in srv.Services.OrderBy(s => s.Name))
-            {
-                if (addedServiceIds.Add(svc.Id))
-                {
-                    elements.Add(new
-                    {
-                        data = new
-                        {
-                            id       = $"svc-{svc.Id}",
-                            label    = svc.Name,
-                            parent   = $"srv-{srv.Id}",
-                            type     = "service",
-                            nodeType = "app",
-                            dimmed   = isDimmed ? "1" : "0"
-                        }
-                    });
-                }
-            }
-        }
-
-        // Edges – between visible servers (using effective server IDs to handle null DestinationServerId)
-        foreach (var conn in _allConnections)
-        {
-            int? srcSrv = EffectiveServer(conn.SourceServerId, conn.SourceServiceId);
-            int? dstSrv = EffectiveServer(conn.DestinationServerId, conn.DestinationServiceId);
-
-            bool srcInScope = srcSrv.HasValue && allVisibleServerIds.Contains(srcSrv.Value);
-            bool dstInScope = dstSrv.HasValue && allVisibleServerIds.Contains(dstSrv.Value);
-            if (!srcInScope || !dstInScope) continue;
-
-            string srcNodeId = conn.SourceServiceId.HasValue && addedServiceIds.Contains(conn.SourceServiceId.Value)
-                ? $"svc-{conn.SourceServiceId.Value}"
-                : $"srv-{srcSrv.GetValueOrDefault()}";
-
-            string dstNodeId = addedServiceIds.Contains(conn.DestinationServiceId)
-                ? $"svc-{conn.DestinationServiceId}"
-                : $"srv-{dstSrv.GetValueOrDefault()}";
-
-            bool fromService = conn.SourceServiceId.HasValue;
-            string label = BuildEdgeLabel(
-                conn.DestinationService?.Port
-                    ?? _allServices.FirstOrDefault(s => s.Id == conn.DestinationServiceId)?.Port,
-                conn.Protocol);
-
-            elements.Add(new
-            {
-                data = new
-                {
-                    id          = $"edge-{conn.Id}",
-                    source      = srcNodeId,
-                    target      = dstNodeId,
-                    label,
-                    fromService = fromService ? "1" : "0",
-                    description = conn.Description ?? ""
-                }
-            });
-        }
-
-        return [.. elements];
+        return result;
     }
 
-    private static string BuildEdgeLabel(int? port, string? protocol)
-    {
-        bool hasPort  = port.HasValue;
-        bool hasProto = !string.IsNullOrWhiteSpace(protocol);
-        if (hasPort && hasProto) return $"{port}/{protocol}";
-        if (hasPort)             return $"{port}";
-        if (hasProto)            return protocol!;
-        return "";
-    }
-
-    /// <summary>
-    /// Builds a Cytoscape node element for a server (compound node).
-    /// </summary>
-    private static object CreateServerElement(Server srv, bool dimmed)
-    {
-        string label = string.IsNullOrWhiteSpace(srv.IpAddress)
-            ? srv.Name
-            : $"{srv.Name}\n{srv.IpAddress}";
-
-        return new
-        {
-            data = new
-            {
-                id       = $"srv-{srv.Id}",
-                label,
-                type     = "server",
-                nodeType = "server",
-                dimmed   = dimmed ? "1" : "0"
-            }
-        };
-    }
+    private GraphMapResult BuildGraphElements()
+        => ElementsBuilder.Build(_allConnections, _allServers, _allServices, _selectedServerIds, _showRelated, _showEdgeLabels, _showServerIp);
 }

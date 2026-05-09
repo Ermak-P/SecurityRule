@@ -3,6 +3,7 @@
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
 @inject IOperatingSystemRepository OperatingSystemRepository
+@inject ITagRepository TagRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -26,6 +27,7 @@
                 <MudSelectItem Value="@service.Id">@service.Name</MudSelectItem>
             }
         </MudSelect>
+        <TagInput AllTags="@_allTagNames" @bind-SelectedTags="_selectedTags" Class="mb-3" />
     </MudCardContent>
     <MudCardActions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -34,15 +36,34 @@
 </MudCard>
 
 @code {
+    [SupplyParameterFromQuery] public int? CloneFrom { get; set; }
+
     private Server _server = new();
     private IEnumerable<AppService> _allServices = [];
     private IReadOnlyCollection<int> _selectedServiceIds = [];
     private IEnumerable<string> _osOptions = [];
+    private IEnumerable<string> _allTagNames = [];
+    private HashSet<string> _selectedTags = [];
 
     protected override async Task OnInitializedAsync()
     {
         _allServices = await AppServiceRepository.GetAllAsync();
         _osOptions = (await OperatingSystemRepository.GetAllAsync()).Select(o => o.Name);
+        _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
+
+        if (CloneFrom.HasValue)
+        {
+            var source = await ServerRepository.GetByIdAsync(CloneFrom.Value);
+            if (source != null)
+            {
+                _server.Name = source.Name;
+                _server.IpAddress = source.IpAddress;
+                _server.OperatingSystem = source.OperatingSystem;
+                _server.Description = source.Description;
+                _selectedServiceIds = source.Services.Select(s => s.Id).ToArray();
+                _selectedTags = source.Tags.Select(t => t.Name).ToHashSet();
+            }
+        }
     }
 
     private Task<IEnumerable<string>> SearchOs(string value, CancellationToken _)
@@ -55,6 +76,9 @@
     private async Task Save()
     {
         _server.Services = _allServices.Where(s => _selectedServiceIds.Contains(s.Id)).ToList();
+        _server.Tags = [];
+        foreach (var tagName in _selectedTags)
+            _server.Tags.Add(await TagRepository.GetOrCreateAsync(tagName));
         await ServerRepository.AddAsync(_server);
         Snackbar.Add("Сервер добавлен", Severity.Success);
         Navigation.NavigateTo("/servers");

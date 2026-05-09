@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сервисы.feature.ndjson", 10);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сервисы.feature.ndjson", 11);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -402,6 +402,39 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 55
     await testRunner.ThenAsync("я вижу текст \"BA-SrcSrv\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Клонирование сервиса открывает форму создания с предзаполненными полями")]
+        public async global::System.Threading.Tasks.Task КлонированиеСервисаОткрываетФормуСозданияСПредзаполненнымиПолями()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "8";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Клонирование сервиса открывает форму создания с предзаполненными полями", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 57
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 58
+    await testRunner.GivenAsync("в системе существует сервис \"CloneSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 59
+    await testRunner.WhenAsync("я открываю страницу клонирования сервиса \"CloneSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 60
+    await testRunner.ThenAsync("поле \"Название\" содержит значение \"CloneSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

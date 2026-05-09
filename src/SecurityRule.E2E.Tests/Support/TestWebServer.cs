@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SecurityRule.Domain.Interfaces;
 using SecurityRule.Infrastructure.Data;
-using SecurityRule.Infrastructure.Repositories;
 using SecurityRule.Infrastructure.Services;
+using SecurityRule.Web;
 using SecurityRule.Web.Components;
 
 namespace SecurityRule.E2E.Tests.Support;
@@ -68,16 +68,7 @@ public sealed class TestWebServer : IAsyncDisposable
         builder.Services.AddDbContextFactory<FakeAdDbContext>(options =>
             options.UseInMemoryDatabase(_dbName + "_FakeAd"));
 
-        builder.Services.AddScoped<IServerRepository, ServerRepository>();
-        builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
-        builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
-        builder.Services.AddScoped<IServiceConnectionRepository, ServiceConnectionRepository>();
-        builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IOperatingSystemRepository, SecurityRule.Infrastructure.Repositories.OperatingSystemRepository>();
-        builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IUserRepository, SecurityRule.Infrastructure.Repositories.UserRepository>();
-        builder.Services.AddScoped<SecurityRule.Domain.Interfaces.IGroupRepository, SecurityRule.Infrastructure.Repositories.GroupRepository>();
-        builder.Services.AddScoped<SecurityRule.Domain.Interfaces.ISearchService, SecurityRule.Infrastructure.Repositories.SearchService>();
-        builder.Services.AddSingleton<SecurityRule.Domain.Interfaces.IAdService, FakeAdService>();
-        builder.Services.AddScoped<SecurityRule.Web.Services.ThemeState>();
+        builder.Services.AddApplicationServices();
 
         // Listen on a random free port; no HTTPS required for tests
         builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -113,11 +104,13 @@ public sealed class TestWebServer : IAsyncDisposable
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         // Load with related entities so EF tracks the junction-table rows
-        var services = await db.AppServices.Include(s => s.Servers).ToListAsync();
+        var services = await db.AppServices.Include(s => s.Servers).Include(s => s.Tags).ToListAsync();
         db.AppServices.RemoveRange(services);
         await db.SaveChangesAsync();
 
-        db.Servers.RemoveRange(db.Servers);
+        var servers = await db.Servers.Include(s => s.Tags).ToListAsync();
+        db.Servers.RemoveRange(servers);
+        db.Tags.RemoveRange(db.Tags);
         db.Certificates.RemoveRange(db.Certificates);
         db.ServiceConnections.RemoveRange(db.ServiceConnections);
         db.Groups.RemoveRange(db.Groups);

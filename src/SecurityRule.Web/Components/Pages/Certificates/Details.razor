@@ -22,10 +22,16 @@ else
                 <MudIcon Icon="@Icons.Material.Filled.CardMembership" Color="Color.Warning" />
                 <MudText Typo="Typo.h4">@_displayCertificate.Description</MudText>
             </MudStack>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                       OnClick="@(() => Navigation.NavigateTo($"/certificates/edit/{_displayCertificate.Id}"))">
-                Редактировать
-            </MudButton>
+            <MudStack Row="true" Spacing="1">
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.ContentCopy"
+                           OnClick="@(() => Navigation.NavigateTo($"/certificates/create?cloneFrom={_displayCertificate.Id}"))">
+                    Клонировать
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => Navigation.NavigateTo($"/certificates/edit/{_displayCertificate.Id}"))">
+                    Редактировать
+                </MudButton>
+            </MudStack>
         </MudStack>
     }
 

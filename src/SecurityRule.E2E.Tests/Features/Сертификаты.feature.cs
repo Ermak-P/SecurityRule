@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сертификаты.feature.ndjson", 8);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сертификаты.feature.ndjson", 9);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -332,6 +332,48 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 45
     await testRunner.AndAsync("на странице нет текста \"TempCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Клонирование сертификата открывает форму создания с предзаполненными полями")]
+        public async global::System.Threading.Tasks.Task КлонированиеСертификатаОткрываетФормуСозданияСПредзаполненнымиПолями()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "6";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Клонирование сертификата открывает форму создания с предзаполненными полями", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 47
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 48
+    await testRunner.GivenAsync("в системе существует сертификат Desc \"CloneCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 49
+    await testRunner.WhenAsync("я открываю страницу клонирования сертификата \"CloneCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 50
+    await testRunner.ThenAsync("поле \"SN (Серийный номер)\" содержит значение \"SN-TEST\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 51
+    await testRunner.AndAsync("поле \"Thumbprint\" содержит значение \"TESTTHUMBPRINT\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 52
+    await testRunner.AndAsync("поле \"Номер заявки\" содержит значение \"REQ-TEST\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 53
+    await testRunner.AndAsync("поле \"Описание\" содержит значение \"CloneCert\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

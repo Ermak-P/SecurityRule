@@ -282,4 +282,69 @@ public class AppServiceRepositoryTests
         result!.DestinationConnections.Should().HaveCount(1);
         result.DestinationConnections.First().Protocol.Should().Be("UDP");
     }
+
+    [Test]
+    public async Task AddAsync_ShouldSaveServiceWithTags()
+    {
+        // Arrange
+        var tag1 = new Tag { Name = "backend" };
+        var tag2 = new Tag { Name = "api" };
+        _context.Tags.AddRange(tag1, tag2);
+        await _context.SaveChangesAsync();
+
+        var service = new AppService
+        {
+            Name = "TaggedSvc",
+            UserName = "domain\\tagged",
+            Tags = [tag1, tag2]
+        };
+
+        // Act
+        await _repository.AddAsync(service);
+
+        // Assert
+        var result = await _context.AppServices.Include(s => s.Tags).FirstAsync(s => s.Name == "TaggedSvc");
+        result.Tags.Should().HaveCount(2);
+        result.Tags.Select(t => t.Name).Should().BeEquivalentTo(["backend", "api"]);
+    }
+
+    [Test]
+    public async Task GetAllAsync_ShouldIncludeTagsForEachService()
+    {
+        // Arrange
+        var tag = new Tag { Name = "monitoring" };
+        _context.Tags.Add(tag);
+        var service = new AppService { Name = "MonitorSvc", UserName = "domain\\mon", Tags = [tag] };
+        _context.AppServices.Add(service);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var services = (await _repository.GetAllAsync()).ToList();
+
+        // Assert
+        var result = services.Single(s => s.Name == "MonitorSvc");
+        result.Tags.Should().HaveCount(1);
+        result.Tags.Single().Name.Should().Be("monitoring");
+    }
+
+    [Test]
+    public async Task UpdateAsync_ShouldReplaceTags()
+    {
+        // Arrange
+        var tagA = new Tag { Name = "svc-tag-a" };
+        var tagB = new Tag { Name = "svc-tag-b" };
+        _context.Tags.AddRange(tagA, tagB);
+        var service = new AppService { Name = "Svc", UserName = "domain\\svc", Tags = [tagA] };
+        _context.AppServices.Add(service);
+        await _context.SaveChangesAsync();
+
+        // Act — replace tagA with tagB
+        service.Tags = [tagB];
+        await _repository.UpdateAsync(service);
+
+        // Assert
+        var updated = await _repository.GetByIdAsync(service.Id);
+        updated!.Tags.Should().HaveCount(1);
+        updated.Tags.Single().Name.Should().Be("svc-tag-b");
+    }
 }

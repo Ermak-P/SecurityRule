@@ -1,10 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using SecurityRule.Domain.Interfaces;
 using SecurityRule.Infrastructure.Data;
-using SecurityRule.Infrastructure.Repositories;
-using SecurityRule.Infrastructure.Services;
-using SecurityRule.Web.Services;
+using SecurityRule.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,16 +21,7 @@ builder.Services.AddServerSideBlazor(options =>
     options.DetailedErrors = true;
 });
 
-builder.Services.AddScoped<IServerRepository, ServerRepository>();
-builder.Services.AddScoped<IAppServiceRepository, AppServiceRepository>();
-builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
-builder.Services.AddScoped<IServiceConnectionRepository, ServiceConnectionRepository>();
-builder.Services.AddScoped<IOperatingSystemRepository, OperatingSystemRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IGroupRepository, GroupRepository>();
-builder.Services.AddScoped<ISearchService, SearchService>();
-builder.Services.AddSingleton<IAdService, FakeAdService>();
-builder.Services.AddScoped<ThemeState>();
+builder.Services.AddApplicationServices();
 
 var app = builder.Build();
 

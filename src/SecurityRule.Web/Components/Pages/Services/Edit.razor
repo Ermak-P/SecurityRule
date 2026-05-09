@@ -3,6 +3,7 @@
 @inject IAppServiceRepository AppServiceRepository
 @inject IServerRepository ServerRepository
 @inject IUserRepository UserRepository
+@inject ITagRepository TagRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -35,6 +36,7 @@ else
                     <MudSelectItem T="int?" Value="@((int?)user.Id)">@user.Name</MudSelectItem>
                 }
             </MudSelect>
+            <TagInput AllTags="@_allTagNames" @bind-SelectedTags="_selectedTags" Class="mb-3" />
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -56,17 +58,21 @@ else
     private IReadOnlyCollection<int> _selectedServerIds = [];
     private int? _selectedUserId;
     private string _portText = string.Empty;
+    private IEnumerable<string> _allTagNames = [];
+    private HashSet<string> _selectedTags = [];
 
     protected override async Task OnInitializedAsync()
     {
         _service = await AppServiceRepository.GetByIdAsync(Id);
         _allServers = await ServerRepository.GetAllAsync();
         _allUsers = await UserRepository.GetAllAsync();
+        _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
         if (_service != null)
         {
             _selectedServerIds = _service.Servers.Select(s => s.Id).ToList();
             _selectedUserId = _service.UserId;
             _portText = _service.Port?.ToString() ?? string.Empty;
+            _selectedTags = _service.Tags.Select(t => t.Name).ToHashSet();
         }
     }
 
@@ -79,6 +85,9 @@ else
             _service.UserId = selectedUser?.Id;
             _service.UserName = selectedUser?.Name ?? string.Empty;
             _service.Port = int.TryParse(_portText, out var p) ? p : null;
+            _service.Tags = [];
+            foreach (var tagName in _selectedTags)
+                _service.Tags.Add(await TagRepository.GetOrCreateAsync(tagName));
             await AppServiceRepository.UpdateAsync(_service);
             Snackbar.Add("Сервис обновлён", Severity.Success);
             Navigation.NavigateTo($"/services/{Id}");

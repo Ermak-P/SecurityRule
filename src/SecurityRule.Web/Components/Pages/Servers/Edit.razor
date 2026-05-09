@@ -3,6 +3,7 @@
 @inject IServerRepository ServerRepository
 @inject IAppServiceRepository AppServiceRepository
 @inject IOperatingSystemRepository OperatingSystemRepository
+@inject ITagRepository TagRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -32,6 +33,7 @@ else
                     <MudSelectItem Value="@service.Id">@service.Name</MudSelectItem>
                 }
             </MudSelect>
+            <TagInput AllTags="@_allTagNames" @bind-SelectedTags="_selectedTags" Class="mb-3" />
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -51,15 +53,19 @@ else
     private IEnumerable<AppService> _allServices = [];
     private IReadOnlyCollection<int> _selectedServiceIds = [];
     private IEnumerable<string> _osOptions = [];
+    private IEnumerable<string> _allTagNames = [];
+    private HashSet<string> _selectedTags = [];
 
     protected override async Task OnInitializedAsync()
     {
         _server = await ServerRepository.GetByIdAsync(Id);
         _allServices = await AppServiceRepository.GetAllAsync();
         _osOptions = (await OperatingSystemRepository.GetAllAsync()).Select(o => o.Name);
+        _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
         if (_server != null)
         {
             _selectedServiceIds = _server.Services.Select(s => s.Id).ToArray();
+            _selectedTags = _server.Tags.Select(t => t.Name).ToHashSet();
         }
     }
 
@@ -75,6 +81,9 @@ else
         if (_server != null)
         {
             _server.Services = _allServices.Where(s => _selectedServiceIds.Contains(s.Id)).ToList();
+            _server.Tags = [];
+            foreach (var tagName in _selectedTags)
+                _server.Tags.Add(await TagRepository.GetOrCreateAsync(tagName));
             await ServerRepository.UpdateAsync(_server);
             Snackbar.Add("Сервер обновлён", Severity.Success);
             Navigation.NavigateTo($"/servers/{Id}");

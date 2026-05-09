@@ -2,7 +2,7 @@ namespace SecurityRule.Web.Services;
 
 public class ThemeState
 {
-    public bool IsDarkMode { get; private set; } = true;
+    public bool IsDarkMode { get; private set; } = false;
 
     public event Action? OnChange;
 

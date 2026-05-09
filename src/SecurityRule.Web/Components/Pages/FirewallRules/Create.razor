@@ -80,6 +80,8 @@
 </MudCard>
 
 @code {
+    [SupplyParameterFromQuery] public int? CloneFrom { get; set; }
+
     private string _protocol = string.Empty;
     private string _description = string.Empty;
     private int? _srcServerId;
@@ -97,6 +99,26 @@
         _allServices = await AppServiceRepository.GetAllAsync();
         _srcServices = _allServices;
         _dstServices = _allServices;
+
+        if (CloneFrom.HasValue)
+        {
+            var source = await ServiceConnectionRepository.GetByIdAsync(CloneFrom.Value);
+            if (source != null)
+            {
+                _srcServerId  = source.SourceServerId;
+                _srcServiceId = source.SourceServiceId;
+                _dstServerId  = source.DestinationServerId;
+                _dstServiceId = source.DestinationServiceId;
+                _protocol     = source.Protocol ?? string.Empty;
+                _description  = source.Description ?? string.Empty;
+                _srcServices = _srcServerId.HasValue
+                    ? _allServers.FirstOrDefault(s => s.Id == _srcServerId.Value)?.Services ?? []
+                    : _allServices;
+                _dstServices = _dstServerId.HasValue
+                    ? _allServers.FirstOrDefault(s => s.Id == _dstServerId.Value)?.Services ?? []
+                    : _allServices;
+            }
+        }
     }
 
     private void OnSrcServerChanged()

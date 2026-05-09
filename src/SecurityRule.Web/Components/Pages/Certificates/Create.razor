@@ -24,9 +24,28 @@
 </MudCard>
 
 @code {
+    [SupplyParameterFromQuery] public int? CloneFrom { get; set; }
+
     private Certificate _certificate = new();
     private DateTime? _issuedAt = DateTime.Now;
     private DateTime? _expiresAt = DateTime.Now.AddYears(1);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CloneFrom.HasValue)
+        {
+            var source = await CertificateRepository.GetByIdAsync(CloneFrom.Value);
+            if (source != null)
+            {
+                _certificate.SerialNumber = source.SerialNumber;
+                _certificate.Thumbprint = source.Thumbprint;
+                _certificate.Description = source.Description;
+                _certificate.RequestNumber = source.RequestNumber;
+                _issuedAt = source.IssuedAt;
+                _expiresAt = source.ExpiresAt;
+            }
+        }
+    }
 
     private async Task Save()
     {

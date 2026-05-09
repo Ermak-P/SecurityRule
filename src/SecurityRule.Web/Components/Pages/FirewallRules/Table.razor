@@ -61,6 +61,9 @@
         <MudTd DataLabel="Протокол">@(string.IsNullOrWhiteSpace(context.Protocol) ? "—" : context.Protocol)</MudTd>
         <MudTd Style="text-align:right">
             <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Color="Color.Default"
+                               Title="Клонировать"
+                               OnClick="@(() => Navigation.NavigateTo($"/connections/create?cloneFrom={context.Id}"))" />
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
                                Title="Редактировать"
                                OnClick="@(() => Navigation.NavigateTo($"/connections/edit/{context.Id}"))" />

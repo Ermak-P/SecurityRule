@@ -124,6 +124,13 @@ public sealed class ПравилаБрандмауэраШаги
         await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/edit/{id}");
     }
 
+    [When("я открываю страницу клонирования связи с источником {string} и назначением {string}")]
+    public async Task ОткрытьСтраницуКлонированияСвязи(string srcName, string dstServiceName)
+    {
+        var id = await GetConnectionIdAsync(srcName, dstServiceName);
+        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/create?cloneFrom={id}");
+    }
+
     [When("я открываю страницу редактирования связи без сервера источника с назначением {string}")]
     public async Task ОткрытьСтраницуРедактированияСвязиБезСервера(string dstServiceName)
     {
@@ -146,39 +153,42 @@ public sealed class ПравилаБрандмауэраШаги
     }
 
     /// <summary>
-    /// Verifies that a server chip is currently selected (has mud-chip-selected class).
+    /// Verifies that a server is currently selected in the filter.
+    /// Uses the hidden server-filter-selected div rendered by GraphMap.razor for reliable assertion.
     /// </summary>
     [Then("чип сервера {string} выбран")]
     public async Task ЧипСервераВыбран(string label)
     {
-        var chip = _state.Page
-            .Locator("[data-testid='server-filter-chips'] .mud-chip-selected")
+        var item = _state.Page
+            .Locator("[data-testid='server-filter-selected'] span")
             .Filter(new LocatorFilterOptions { HasText = label });
-        await Assertions.Expect(chip.First).ToBeAttachedAsync(new() { Timeout = 10_000 });
+        await Assertions.Expect(item.First).ToBeAttachedAsync(new() { Timeout = 10_000 });
     }
 
     /// <summary>
-    /// Verifies that a server chip is NOT selected (does not have mud-chip-selected class).
+    /// Verifies that a server is NOT selected in the filter.
+    /// Uses the hidden server-filter-selected div rendered by GraphMap.razor for reliable assertion.
     /// </summary>
     [Then("чип сервера {string} не выбран")]
     public async Task ЧипСервераНеВыбран(string label)
     {
-        var chip = _state.Page
-            .Locator("[data-testid='server-filter-chips'] .mud-chip-selected")
+        var item = _state.Page
+            .Locator("[data-testid='server-filter-selected'] span")
             .Filter(new LocatorFilterOptions { HasText = label });
-        await Assertions.Expect(chip).ToHaveCountAsync(0, new() { Timeout = 10_000 });
+        await Assertions.Expect(item).ToHaveCountAsync(0, new() { Timeout = 10_000 });
     }
 
     /// <summary>
-    /// Clicks a server chip to toggle its selection state.
+    /// Clicks a server nav link in the filter panel to toggle its selection state.
+    /// The filter uses MudNavMenu/MudNavLink items inside server-filter-chips.
     /// </summary>
     [When("я снимаю выделение с чипа сервера {string}")]
     public async Task СнятьВыделениеСЧипаСервера(string label)
     {
-        var chip = _state.Page
-            .Locator("[data-testid='server-filter-chips'] .mud-chip")
+        var link = _state.Page
+            .Locator("[data-testid='server-filter-chips'] .mud-nav-link")
             .Filter(new LocatorFilterOptions { HasText = label });
-        await chip.First.ClickAsync();
+        await link.First.ClickAsync();
         await _state.Page.WaitForTimeoutAsync(600);
     }
 

@@ -85,6 +85,20 @@ public sealed class ОбщиеШаги
 
     // ── Assertions ────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Asserts that an input field (identified by its visible label) has the given value.
+    /// Used to verify that clone forms are pre-filled with source entity data.
+    /// Note: works for standard MudTextField fields; complex autocomplete fields may need
+    /// alternative locator strategies.
+    /// </summary>
+    [Then("поле {string} содержит значение {string}")]
+    public async Task ПолеСодержитЗначение(string label, string expectedValue)
+    {
+        var input = _state.Page.GetByLabel(label, new() { Exact = true });
+        await input.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await Assertions.Expect(input).ToHaveValueAsync(expectedValue, new() { Timeout = 10_000 });
+    }
+
     /// <summary>Asserts that a heading (h1–h4) with the given text is visible.</summary>
     [Then("я вижу заголовок {string}")]
     public async Task ВидетьЗаголовок(string heading)

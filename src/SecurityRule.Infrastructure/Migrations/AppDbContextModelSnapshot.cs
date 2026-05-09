@@ -52,6 +52,36 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("ServerServices", (string)null);
                 });
 
+            modelBuilder.Entity("ServerTags", b =>
+                {
+                    b.Property<int>("ServersId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TagsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ServersId", "TagsId");
+
+                    b.HasIndex("TagsId");
+
+                    b.ToTable("ServerTags", (string)null);
+                });
+
+            modelBuilder.Entity("ServiceTags", b =>
+                {
+                    b.Property<int>("ServicesId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TagsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ServicesId", "TagsId");
+
+                    b.HasIndex("TagsId");
+
+                    b.ToTable("ServiceTags", (string)null);
+                });
+
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
                     b.Property<int>("Id")
@@ -187,6 +217,27 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Groups");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.Tag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Tags");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.OperatingSystemOption", b =>
@@ -344,6 +395,36 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.HasOne("SecurityRule.Domain.Models.AppService", null)
                         .WithMany()
                         .HasForeignKey("ServicesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ServerTags", b =>
+                {
+                    b.HasOne("SecurityRule.Domain.Models.Server", null)
+                        .WithMany()
+                        .HasForeignKey("ServersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SecurityRule.Domain.Models.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ServiceTags", b =>
+                {
+                    b.HasOne("SecurityRule.Domain.Models.AppService", null)
+                        .WithMany()
+                        .HasForeignKey("ServicesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SecurityRule.Domain.Models.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
