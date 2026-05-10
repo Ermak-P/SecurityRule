@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Reqnroll;
+using SecurityRule.E2E.Common;
 
 namespace SecurityRule.E2E.Tests.Support;
 

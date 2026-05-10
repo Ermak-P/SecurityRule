@@ -1,6 +1,6 @@
 using Microsoft.Playwright;
 
-namespace SecurityRule.E2E.Tests.Support;
+namespace SecurityRule.E2E.Common;
 
 /// <summary>
 /// Per-scenario shared state injected into all step-definition classes by Reqnroll.

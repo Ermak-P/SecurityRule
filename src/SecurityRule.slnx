@@ -2,6 +2,7 @@
   <Project Path="SecurityRule.Domain/SecurityRule.Domain.csproj" />
   <Project Path="SecurityRule.Infrastructure/SecurityRule.Infrastructure.csproj" />
   <Project Path="SecurityRule.Tests/SecurityRule.Tests.csproj" />
+  <Project Path="SecurityRule.E2E.Common/SecurityRule.E2E.Common.csproj" />
   <Project Path="SecurityRule.E2E.Tests/SecurityRule.E2E.Tests.csproj" />
   <Project Path="SecurityRule.Web/SecurityRule.Web.csproj" />
 </Solution>
