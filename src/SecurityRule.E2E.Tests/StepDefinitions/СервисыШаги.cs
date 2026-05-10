@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using Reqnroll;
 using SecurityRule.Domain.Models;
 using SecurityRule.E2E.Tests.Support;
@@ -81,34 +80,34 @@ public sealed class СервисыШаги
     [When("я перехожу на страницу сервисов")]
     public async Task ПерейтиНаСтраницуСервисов()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/services");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/services");
     }
 
     [When("я перехожу на страницу добавления сервиса")]
     public async Task ПерейтиНаСтраницуДобавленияСервиса()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/services/create");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/services/create");
     }
 
     [When("я открываю страницу деталей сервиса {string}")]
     public async Task ОткрытьСтраницуДеталейСервиса(string name)
     {
         var id = await GetServiceIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/services/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/services/{id}");
     }
 
     [When("я открываю страницу редактирования сервиса {string}")]
     public async Task ОткрытьСтраницуРедактированияСервиса(string name)
     {
         var id = await GetServiceIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/services/edit/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/services/edit/{id}");
     }
 
     [When("я открываю страницу клонирования сервиса {string}")]
     public async Task ОткрытьСтраницуКлонированияСервиса(string name)
     {
         var id = await GetServiceIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/services/create?cloneFrom={id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/services/create?cloneFrom={id}");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -119,14 +118,5 @@ public sealed class СервисыШаги
         var repo     = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
         var services = await repo.GetAllAsync();
         return services.First(s => s.Name == name).Id;
-    }
-
-    private async Task NavigateAndWaitAsync(string url)
-    {
-        await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
-        await _state.Page.WaitForFunctionAsync(
-            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
-            null, new() { Timeout = 15_000, PollingInterval = 200 });
-        await _state.Page.WaitForTimeoutAsync(500);
     }
 }

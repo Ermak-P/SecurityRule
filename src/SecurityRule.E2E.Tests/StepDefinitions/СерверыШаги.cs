@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using Reqnroll;
 using SecurityRule.Domain.Models;
 using SecurityRule.E2E.Tests.Support;
@@ -34,34 +33,34 @@ public sealed class СерверыШаги
     [When("я перехожу на страницу серверов")]
     public async Task ПерейтиНаСтраницуСерверов()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/servers");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/servers");
     }
 
     [When("я перехожу на страницу добавления сервера")]
     public async Task ПерейтиНаСтраницуДобавленияСервера()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/servers/create");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/servers/create");
     }
 
     [When("я открываю страницу деталей сервера {string}")]
     public async Task ОткрытьСтраницуДеталейСервера(string name)
     {
         var id = await GetServerIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/servers/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/servers/{id}");
     }
 
     [When("я открываю страницу редактирования сервера {string}")]
     public async Task ОткрытьСтраницуРедактированияСервера(string name)
     {
         var id = await GetServerIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/servers/edit/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/servers/edit/{id}");
     }
 
     [When("я открываю страницу клонирования сервера {string}")]
     public async Task ОткрытьСтраницуКлонированияСервера(string name)
     {
         var id = await GetServerIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/servers/create?cloneFrom={id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/servers/create?cloneFrom={id}");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -72,14 +71,5 @@ public sealed class СерверыШаги
         var repo    = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IServerRepository>();
         var servers = await repo.GetAllAsync();
         return servers.First(s => s.Name == name).Id;
-    }
-
-    private async Task NavigateAndWaitAsync(string url)
-    {
-        await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
-        await _state.Page.WaitForFunctionAsync(
-            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
-            null, new() { Timeout = 15_000, PollingInterval = 200 });
-        await _state.Page.WaitForTimeoutAsync(500);
     }
 }

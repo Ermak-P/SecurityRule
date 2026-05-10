@@ -48,13 +48,10 @@ public sealed class ОбщиеШаги
     [When("я нажимаю кнопку {string}")]
     public async Task НажатьКнопку(string buttonText)
     {
-        await _state.Page
-            .GetByRole(AriaRole.Button, new() { Name = buttonText, Exact = true })
-            .ClickAsync();
         // Allow Blazor's SignalR round-trip to deliver the click event to the server
         // and give the server handler time to execute (save + navigate or similar).
         // We do NOT use NetworkIdle here because the SignalR WebSocket stays open.
-        await _state.Page.WaitForTimeoutAsync(300);
+        await _state.Page.ClickButtonAndWaitAsync(buttonText);
     }
 
     /// <summary>Selects an option by text in a MudSelect dropdown by its label.</summary>
