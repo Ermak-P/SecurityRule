@@ -78,9 +78,12 @@ public class ServerFormServiceTests
         _context.Servers.Add(existing);
         await _context.SaveChangesAsync();
 
-        existing.Name = "NewName";
+        var model = await _service.GetEditModelAsync(existing.Id);
+        model.Should().NotBeNull();
+        var detached = model!.Server;
+        detached.Name = "NewName";
         var serviceId = _context.AppServices.OrderBy(s => s.Id).Last().Id;
-        var result = await _service.UpdateAsync(existing, [serviceId], ["production", "new-tag"]);
+        var result = await _service.UpdateAsync(detached, [serviceId], ["production", "new-tag"]);
 
         result.Should().BeTrue();
         var persisted = await _context.Servers.Include(s => s.Services).Include(s => s.Tags).SingleAsync();

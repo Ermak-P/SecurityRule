@@ -74,9 +74,10 @@ public sealed class ServerFormService
         IReadOnlyCollection<string> selectedTags,
         CancellationToken cancellationToken = default)
     {
-        var allServices = (await _appServiceRepository.GetAllAsync(cancellationToken)).ToList();
-        server.Services = allServices.Where(s => selectedServiceIds.Contains(s.Id)).ToList();
-        server.Tags = await ResolveTagsAsync(selectedTags, cancellationToken);
+        server.Services = selectedServiceIds.Select(id => new AppService { Id = id }).ToList();
+        server.Tags = (await ResolveTagsAsync(selectedTags, cancellationToken))
+            .Select(t => new Tag { Id = t.Id, Name = t.Name })
+            .ToList();
 
         await _serverRepository.AddAsync(server, cancellationToken);
     }
@@ -90,9 +91,10 @@ public sealed class ServerFormService
         var existing = await _serverRepository.GetByIdAsync(server.Id, cancellationToken);
         if (existing is null) return false;
 
-        var allServices = (await _appServiceRepository.GetAllAsync(cancellationToken)).ToList();
-        server.Services = allServices.Where(s => selectedServiceIds.Contains(s.Id)).ToList();
-        server.Tags = await ResolveTagsAsync(selectedTags, cancellationToken);
+        server.Services = selectedServiceIds.Select(id => new AppService { Id = id }).ToList();
+        server.Tags = (await ResolveTagsAsync(selectedTags, cancellationToken))
+            .Select(t => new Tag { Id = t.Id, Name = t.Name })
+            .ToList();
 
         await _serverRepository.UpdateAsync(server, cancellationToken);
         return true;

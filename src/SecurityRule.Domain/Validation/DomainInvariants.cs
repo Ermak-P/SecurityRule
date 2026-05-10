@@ -20,9 +20,6 @@ public static class DomainInvariants
         if (string.IsNullOrWhiteSpace(server.Name))
             throw new DomainValidationException("Название сервера обязательно.");
 
-        if (string.IsNullOrWhiteSpace(server.OperatingSystem))
-            throw new DomainValidationException("Операционная система обязательна.");
-
         if (string.IsNullOrWhiteSpace(server.IpAddress))
             throw new DomainValidationException("IP адрес сервера обязателен.");
 

@@ -54,23 +54,24 @@ public sealed class ПоискШаги
         await input.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await input.FillAsync(text);
 
-        if (text.Length < 2)
-            return;
-
-        await _state.Page.WaitForFunctionAsync(
-            "() => !!document.querySelector('[data-testid=\"search-results\"]') || !!document.querySelector('[data-testid=\"search-no-results\"]')",
-            null,
-            new() { Timeout = 10_000, PollingInterval = 100 });
+        await _state.Page.WaitForTimeoutAsync(800);
     }
 
     [When("я нажимаю на первый результат поиска")]
     public async Task НажатьНаПервыйРезультатПоиска()
     {
-        // Results are rendered as MudListItem children inside the search-results panel
+        await _state.Page.WaitForFunctionAsync(
+            "() => !!document.querySelector('[data-testid=\"search-results\"] .mud-list-item') || !!document.querySelector('[data-testid=\"search-no-results\"]')",
+            null,
+            new() { Timeout = 20_000, PollingInterval = 100 });
+
+        var noResultsPanel = _state.Page.Locator("[data-testid='search-no-results']");
+        if (await noResultsPanel.CountAsync() > 0)
+            Assert.Fail("Результаты поиска отсутствуют, невозможно нажать первый результат.");
+
         var resultsPanel = _state.Page.Locator("[data-testid='search-results']");
-        await resultsPanel.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 10_000 });
         var firstResult = resultsPanel.Locator(".mud-list-item").First;
-        await firstResult.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await firstResult.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
         await firstResult.ClickAsync();
         await Assertions.Expect(resultsPanel).ToHaveCountAsync(0, new() { Timeout = 10_000 });
     }

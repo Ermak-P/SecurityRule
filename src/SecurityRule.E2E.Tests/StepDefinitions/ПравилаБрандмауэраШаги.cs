@@ -282,6 +282,9 @@ public sealed class ПравилаБрандмауэраШаги
     private async Task NavigateAndWaitAsync(string url)
     {
         await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
-        await PlaywrightWaits.WaitForBlazorReadyAsync(_state.Page);
+        await _state.Page.WaitForFunctionAsync(
+            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
+            null, new() { Timeout = 15_000, PollingInterval = 200 });
+        await _state.Page.WaitForTimeoutAsync(1500);
     }
 }

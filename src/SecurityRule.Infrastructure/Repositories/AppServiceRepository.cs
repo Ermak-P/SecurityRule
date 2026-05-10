@@ -16,20 +16,18 @@ public class AppServiceRepository : IAppServiceRepository
 
     public async Task<IEnumerable<AppService>> GetAllAsync(CancellationToken cancellationToken = default)
         => await _context.AppServices
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .Include(s => s.User)
             .Include(s => s.Servers)
-                .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
             .Include(s => s.Tags)
             .ToListAsync(cancellationToken);
 
     public async Task<AppService?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         => await _context.AppServices
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .Include(s => s.User)
             .Include(s => s.Servers)
-                .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
             .Include(s => s.Tags)
             .Include(s => s.SourceConnections)

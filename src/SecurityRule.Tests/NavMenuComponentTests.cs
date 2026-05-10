@@ -8,12 +8,12 @@ namespace SecurityRule.Tests;
 [TestFixture]
 public class NavMenuComponentTests
 {
-    private TestContext _context = null!;
+    private Bunit.TestContext _context = null!;
 
     [SetUp]
     public void SetUp()
     {
-        _context = new TestContext();
+        _context = new Bunit.TestContext();
         _context.Services.AddMudServices();
     }
 

@@ -17,9 +17,8 @@ public class ServerRepository : IServerRepository
 
     public async Task<IEnumerable<Server>> GetAllAsync(CancellationToken cancellationToken = default)
         => await _context.Servers
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .Include(s => s.Services)
-                .ThenInclude(svc => svc.Servers)
             .Include(s => s.Services)
                 .ThenInclude(svc => svc.Certificates)
             .Include(s => s.Tags)
@@ -27,9 +26,8 @@ public class ServerRepository : IServerRepository
 
     public async Task<Server?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         => await _context.Servers
-            .AsNoTracking()
+            .AsNoTrackingWithIdentityResolution()
             .Include(s => s.Services)
-                .ThenInclude(svc => svc.Servers)
             .Include(s => s.Services)
                 .ThenInclude(svc => svc.Certificates)
             .Include(s => s.Tags)
@@ -50,6 +48,20 @@ public class ServerRepository : IServerRepository
     public async Task AddAsync(Server server, CancellationToken cancellationToken = default)
     {
         DomainInvariants.ValidateServer(server);
+
+        var serviceIds = server.Services.Select(s => s.Id).Distinct().ToList();
+        var trackedServices = await _context.AppServices
+            .Where(s => serviceIds.Contains(s.Id))
+            .ToListAsync(cancellationToken);
+
+        var tagIds = server.Tags.Select(t => t.Id).Distinct().ToList();
+        var trackedTags = await _context.Tags
+            .Where(t => tagIds.Contains(t.Id))
+            .ToListAsync(cancellationToken);
+
+        server.Services = trackedServices;
+        server.Tags = trackedTags;
+
         _context.Servers.Add(server);
         await _context.SaveChangesAsync(cancellationToken);
     }
