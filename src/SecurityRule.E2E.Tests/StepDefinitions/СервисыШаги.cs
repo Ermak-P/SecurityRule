@@ -1,6 +1,6 @@
 using Reqnroll;
 using SecurityRule.Domain.Models;
-using SecurityRule.E2E.Common;
+using SecurityRule.E2E.Tests.Support;
 
 namespace SecurityRule.E2E.Tests.StepDefinitions;
 

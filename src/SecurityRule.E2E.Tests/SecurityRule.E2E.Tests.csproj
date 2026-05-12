@@ -26,7 +26,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SecurityRule.Domain\SecurityRule.Domain.csproj" />
-    <ProjectReference Include="..\SecurityRule.E2E.Common\SecurityRule.E2E.Common.csproj" />
     <ProjectReference Include="..\SecurityRule.Infrastructure\SecurityRule.Infrastructure.csproj" />
     <ProjectReference Include="..\SecurityRule.Web\SecurityRule.Web.csproj" />
   </ItemGroup>

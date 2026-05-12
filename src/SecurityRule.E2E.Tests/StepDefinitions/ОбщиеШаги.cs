@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Reqnroll;
-using SecurityRule.E2E.Common;
+using SecurityRule.E2E.Tests.Support;
 
 namespace SecurityRule.E2E.Tests.StepDefinitions;
 
