@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SecurityRule.Infrastructure.Data;
+using SecurityRule.Infrastructure.Services;
 using SecurityRule.Web;
+using SecurityRule.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,8 +14,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddSingleton<AuditSaveChangesInterceptor>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
 builder.Services.AddDbContextFactory<FakeAdDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("FakeAdConnection")));
@@ -21,7 +27,30 @@ builder.Services.AddServerSideBlazor(options =>
     options.DetailedErrors = true;
 });
 
-builder.Services.AddApplicationServices();
+var useActiveDirectoryAuthentication =
+    builder.Configuration.GetValue<bool>("Authentication:UseActiveDirectory", true);
+
+if (useActiveDirectoryAuthentication)
+{
+    builder.Services
+        .AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+        .AddNegotiate();
+}
+else
+{
+    builder.Services
+        .AddAuthentication(DevelopmentAuthenticationHandler.SchemeName)
+        .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
+            DevelopmentAuthenticationHandler.SchemeName, _ => { });
+}
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = options.DefaultPolicy;
+});
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddApplicationServices(useActiveDirectoryAuthentication);
 
 var app = builder.Build();
 
@@ -43,6 +72,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapRazorComponents<SecurityRule.Web.Components.App>()
