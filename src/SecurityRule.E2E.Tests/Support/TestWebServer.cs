@@ -61,7 +61,9 @@ public sealed class TestWebServer : IAsyncDisposable
 
         builder.Services.AddMudServices();
 
-        builder.Services.AddSingleton<AuditSaveChangesInterceptor>();
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
+        builder.Services.AddScoped<AuditSaveChangesInterceptor>();
 
         // Replace SQL Server with EF InMemory for test isolation.
         // Each TestWebServer instance uses a unique database name to support parallel test execution.

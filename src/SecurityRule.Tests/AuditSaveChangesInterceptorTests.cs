@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SecurityRule.Domain.Interfaces;
 using SecurityRule.Domain.Models;
 using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Services;
@@ -18,7 +18,7 @@ public class AuditSaveChangesInterceptorTests
     public void SetUp()
     {
         _logger = new ListLogger<AuditSaveChangesInterceptor>();
-        var interceptor = new AuditSaveChangesInterceptor(_logger);
+        var interceptor = new AuditSaveChangesInterceptor(_logger, new FakeCurrentUserAccessor("audit.user"));
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -37,9 +37,6 @@ public class AuditSaveChangesInterceptorTests
     [Test]
     public async Task SaveChanges_ShouldWriteAuditLog_ForAddedEntity()
     {
-        Thread.CurrentPrincipal = new ClaimsPrincipal(
-            new ClaimsIdentity([new Claim(ClaimTypes.Name, "audit.user")], "Test"));
-
         _context.Servers.Add(new Server
         {
             Name = "Srv-Audit",
@@ -53,6 +50,24 @@ public class AuditSaveChangesInterceptorTests
             m.Contains("AUDIT Action=Added") &&
             m.Contains("Entity=Server") &&
             m.Contains("User=audit.user"));
+    }
+
+    [Test]
+    public async Task SaveChanges_ShouldIncludeEntityId_InAuditLog()
+    {
+        _context.Servers.Add(new Server
+        {
+            Name = "Srv-Id",
+            IpAddress = "10.0.0.10",
+            OperatingSystem = "Linux"
+        });
+
+        await _context.SaveChangesAsync();
+
+        _logger.Messages.Should().Contain(m =>
+            m.Contains("AUDIT Action=Added") &&
+            m.Contains("Entity=Server") &&
+            m.Contains("EntityId="));
     }
 
     [Test]
@@ -77,6 +92,27 @@ public class AuditSaveChangesInterceptorTests
             m.Contains("Name:Srv-1->Srv-2"));
     }
 
+    [Test]
+    public async Task SaveChanges_ShouldWriteAuditLog_ForDeletedEntity()
+    {
+        var server = new Server
+        {
+            Name = "Srv-Delete",
+            IpAddress = "10.0.0.11",
+            OperatingSystem = "Linux"
+        };
+        _context.Servers.Add(server);
+        await _context.SaveChangesAsync();
+        _logger.Messages.Clear();
+
+        _context.Servers.Remove(server);
+        await _context.SaveChangesAsync();
+
+        _logger.Messages.Should().Contain(m =>
+            m.Contains("AUDIT Action=Deleted") &&
+            m.Contains("Entity=Server"));
+    }
+
     private sealed class ListLogger<T> : ILogger<T>
     {
         public List<string> Messages { get; } = [];
@@ -93,5 +129,17 @@ public class AuditSaveChangesInterceptorTests
         {
             Messages.Add(formatter(state, exception));
         }
+    }
+
+    private sealed class FakeCurrentUserAccessor : ICurrentUserAccessor
+    {
+        private readonly string? _userName;
+
+        public FakeCurrentUserAccessor(string? userName)
+        {
+            _userName = userName;
+        }
+
+        public string? GetCurrentUserName() => _userName;
     }
 }

@@ -1,8 +1,8 @@
-using System.Security.Principal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
+using SecurityRule.Domain.Interfaces;
 
 namespace SecurityRule.Infrastructure.Services;
 
@@ -12,10 +12,14 @@ namespace SecurityRule.Infrastructure.Services;
 public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
 {
     private readonly ILogger<AuditSaveChangesInterceptor> _logger;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public AuditSaveChangesInterceptor(ILogger<AuditSaveChangesInterceptor> logger)
+    public AuditSaveChangesInterceptor(
+        ILogger<AuditSaveChangesInterceptor> logger,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _logger = logger;
+        _currentUserAccessor = currentUserAccessor;
     }
 
     public override InterceptionResult<int> SavingChanges(
@@ -39,7 +43,7 @@ public sealed class AuditSaveChangesInterceptor : SaveChangesInterceptor
     {
         if (context is null) return;
 
-        var userName = Thread.CurrentPrincipal?.Identity?.Name;
+        var userName = _currentUserAccessor.GetCurrentUserName();
         if (string.IsNullOrWhiteSpace(userName))
             userName = "anonymous";
 
