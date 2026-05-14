@@ -23,4 +23,28 @@ public static class BlazorUiActions
             .ClickAsync();
         await page.WaitForTimeoutAsync(postClickDelayMs);
     }
+
+    /// <summary>
+    /// Waits for all open MudBlazor popovers (dropdown menus, select lists) to close.
+    /// Replaces arbitrary WaitForTimeout calls that follow popup-close actions.
+    /// </summary>
+    public static async Task WaitForMudPopoverCloseAsync(this IPage page, int timeoutMs = 5_000)
+    {
+        await page.WaitForFunctionAsync(
+            "() => !document.querySelector('.mud-popover-open')",
+            null,
+            new() { Timeout = timeoutMs, PollingInterval = 100 });
+    }
+
+    /// <summary>
+    /// Waits until a Blazor component finishes a SignalR-driven state update by polling for
+    /// a short DOM quiescence: no pending renders scheduled via requestAnimationFrame.
+    /// </summary>
+    public static async Task WaitForBlazorUpdateAsync(this IPage page, int timeoutMs = 5_000)
+    {
+        await page.WaitForFunctionAsync(
+            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
+            null,
+            new() { Timeout = timeoutMs, PollingInterval = 100 });
+    }
 }

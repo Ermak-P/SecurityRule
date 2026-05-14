@@ -54,6 +54,7 @@ public sealed class ПоискШаги
         await input.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await input.FillAsync(text);
 
+        // 800 ms covers the search-bar debounce delay configured in the component.
         await _state.Page.WaitForTimeoutAsync(800);
     }
 

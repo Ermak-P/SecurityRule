@@ -101,6 +101,7 @@ public sealed class ПравилаБрандмауэраШаги
         // prerender). This guarantees the component is fully rendered and data is loaded.
         await _state.Page.WaitForSelectorAsync("#cy-container canvas",
             new() { Timeout = 15_000 });
+        // Small pause for Cytoscape's internal layout animation to settle.
         await _state.Page.WaitForTimeoutAsync(300);
     }
 
