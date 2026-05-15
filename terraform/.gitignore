@@ -1,0 +1,24 @@
+# Terraform state files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraform plan output
+*.tfplan
+
+# Terraform working directories
+.terraform/
+.terraform.lock.hcl
+
+# Terragrunt cache
+.terragrunt-cache/
+
+# Auto-generated files
+backend.tf
+provider.tf
+provider_kubernetes.tf
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
