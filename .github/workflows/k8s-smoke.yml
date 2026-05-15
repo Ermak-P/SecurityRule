@@ -1,0 +1,65 @@
+name: K8s Smoke Test
+
+# Запускается вручную (workflow_dispatch) или по расписанию (опционально).
+# НЕ запускается автоматически при каждом push, т.к. поднимает реальный кластер (~5 мин).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  k8s-smoke:
+    name: Kubernetes Smoke Test (kind + Terragrunt)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.9.x'
+          terraform_wrapper: false
+
+      # Terragrunt
+      - name: Install Terragrunt
+        run: |
+          TG_VERSION=0.67.16
+          curl -sL "https://github.com/gruntwork-io/terragrunt/releases/download/v${TG_VERSION}/terragrunt_linux_amd64" \
+            -o /usr/local/bin/terragrunt
+          chmod +x /usr/local/bin/terragrunt
+          terragrunt --version
+
+      # kind
+      - name: Install kind
+        run: |
+          KIND_VERSION=0.24.0
+          curl -sL "https://kind.sigs.k8s.io/dl/v${KIND_VERSION}/kind-linux-amd64" \
+            -o /usr/local/bin/kind
+          chmod +x /usr/local/bin/kind
+          kind version
+
+      # kubectl уже присутствует на ubuntu-latest
+      - name: Check kubectl
+        run: kubectl version --client
+
+      # Сборка и запуск smoke-теста
+      - name: Restore & Build K8s test project
+        run: dotnet build src/SecurityRule.K8s.Tests/ --configuration Release
+
+      - name: Run K8s Smoke Test
+        run: dotnet test src/SecurityRule.K8s.Tests/ --no-build --configuration Release --filter "Category=K8s" --logger "console;verbosity=normal"
+
+      # Страховка: уничтожить кластер если тест упал до TearDown
+      - name: Cleanup kind cluster (on failure)
+        if: failure()
+        run: kind delete cluster --name security-rule-local || true
