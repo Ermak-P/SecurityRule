@@ -22,3 +22,6 @@ provider_kubernetes.tf
 *.tfvars
 *.tfvars.json
 !*.tfvars.example
+
+# Local state (used by local/k8s-local environment)
+/.terraform-local-state/
