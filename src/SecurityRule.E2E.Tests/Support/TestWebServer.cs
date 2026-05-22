@@ -87,6 +87,10 @@ public sealed class TestWebServer : IAsyncDisposable
 
         builder.Services.AddApplicationServices(useActiveDirectory: false);
 
+        // Register FakePartnerService so tests can pre-populate partner data.
+        builder.Services.AddSingleton<FakePartnerService>();
+        builder.Services.AddSingleton<IPartnerService>(sp => sp.GetRequiredService<FakePartnerService>());
+
         // Listen on a random free port; no HTTPS required for tests
         builder.WebHost.UseUrls("http://127.0.0.1:0");
 
@@ -133,13 +137,14 @@ public sealed class TestWebServer : IAsyncDisposable
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         // Load with related entities so EF tracks the junction-table rows
-        var services = await db.AppServices.Include(s => s.Servers).Include(s => s.Tags).ToListAsync();
+        var services = await db.AppServices.Include(s => s.Servers).Include(s => s.Tags).Include(s => s.Partners).ToListAsync();
         db.AppServices.RemoveRange(services);
         await db.SaveChangesAsync();
 
         var servers = await db.Servers.Include(s => s.Tags).ToListAsync();
         db.Servers.RemoveRange(servers);
         db.Tags.RemoveRange(db.Tags);
+        db.PartnerNames.RemoveRange(db.PartnerNames);
         db.Certificates.RemoveRange(db.Certificates);
         db.ServiceConnections.RemoveRange(db.ServiceConnections);
         db.Groups.RemoveRange(db.Groups);
@@ -149,6 +154,9 @@ public sealed class TestWebServer : IAsyncDisposable
         // Reset fake AD state between scenarios
         if (Services.GetRequiredService<IAdService>() is FakeAdService fakeAd)
             fakeAd.Reset();
+
+        // Reset fake partner service state between scenarios
+        Services.GetRequiredService<FakePartnerService>().Reset();
     }
 
     public async ValueTask DisposeAsync()

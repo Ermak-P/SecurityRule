@@ -68,6 +68,21 @@ else
                     <MudText Typo="Typo.body1">@_displayService.Certificates.Count</MudText>
                 </MudItem>
             </MudGrid>
+
+            @if (_displayService.Partners.Any())
+            {
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">Партнёры</MudText>
+                <MudChipSet T="string" data-testid="service-partners">
+                    @foreach (var partner in _displayService.Partners)
+                    {
+                        <MudChip T="string" Value="@partner.Name" Color="Color.Primary" Size="Size.Small"
+                                 data-testid="@($"service-partner-{partner.Name}")">
+                            @partner.Name
+                        </MudChip>
+                    }
+                </MudChipSet>
+            }
         </MudCardContent>
     </MudCard>
 

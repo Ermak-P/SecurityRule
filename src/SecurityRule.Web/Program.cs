@@ -55,6 +55,20 @@ builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddApplicationServices(useActiveDirectoryAuthentication);
 
+// Register IPartnerService: use the real HTTP implementation when a base URL is configured.
+var partnerServiceBaseUrl = builder.Configuration["PartnerService:BaseUrl"];
+if (!string.IsNullOrWhiteSpace(partnerServiceBaseUrl))
+{
+    builder.Services.AddHttpClient<IPartnerService, PartnerService>(client =>
+    {
+        client.BaseAddress = new Uri(partnerServiceBaseUrl.TrimEnd('/') + "/");
+    });
+}
+else
+{
+    builder.Services.AddSingleton<IPartnerService, FakePartnerService>();
+}
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

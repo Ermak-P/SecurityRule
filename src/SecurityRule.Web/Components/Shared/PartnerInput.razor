@@ -1,0 +1,72 @@
+@using MudBlazor
+@using SecurityRule.Domain.Interfaces
+@using SecurityRule.Domain.Models
+@inject IPartnerService PartnerService
+@inject IDialogService DialogService
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="@Class">
+    <MudText Typo="Typo.body1" Style="min-width:120px">@Label</MudText>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Search"
+               OnClick="OpenSelectDialogAsync"
+               data-testid="partner-select-btn">
+        Выбрать
+    </MudButton>
+</MudStack>
+
+@if (SelectedPartners.Count > 0)
+{
+    <MudChipSet T="string" Class="mt-1 mb-2" data-testid="partner-chips">
+        @foreach (var name in SelectedPartners)
+        {
+            <MudChip T="string" Value="@name" OnClose="@(() => RemovePartner(name))"
+                     Color="Color.Primary" Size="Size.Small"
+                     data-testid="@($"partner-chip-{name}")">
+                @name
+            </MudChip>
+        }
+    </MudChipSet>
+}
+
+@code {
+    [Parameter] public string Label { get; set; } = "Partner Name";
+    [Parameter] public string Class { get; set; } = "";
+
+    /// <summary>Currently selected partner names — two-way bindable.</summary>
+    [Parameter] public HashSet<string> SelectedPartners { get; set; } = [];
+    [Parameter] public EventCallback<HashSet<string>> SelectedPartnersChanged { get; set; }
+
+    private async Task OpenSelectDialogAsync()
+    {
+        IEnumerable<PartnerInfo> partners = [];
+        try
+        {
+            partners = await PartnerService.GetPartnersAsync();
+        }
+        catch
+        {
+            // If the external service is unavailable the dialog opens with an empty list.
+        }
+
+        var parameters = new DialogParameters<PartnerSelectDialog>
+        {
+            { p => p.AllPartners,  partners        },
+            { p => p.PreSelected,  SelectedPartners }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog  = await DialogService.ShowAsync<PartnerSelectDialog>("Партнёры", parameters, options);
+        var result  = await dialog.Result;
+
+        if (result is { Canceled: false, Data: HashSet<string> selected })
+        {
+            SelectedPartners = selected;
+            await SelectedPartnersChanged.InvokeAsync(SelectedPartners);
+        }
+    }
+
+    private async Task RemovePartner(string name)
+    {
+        SelectedPartners.Remove(name);
+        await SelectedPartnersChanged.InvokeAsync(SelectedPartners);
+    }
+}

@@ -4,6 +4,7 @@
 @inject IServerRepository ServerRepository
 @inject IUserRepository UserRepository
 @inject ITagRepository TagRepository
+@inject IPartnerNameRepository PartnerNameRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -37,6 +38,7 @@ else
                 }
             </MudSelect>
             <TagInput AllTags="@_allTagNames" @bind-SelectedTags="_selectedTags" Class="mb-3" />
+            <PartnerInput @bind-SelectedPartners="_selectedPartners" Class="mb-3" />
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -60,6 +62,7 @@ else
     private string _portText = string.Empty;
     private IEnumerable<string> _allTagNames = [];
     private HashSet<string> _selectedTags = [];
+    private HashSet<string> _selectedPartners = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,6 +76,7 @@ else
             _selectedUserId = _service.UserId;
             _portText = _service.Port?.ToString() ?? string.Empty;
             _selectedTags = _service.Tags.Select(t => t.Name).ToHashSet();
+            _selectedPartners = _service.Partners.Select(p => p.Name).ToHashSet();
         }
     }
 
@@ -88,6 +92,9 @@ else
             _service.Tags = [];
             foreach (var tagName in _selectedTags)
                 _service.Tags.Add(await TagRepository.GetOrCreateAsync(tagName));
+            _service.Partners = [];
+            foreach (var partnerName in _selectedPartners)
+                _service.Partners.Add(await PartnerNameRepository.GetOrCreateAsync(partnerName));
             await AppServiceRepository.UpdateAsync(_service);
             Snackbar.Add("Сервис обновлён", Severity.Success);
             Navigation.NavigateTo($"/services/{Id}");

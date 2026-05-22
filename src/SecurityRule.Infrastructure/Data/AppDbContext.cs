@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<PartnerName> PartnerNames => Set<PartnerName>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -127,6 +128,16 @@ public class AppDbContext : DbContext
             entity.HasMany(e => e.Services)
                   .WithMany(s => s.Tags)
                   .UsingEntity(j => j.ToTable("ServiceTags"));
+        });
+
+        modelBuilder.Entity<PartnerName>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.HasIndex(e => e.Name).IsUnique();
+            entity.HasMany(e => e.Services)
+                  .WithMany(s => s.Partners)
+                  .UsingEntity(j => j.ToTable("ServicePartnerNames"));
         });
     }
 }

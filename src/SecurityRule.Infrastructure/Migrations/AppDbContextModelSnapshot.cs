@@ -82,6 +82,21 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.ToTable("ServiceTags", (string)null);
                 });
 
+            modelBuilder.Entity("ServicePartnerNames", b =>
+                {
+                    b.Property<int>("PartnersId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ServicesId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PartnersId", "ServicesId");
+
+                    b.HasIndex("ServicesId");
+
+                    b.ToTable("ServicePartnerNames", (string)null);
+                });
+
             modelBuilder.Entity("SecurityRule.Domain.Models.AppService", b =>
                 {
                     b.Property<int>("Id")
@@ -238,6 +253,27 @@ namespace SecurityRule.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Tags");
+                });
+
+            modelBuilder.Entity("SecurityRule.Domain.Models.PartnerName", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("PartnerNames");
                 });
 
             modelBuilder.Entity("SecurityRule.Domain.Models.OperatingSystemOption", b =>
@@ -425,6 +461,21 @@ namespace SecurityRule.Infrastructure.Migrations
                     b.HasOne("SecurityRule.Domain.Models.Tag", null)
                         .WithMany()
                         .HasForeignKey("TagsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ServicePartnerNames", b =>
+                {
+                    b.HasOne("SecurityRule.Domain.Models.PartnerName", null)
+                        .WithMany()
+                        .HasForeignKey("PartnersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SecurityRule.Domain.Models.AppService", null)
+                        .WithMany()
+                        .HasForeignKey("ServicesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
