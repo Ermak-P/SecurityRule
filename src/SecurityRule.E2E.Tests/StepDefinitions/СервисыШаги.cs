@@ -3,7 +3,6 @@ using Reqnroll;
 using SecurityRule.Domain.Interfaces;
 using SecurityRule.Domain.Models;
 using SecurityRule.E2E.Tests.Support;
-using SecurityRule.Infrastructure.Services;
 
 namespace SecurityRule.E2E.Tests.StepDefinitions;
 
@@ -78,15 +77,14 @@ public sealed class СервисыШаги
         await repo.AddAsync(new User { Name = name });
     }
 
-    /// <summary>Seeds the FakePartnerService with two partners.</summary>
-    [Given("в системе доступны партнёры {string} с кодом {string} и {string} с кодом {string}")]
-    public void ВСистемеДоступныПартнёры(string name1, string code1, string name2, string code2)
+    /// <summary>Seeds the PartnerNames database table with two partners.</summary>
+    [Given("в системе доступны партнёры {string} и {string}")]
+    public async Task ВСистемеДоступныПартнёры(string name1, string name2)
     {
-        var fakePartnerService = _state.Services.GetRequiredService<FakePartnerService>();
-        fakePartnerService.SetPartners([
-            new PartnerInfo { Code = code1, Name = name1 },
-            new PartnerInfo { Code = code2, Name = name2 }
-        ]);
+        using var scope = _state.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IPartnerNameRepository>();
+        await repo.GetOrCreateAsync(name1);
+        await repo.GetOrCreateAsync(name2);
     }
 
     /// <summary>Creates a service with a pre-selected partner directly in the database.</summary>

@@ -1,4 +1,3 @@
-@using SecurityRule.Domain.Models
 @using SecurityRule.Web.Services
 
 <MudDialog>
@@ -38,24 +37,42 @@
         else
         {
             <MudList T="string" Dense="true" data-testid="partner-list">
-                @foreach (var partner in _state.FilteredPartners(_filter))
+                @foreach (var name in _state.FilteredPartners(_filter))
                 {
-                    var name = partner.Name;
                     <MudListItem T="string" OnClick="@(() => _state.Toggle(name))"
                                  Style="cursor: pointer;"
-                                 data-testid="@($"partner-item-{partner.Code}")">
+                                 data-testid="@($"partner-item-{name}")">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             <MudCheckBox T="bool"
                                          Value="@_state.IsSelected(name)"
                                          ValueChanged="@(_ => _state.Toggle(name))"
                                          Color="Color.Primary"
                                          StopClickPropagation="true" />
-                            <MudText Style="flex:1">@partner.Name</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@partner.Code</MudText>
+                            <MudText Style="flex:1">@name</MudText>
                         </MudStack>
                     </MudListItem>
                 }
             </MudList>
+        }
+
+        @if (_state.SelectedNames.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Выбранные партнёры</MudText>
+            <MudTable T="string" Items="@_state.SelectedNames" Dense="true" data-testid="partner-selected-table">
+                <HeaderContent>
+                    <MudTh>Название</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Название">@context</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       OnClick="@(() => _state.Remove(context))"
+                                       data-testid="@($"partner-remove-{context}")" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
         }
     </DialogContent>
     <DialogActions>
@@ -68,8 +85,8 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
 
-    /// <summary>All partners loaded from the external service.</summary>
-    [Parameter] public IEnumerable<PartnerInfo> AllPartners { get; set; } = [];
+    /// <summary>All partner names loaded from the database.</summary>
+    [Parameter] public IEnumerable<string> AllPartners { get; set; } = [];
 
     /// <summary>Names of partners already selected before the dialog opened.</summary>
     [Parameter] public IEnumerable<string> PreSelected { get; set; } = [];

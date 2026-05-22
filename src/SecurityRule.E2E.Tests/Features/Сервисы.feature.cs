@@ -461,7 +461,7 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 63
-    await testRunner.GivenAsync("в системе доступны партнёры \"PartnerA\" с кодом \"PA\" и \"PartnerB\" с кодом \"PB\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+    await testRunner.GivenAsync("в системе доступны партнёры \"PartnerA\" и \"PartnerB\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 64
     await testRunner.WhenAsync("я перехожу на страницу добавления сервиса", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
@@ -512,8 +512,7 @@ namespace SecurityRule.E2E.Tests.Features
             {
                 await this.ScenarioStartAsync();
 #line 74
-    await testRunner.GivenAsync("в системе доступны партнёры \"ShowPartner\" с кодом \"SP\" и \"OtherPartner\" с кодом \"" +
-                        "OP\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+    await testRunner.GivenAsync("в системе доступны партнёры \"ShowPartner\" и \"OtherPartner\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
 #line hidden
 #line 75
     await testRunner.AndAsync("в системе существует сервис \"PartnerDetailsSvc\" с партнёром \"ShowPartner\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");

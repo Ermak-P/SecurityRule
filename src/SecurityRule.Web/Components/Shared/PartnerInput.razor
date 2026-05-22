@@ -1,7 +1,6 @@
 @using MudBlazor
 @using SecurityRule.Domain.Interfaces
-@using SecurityRule.Domain.Models
-@inject IPartnerService PartnerService
+@inject IPartnerNameRepository PartnerNameRepository
 @inject IDialogService DialogService
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="@Class">
@@ -37,19 +36,12 @@
 
     private async Task OpenSelectDialogAsync()
     {
-        IEnumerable<PartnerInfo> partners = [];
-        try
-        {
-            partners = await PartnerService.GetPartnersAsync();
-        }
-        catch
-        {
-            // If the external service is unavailable the dialog opens with an empty list.
-        }
+        var partners = await PartnerNameRepository.GetAllAsync();
+        var partnerNames = partners.Select(p => p.Name);
 
         var parameters = new DialogParameters<PartnerSelectDialog>
         {
-            { p => p.AllPartners,  partners        },
+            { p => p.AllPartners,  partnerNames    },
             { p => p.PreSelected,  SelectedPartners }
         };
 

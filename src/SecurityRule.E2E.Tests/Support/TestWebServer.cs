@@ -87,10 +87,6 @@ public sealed class TestWebServer : IAsyncDisposable
 
         builder.Services.AddApplicationServices(useActiveDirectory: false);
 
-        // Register FakePartnerService so tests can pre-populate partner data.
-        builder.Services.AddSingleton<FakePartnerService>();
-        builder.Services.AddSingleton<IPartnerService>(sp => sp.GetRequiredService<FakePartnerService>());
-
         // Listen on a random free port; no HTTPS required for tests
         builder.WebHost.UseUrls("http://127.0.0.1:0");
 
@@ -154,9 +150,6 @@ public sealed class TestWebServer : IAsyncDisposable
         // Reset fake AD state between scenarios
         if (Services.GetRequiredService<IAdService>() is FakeAdService fakeAd)
             fakeAd.Reset();
-
-        // Reset fake partner service state between scenarios
-        Services.GetRequiredService<FakePartnerService>().Reset();
     }
 
     public async ValueTask DisposeAsync()
