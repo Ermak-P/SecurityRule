@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using SecurityRule.Domain.Models;
+using SecurityRule.Domain.Validation;
 using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Repositories;
 
@@ -330,6 +331,21 @@ public class ServerRepositoryTests
         var result = await _context.Servers.Include(s => s.Tags).FirstAsync(s => s.Name == "TaggedServer");
         result.Tags.Should().HaveCount(2);
         result.Tags.Select(t => t.Name).Should().BeEquivalentTo(["production", "europe"]);
+    }
+
+    [Test]
+    public async Task AddAsync_ShouldThrow_WhenIpAddressIsInvalid()
+    {
+        var server = new Server
+        {
+            Name = "InvalidIp",
+            IpAddress = "not-an-ip",
+            OperatingSystem = "Linux"
+        };
+
+        var act = async () => await _repository.AddAsync(server);
+
+        await act.Should().ThrowAsync<DomainValidationException>();
     }
 
     [Test]

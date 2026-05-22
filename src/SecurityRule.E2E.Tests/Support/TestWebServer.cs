@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SecurityRule.Domain.Interfaces;
@@ -7,6 +8,7 @@ using SecurityRule.Infrastructure.Data;
 using SecurityRule.Infrastructure.Services;
 using SecurityRule.Web;
 using SecurityRule.Web.Components;
+using SecurityRule.Web.Services;
 
 namespace SecurityRule.E2E.Tests.Support;
 
@@ -59,16 +61,31 @@ public sealed class TestWebServer : IAsyncDisposable
 
         builder.Services.AddMudServices();
 
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
+        builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+
         // Replace SQL Server with EF InMemory for test isolation.
         // Each TestWebServer instance uses a unique database name to support parallel test execution.
-        builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase(_dbName));
+        builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+            options.UseInMemoryDatabase(_dbName)
+                   .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
         // FakeAd also uses an in-memory database for test isolation
         builder.Services.AddDbContextFactory<FakeAdDbContext>(options =>
             options.UseInMemoryDatabase(_dbName + "_FakeAd"));
 
-        builder.Services.AddApplicationServices();
+        builder.Services
+            .AddAuthentication(DevelopmentAuthenticationHandler.SchemeName)
+            .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
+                DevelopmentAuthenticationHandler.SchemeName, _ => { });
+        builder.Services.AddAuthorization(options =>
+        {
+            options.FallbackPolicy = options.DefaultPolicy;
+        });
+        builder.Services.AddCascadingAuthenticationState();
+
+        builder.Services.AddApplicationServices(useActiveDirectory: false);
 
         // Listen on a random free port; no HTTPS required for tests
         builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -76,10 +93,22 @@ public sealed class TestWebServer : IAsyncDisposable
         // ── Build and configure pipeline ──────────────────────────────────────
         var app = builder.Build();
 
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Database.EnsureCreatedAsync();
+
+            var fakeAdFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<FakeAdDbContext>>();
+            await using var fakeAdDb = await fakeAdFactory.CreateDbContextAsync();
+            await fakeAdDb.Database.EnsureCreatedAsync();
+        }
+
         // In Development mode, UseStaticFiles() automatically includes the static web
         // asset file providers (UseStaticWebAssets), which serve _framework/blazor.web.js
         // and _content/* package assets from embedded assembly resources.
         app.UseStaticFiles();
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.UseAntiforgery();
         app.MapRazorComponents<App>()
            .AddInteractiveServerRenderMode();

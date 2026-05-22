@@ -48,13 +48,10 @@ public sealed class ОбщиеШаги
     [When("я нажимаю кнопку {string}")]
     public async Task НажатьКнопку(string buttonText)
     {
-        await _state.Page
-            .GetByRole(AriaRole.Button, new() { Name = buttonText, Exact = true })
-            .ClickAsync();
         // Allow Blazor's SignalR round-trip to deliver the click event to the server
         // and give the server handler time to execute (save + navigate or similar).
         // We do NOT use NetworkIdle here because the SignalR WebSocket stays open.
-        await _state.Page.WaitForTimeoutAsync(300);
+        await _state.Page.ClickButtonAndWaitAsync(buttonText);
     }
 
     /// <summary>Selects an option by text in a MudSelect dropdown by its label.</summary>
@@ -74,13 +71,11 @@ public sealed class ОбщиеШаги
 
         // Wait for the popover list to appear.
         // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
-        await _state.Page.WaitForTimeoutAsync(500);
-
         var option = _state.Page.Locator(".mud-list-item")
             .Filter(new LocatorFilterOptions { HasText = value });
         await option.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
         await option.First.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(200);
+        await _state.Page.WaitForMudPopoverCloseAsync();
     }
 
     // ── Assertions ────────────────────────────────────────────────────────────
@@ -141,7 +136,6 @@ public sealed class ОбщиеШаги
 
         // ClickAsync fires mousedown → HandleMouseDown → ToggleMenu → OpenMenu (MudBlazor 9).
         await container.First.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(500);
 
         // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
         var option = _state.Page.Locator(".mud-list-item")
@@ -152,7 +146,7 @@ public sealed class ОбщиеШаги
             .ToBeVisibleAsync(new() { Timeout = 10_000 });
 
         await _state.Page.Keyboard.PressAsync("Escape");
-        await _state.Page.WaitForTimeoutAsync(200);
+        await _state.Page.WaitForMudPopoverCloseAsync();
     }
 
     /// <summary>Opens a MudSelect dropdown and asserts that an option with the given text is NOT present.</summary>
@@ -164,7 +158,6 @@ public sealed class ОбщиеШаги
         await container.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         var inputEl2 = container.Locator("input.mud-select-input").First;
         await inputEl2.FocusAsync();
-        await _state.Page.WaitForTimeoutAsync(500);
 
         // MudBlazor 9 renders select items as div.mud-list-item (no role="option").
         // When the dropdown is closed the popover content is not in the DOM at all,
@@ -178,7 +171,7 @@ public sealed class ОбщиеШаги
             .ToBeHiddenAsync(new() { Timeout = 5_000 });
 
         await _state.Page.Keyboard.PressAsync("Escape");
-        await _state.Page.WaitForTimeoutAsync(200);
+        await _state.Page.WaitForMudPopoverCloseAsync();
     }
 
     /// <summary>Asserts that the current URL contains the given path segment.</summary>

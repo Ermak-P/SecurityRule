@@ -1,7 +1,12 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using SecurityRule.Domain.Interfaces;
 using SecurityRule.Infrastructure.Data;
+using SecurityRule.Infrastructure.Services;
 using SecurityRule.Web;
+using SecurityRule.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,8 +15,12 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
+builder.Services.AddScoped<AuditSaveChangesInterceptor>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>()));
 
 builder.Services.AddDbContextFactory<FakeAdDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("FakeAdConnection")));
@@ -21,9 +30,42 @@ builder.Services.AddServerSideBlazor(options =>
     options.DetailedErrors = true;
 });
 
-builder.Services.AddApplicationServices();
+var useActiveDirectoryAuthentication =
+    builder.Configuration.GetValue<bool>("Authentication:UseActiveDirectory", true);
+
+if (useActiveDirectoryAuthentication)
+{
+    builder.Services
+        .AddAuthentication(NegotiateDefaults.AuthenticationScheme)
+        .AddNegotiate();
+}
+else
+{
+    builder.Services
+        .AddAuthentication(DevelopmentAuthenticationHandler.SchemeName)
+        .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
+            DevelopmentAuthenticationHandler.SchemeName, _ => { });
+}
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = options.DefaultPolicy;
+});
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddApplicationServices(useActiveDirectoryAuthentication);
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+
+    var fakeAdFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<FakeAdDbContext>>();
+    using var fakeAdDb = fakeAdFactory.CreateDbContext();
+    fakeAdDb.Database.EnsureCreated();
+}
 
 if (!app.Environment.IsDevelopment())
 {
@@ -33,6 +75,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapRazorComponents<SecurityRule.Web.Components.App>()

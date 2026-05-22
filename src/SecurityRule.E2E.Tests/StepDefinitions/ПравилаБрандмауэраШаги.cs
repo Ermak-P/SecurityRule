@@ -85,7 +85,7 @@ public sealed class ПравилаБрандмауэраШаги
     [When("я перехожу на страницу связей")]
     public async Task ПерейтиНаСтраницуСвязей()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/connections", postRenderDelayMs: 1500);
     }
 
     [When("я перехожу на страницу карты связей")]
@@ -101,34 +101,35 @@ public sealed class ПравилаБрандмауэраШаги
         // prerender). This guarantees the component is fully rendered and data is loaded.
         await _state.Page.WaitForSelectorAsync("#cy-container canvas",
             new() { Timeout = 15_000 });
+        // Small pause for Cytoscape's internal layout animation to settle.
         await _state.Page.WaitForTimeoutAsync(300);
     }
 
     [When("я перехожу на страницу добавления связи")]
     public async Task ПерейтиНаСтраницуДобавленияСвязи()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/create");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/connections/create", postRenderDelayMs: 1500);
     }
 
     [When("я открываю страницу деталей связи с источником {string} и назначением {string}")]
     public async Task ОткрытьСтраницуДеталейСвязи(string srcName, string dstServiceName)
     {
         var id = await GetConnectionIdAsync(srcName, dstServiceName);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/connections/{id}", postRenderDelayMs: 1500);
     }
 
     [When("я открываю страницу редактирования связи с источником {string} и назначением {string}")]
     public async Task ОткрытьСтраницуРедактированияСвязи(string srcName, string dstServiceName)
     {
         var id = await GetConnectionIdAsync(srcName, dstServiceName);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/edit/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/connections/edit/{id}", postRenderDelayMs: 1500);
     }
 
     [When("я открываю страницу клонирования связи с источником {string} и назначением {string}")]
     public async Task ОткрытьСтраницуКлонированияСвязи(string srcName, string dstServiceName)
     {
         var id = await GetConnectionIdAsync(srcName, dstServiceName);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/create?cloneFrom={id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/connections/create?cloneFrom={id}", postRenderDelayMs: 1500);
     }
 
     [When("я открываю страницу редактирования связи без сервера источника с назначением {string}")]
@@ -142,7 +143,7 @@ public sealed class ПравилаБрандмауэраШаги
         var dstSvc = services.First(s => s.Name == dstServiceName);
         var connections = await connectionRepo.GetAllAsync();
         var connection = connections.First(c => c.DestinationServiceId == dstSvc.Id && c.SourceServerId == null);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/connections/edit/{connection.Id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/connections/edit/{connection.Id}", postRenderDelayMs: 1500);
     }
 
     [Then("граф карты связей содержит canvas элемент")]
@@ -278,14 +279,4 @@ public sealed class ПравилаБрандмауэраШаги
 
         return connections.First(c => c.DestinationServiceId == dstSvc.Id).Id;
     }
-
-    private async Task NavigateAndWaitAsync(string url)
-    {
-        await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
-        await _state.Page.WaitForFunctionAsync(
-            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
-            null, new() { Timeout = 15_000, PollingInterval = 200 });
-        await _state.Page.WaitForTimeoutAsync(1500);
-    }
 }
-

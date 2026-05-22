@@ -4,5 +4,5 @@ namespace SecurityRule.Domain.Interfaces;
 
 public interface IOperatingSystemRepository
 {
-    Task<IEnumerable<OperatingSystemOption>> GetAllAsync();
+    Task<IEnumerable<OperatingSystemOption>> GetAllAsync(CancellationToken cancellationToken = default);
 }

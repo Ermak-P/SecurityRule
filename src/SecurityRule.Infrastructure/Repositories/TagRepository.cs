@@ -14,17 +14,20 @@ public class TagRepository : ITagRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Tag>> GetAllAsync()
-        => await _context.Tags.OrderBy(t => t.Name).ToListAsync();
+    public async Task<IEnumerable<Tag>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await _context.Tags
+            .AsNoTracking()
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken);
 
-    public async Task<Tag> GetOrCreateAsync(string name)
+    public async Task<Tag> GetOrCreateAsync(string name, CancellationToken cancellationToken = default)
     {
-        var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == name);
+        var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == name, cancellationToken);
         if (tag is not null) return tag;
 
         tag = new Tag { Name = name };
         _context.Tags.Add(tag);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return tag;
     }
 }

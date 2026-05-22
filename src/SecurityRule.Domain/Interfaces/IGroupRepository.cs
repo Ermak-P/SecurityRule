@@ -4,9 +4,9 @@ namespace SecurityRule.Domain.Interfaces;
 
 public interface IGroupRepository
 {
-    Task<IEnumerable<Group>> GetAllAsync();
-    Task<Group?> GetByIdAsync(int id);
-    Task AddAsync(Group group);
-    Task UpdateAsync(Group group);
-    Task DeleteAsync(int id);
+    Task<IEnumerable<Group>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Group?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task AddAsync(Group group, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Group group, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int id, CancellationToken cancellationToken = default);
 }

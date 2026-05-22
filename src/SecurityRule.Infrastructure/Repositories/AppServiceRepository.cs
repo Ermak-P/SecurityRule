@@ -14,20 +14,20 @@ public class AppServiceRepository : IAppServiceRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<AppService>> GetAllAsync()
+    public async Task<IEnumerable<AppService>> GetAllAsync(CancellationToken cancellationToken = default)
         => await _context.AppServices
+            .AsNoTrackingWithIdentityResolution()
             .Include(s => s.User)
             .Include(s => s.Servers)
-                .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
             .Include(s => s.Tags)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-    public async Task<AppService?> GetByIdAsync(int id)
+    public async Task<AppService?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         => await _context.AppServices
+            .AsNoTrackingWithIdentityResolution()
             .Include(s => s.User)
             .Include(s => s.Servers)
-                .ThenInclude(srv => srv.Services)
             .Include(s => s.Certificates)
             .Include(s => s.Tags)
             .Include(s => s.SourceConnections)
@@ -42,20 +42,20 @@ public class AppServiceRepository : IAppServiceRepository
                 .ThenInclude(r => r.SourceService)
             .Include(s => s.DestinationConnections)
                 .ThenInclude(r => r.DestinationServer)
-            .FirstOrDefaultAsync(s => s.Id == id);
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
-    public async Task AddAsync(AppService service)
+    public async Task AddAsync(AppService service, CancellationToken cancellationToken = default)
     {
         _context.AppServices.Add(service);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateAsync(AppService service)
+    public async Task UpdateAsync(AppService service, CancellationToken cancellationToken = default)
     {
         var existing = await _context.AppServices
             .Include(s => s.Servers)
             .Include(s => s.Tags)
-            .FirstOrDefaultAsync(s => s.Id == service.Id);
+            .FirstOrDefaultAsync(s => s.Id == service.Id, cancellationToken);
         if (existing == null) return;
 
         existing.Name = service.Name;
@@ -65,7 +65,7 @@ public class AppServiceRepository : IAppServiceRepository
         var serverIds = service.Servers.Select(s => s.Id).ToList();
         var trackedServers = await _context.Servers
             .Where(s => serverIds.Contains(s.Id))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         existing.Servers.Clear();
         foreach (var server in trackedServers)
@@ -74,22 +74,22 @@ public class AppServiceRepository : IAppServiceRepository
         var tagIds = service.Tags.Select(t => t.Id).ToList();
         var trackedTags = await _context.Tags
             .Where(t => tagIds.Contains(t.Id))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         existing.Tags.Clear();
         foreach (var tag in trackedTags)
             existing.Tags.Add(tag);
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var service = await _context.AppServices.FindAsync(id);
+        var service = await _context.AppServices.FindAsync([id], cancellationToken);
         if (service != null)
         {
             _context.AppServices.Remove(service);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

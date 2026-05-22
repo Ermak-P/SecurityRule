@@ -50,24 +50,31 @@ public sealed class ПоискШаги
     [When("я ввожу в поле поиска текст {string}")]
     public async Task ВвестиВПолеПоискаТекст(string text)
     {
-        // The search input has placeholder "Поиск по всем записям..."
         var input = _state.Page.GetByPlaceholder("Поиск по всем записям...");
         await input.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
         await input.FillAsync(text);
-        // Wait for debounce (300ms) + server search + render
+
+        // 800 ms covers the search-bar debounce delay configured in the component.
         await _state.Page.WaitForTimeoutAsync(800);
     }
 
     [When("я нажимаю на первый результат поиска")]
     public async Task НажатьНаПервыйРезультатПоиска()
     {
-        // Results are rendered as MudListItem children inside the search-results panel
+        await _state.Page.WaitForFunctionAsync(
+            "() => !!document.querySelector('[data-testid=\"search-results\"] .mud-list-item') || !!document.querySelector('[data-testid=\"search-no-results\"]')",
+            null,
+            new() { Timeout = 20_000, PollingInterval = 100 });
+
+        var noResultsPanel = _state.Page.Locator("[data-testid='search-no-results']");
+        if (await noResultsPanel.CountAsync() > 0)
+            Assert.Fail("Результаты поиска отсутствуют, невозможно нажать первый результат.");
+
         var resultsPanel = _state.Page.Locator("[data-testid='search-results']");
-        await resultsPanel.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 10_000 });
         var firstResult = resultsPanel.Locator(".mud-list-item").First;
-        await firstResult.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        await firstResult.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 20_000 });
         await firstResult.ClickAsync();
-        await _state.Page.WaitForTimeoutAsync(500);
+        await Assertions.Expect(resultsPanel).ToHaveCountAsync(0, new() { Timeout = 10_000 });
     }
 
     // ── Then: search assertions ───────────────────────────────────────────────
@@ -108,8 +115,6 @@ public sealed class ПоискШаги
     [Then("выпадающий список поиска не отображается")]
     public async Task ВыпадающийСписокНеОтображается()
     {
-        // When query length < 2, no dropdown should appear
-        await _state.Page.WaitForTimeoutAsync(600);
         await Assertions.Expect(_state.Page.Locator("[data-testid='search-results']")).ToHaveCountAsync(0, new() { Timeout = 5_000 });
         await Assertions.Expect(_state.Page.Locator("[data-testid='search-no-results']")).ToHaveCountAsync(0, new() { Timeout = 5_000 });
     }

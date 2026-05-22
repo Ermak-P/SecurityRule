@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using Reqnroll;
 using SecurityRule.Domain.Models;
 using SecurityRule.E2E.Tests.Support;
@@ -46,27 +45,27 @@ public sealed class ПользователиШаги
     [When("я перехожу на страницу пользователей")]
     public async Task ПерейтиНаСтраницуПользователей()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/users");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/users");
     }
 
     [When("я перехожу на страницу добавления пользователя")]
     public async Task ПерейтиНаСтраницуДобавленияПользователя()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/users/create");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/users/create");
     }
 
     [When("я открываю страницу деталей пользователя {string}")]
     public async Task ОткрытьСтраницуДеталейПользователя(string name)
     {
         var id = await GetUserIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/users/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/users/{id}");
     }
 
     [When("я открываю страницу редактирования пользователя {string}")]
     public async Task ОткрытьСтраницуРедактированияПользователя(string name)
     {
         var id = await GetUserIdAsync(name);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/users/edit/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/users/edit/{id}");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -77,14 +76,5 @@ public sealed class ПользователиШаги
         var repo  = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IUserRepository>();
         var users = await repo.GetAllAsync();
         return users.First(u => u.Name == name).Id;
-    }
-
-    private async Task NavigateAndWaitAsync(string url)
-    {
-        await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
-        await _state.Page.WaitForFunctionAsync(
-            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
-            null, new() { Timeout = 15_000, PollingInterval = 200 });
-        await _state.Page.WaitForTimeoutAsync(500);
     }
 }

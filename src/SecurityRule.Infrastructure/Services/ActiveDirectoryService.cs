@@ -50,10 +50,11 @@ public sealed class ActiveDirectoryService : IAdService
     // ── IAdService ────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName)
+    public async Task<IEnumerable<string>> GetUserGroupNamesAsync(string userName, CancellationToken cancellationToken = default)
     {
         return await Task.Run(() =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 using var ctx = CreatePrincipalContext();
@@ -74,14 +75,15 @@ public sealed class ActiveDirectoryService : IAdService
                 _logger.LogError(ex, "Error querying AD groups for user '{UserName}'.", userName);
                 return [];
             }
-        });
+        }, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupMemberUserNamesAsync(string groupName, CancellationToken cancellationToken = default)
     {
         return await Task.Run(() =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 using var ctx = CreatePrincipalContext();
@@ -106,14 +108,15 @@ public sealed class ActiveDirectoryService : IAdService
                 _logger.LogError(ex, "Error querying AD members for group '{GroupName}'.", groupName);
                 return [];
             }
-        });
+        }, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupChildGroupNamesAsync(string groupName, CancellationToken cancellationToken = default)
     {
         return await Task.Run(() =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 using var ctx = CreatePrincipalContext();
@@ -139,14 +142,15 @@ public sealed class ActiveDirectoryService : IAdService
                     "Error querying AD child groups for group '{GroupName}'.", groupName);
                 return [];
             }
-        });
+        }, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName)
+    public async Task<IEnumerable<string>> GetGroupParentGroupNamesAsync(string groupName, CancellationToken cancellationToken = default)
     {
         return await Task.Run(() =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 using var ctx = CreatePrincipalContext();
@@ -168,7 +172,7 @@ public sealed class ActiveDirectoryService : IAdService
                     "Error querying AD parent groups for group '{GroupName}'.", groupName);
                 return [];
             }
-        });
+        }, cancellationToken);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

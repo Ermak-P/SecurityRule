@@ -14,6 +14,9 @@ public class OperatingSystemRepository : IOperatingSystemRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<OperatingSystemOption>> GetAllAsync()
-        => await _context.OperatingSystemOptions.OrderBy(o => o.Name).ToListAsync();
+    public async Task<IEnumerable<OperatingSystemOption>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await _context.OperatingSystemOptions
+            .AsNoTracking()
+            .OrderBy(o => o.Name)
+            .ToListAsync(cancellationToken);
 }

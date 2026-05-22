@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using Reqnroll;
 using SecurityRule.Domain.Models;
 using SecurityRule.E2E.Tests.Support;
@@ -39,34 +38,34 @@ public sealed class СертификатыШаги
     [When("я перехожу на страницу сертификатов")]
     public async Task ПерейтиНаСтраницуСертификатов()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/certificates");
     }
 
     [When("я перехожу на страницу добавления сертификата")]
     public async Task ПерейтиНаСтраницуДобавленияСертификата()
     {
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/create");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/certificates/create");
     }
 
     [When("я открываю страницу деталей сертификата {string}")]
     public async Task ОткрытьСтраницуДеталейСертификата(string description)
     {
         var id = await GetCertificateIdAsync(description);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/certificates/{id}");
     }
 
     [When("я открываю страницу редактирования сертификата {string}")]
     public async Task ОткрытьСтраницуРедактированияСертификата(string description)
     {
         var id = await GetCertificateIdAsync(description);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/edit/{id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/certificates/edit/{id}");
     }
 
     [When("я открываю страницу клонирования сертификата {string}")]
     public async Task ОткрытьСтраницуКлонированияСертификата(string description)
     {
         var id = await GetCertificateIdAsync(description);
-        await NavigateAndWaitAsync($"{_state.BaseUrl}/certificates/create?cloneFrom={id}");
+        await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/certificates/create?cloneFrom={id}");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -77,14 +76,5 @@ public sealed class СертификатыШаги
         var repo  = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.ICertificateRepository>();
         var certs = await repo.GetAllAsync();
         return certs.First(c => c.Description == description).Id;
-    }
-
-    private async Task NavigateAndWaitAsync(string url)
-    {
-        await _state.Page.GotoAsync(url, new() { WaitUntil = WaitUntilState.Load });
-        await _state.Page.WaitForFunctionAsync(
-            "() => window.Blazor && window.Blazor._internal && !!window.Blazor._internal.navigationManager",
-            null, new() { Timeout = 15_000, PollingInterval = 200 });
-        await _state.Page.WaitForTimeoutAsync(500);
     }
 }

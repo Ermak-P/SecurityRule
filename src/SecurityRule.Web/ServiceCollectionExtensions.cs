@@ -17,7 +17,9 @@ public static class ServiceCollectionExtensions
     /// services. DbContext registrations are intentionally excluded so that the
     /// caller can choose the appropriate storage provider (SQL Server vs. InMemory).
     /// </summary>
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(
+        this IServiceCollection services,
+        bool useActiveDirectory = false)
     {
         services.AddScoped<IServerRepository, ServerRepository>();
         services.AddScoped<IAppServiceRepository, AppServiceRepository>();
@@ -28,9 +30,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<ISearchService, SearchService>();
-        services.AddSingleton<IAdService, FakeAdService>();
+        if (useActiveDirectory && OperatingSystem.IsWindows())
+            services.AddScoped<IAdService, ActiveDirectoryService>();
+        else
+            services.AddSingleton<IAdService, FakeAdService>();
         services.AddScoped<ThemeState>();
         services.AddScoped<GraphMapElementsBuilder>();
+        services.AddScoped<ServerFormService>();
 
         return services;
     }
