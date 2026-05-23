@@ -1,86 +1,13 @@
-@using SecurityRule.Web.Services
+@* Obsolete: functionality has been moved to DictionarySelectDialog. *@
+@* This file delegates to DictionarySelectDialog for backward compatibility. *@
 
-<MudDialog>
-    <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.Handshake" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Выбор партнёров</MudText>
-        </MudStack>
-    </TitleContent>
-    <DialogContent>
-        <MudTextField @bind-Value="_filter" Label="Поиск" Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
-                      Immediate="true"
-                      Clearable="true"
-                      Class="mb-3"
-                      data-testid="partner-search" />
-
-        <MudStack Row="true" Spacing="1" Class="mb-2">
-            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectAll"
-                       data-testid="partner-select-all">
-                Выбрать все
-            </MudButton>
-            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="DeselectAll"
-                       data-testid="partner-deselect-all">
-                Снять все
-            </MudButton>
-            <MudSpacer />
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="align-self-center">
-                Выбрано: @_state.SelectedNames.Count
-            </MudText>
-        </MudStack>
-
-        @if (!_state.AvailablePartners.Any())
-        {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Список партнёров пуст</MudText>
-        }
-        else
-        {
-            <MudList T="string" Dense="true" data-testid="partner-list">
-                @foreach (var name in _state.FilteredPartners(_filter))
-                {
-                    <MudListItem T="string" OnClick="@(() => _state.Toggle(name))"
-                                 Style="cursor: pointer;"
-                                 data-testid="@($"partner-item-{name}")">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudCheckBox T="bool"
-                                         Value="@_state.IsSelected(name)"
-                                         ValueChanged="@(_ => _state.Toggle(name))"
-                                         Color="Color.Primary"
-                                         StopClickPropagation="true" />
-                            <MudText Style="flex:1">@name</MudText>
-                        </MudStack>
-                    </MudListItem>
-                }
-            </MudList>
-        }
-
-        @if (_state.SelectedNames.Count > 0)
-        {
-            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Выбранные партнёры</MudText>
-            <MudTable T="string" Items="@_state.SelectedNames" Dense="true" data-testid="partner-selected-table">
-                <HeaderContent>
-                    <MudTh>Название</MudTh>
-                    <MudTh></MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Название">@context</MudTd>
-                    <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
-                                       OnClick="@(() => _state.Remove(context))"
-                                       data-testid="@($"partner-remove-{context}")" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
-    </DialogContent>
-    <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" data-testid="partner-dialog-cancel">Отмена</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok"
-                   data-testid="partner-dialog-ok">OK</MudButton>
-    </DialogActions>
-</MudDialog>
+<DictionarySelectDialog AllItems="@AllPartners"
+                        PreSelected="@PreSelected"
+                        DialogTitle="Выбор партнёров"
+                        Icon="@Icons.Material.Filled.Handshake"
+                        EmptyMessage="Список партнёров пуст"
+                        SelectedSectionLabel="Выбранные партнёры"
+                        TestIdPrefix="partner" />
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
@@ -90,18 +17,4 @@
 
     /// <summary>Names of partners already selected before the dialog opened.</summary>
     [Parameter] public IEnumerable<string> PreSelected { get; set; } = [];
-
-    private PartnerInputState _state = new([]);
-    private string _filter = string.Empty;
-
-    protected override void OnParametersSet()
-    {
-        _state = new PartnerInputState(AllPartners, PreSelected);
-    }
-
-    private void SelectAll()   => _state.SelectAll(_filter);
-    private void DeselectAll() => _state.DeselectAll();
-
-    private void Ok()     => MudDialog.Close(DialogResult.Ok(_state.SelectedNames.ToHashSet()));
-    private void Cancel() => MudDialog.Cancel();
 }

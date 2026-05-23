@@ -1,0 +1,84 @@
+@using MudBlazor
+@inject IDialogService DialogService
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="@Class">
+    <MudText Typo="Typo.body1" Style="min-width:120px">@Label</MudText>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Search"
+               OnClick="OpenSelectDialogAsync"
+               data-testid="@($"{TestIdPrefix}-select-btn")">
+        Выбрать
+    </MudButton>
+</MudStack>
+
+@if (SelectedItems.Count > 0)
+{
+    <MudChipSet T="string" Class="mt-1 mb-2" data-testid="@($"{TestIdPrefix}-chips")">
+        @foreach (var name in SelectedItems)
+        {
+            <MudChip T="string" Value="@name" OnClose="@(() => RemoveItem(name))"
+                     Color="Color.Primary" Size="Size.Small"
+                     data-testid="@($"{TestIdPrefix}-chip-{name}")">
+                @name
+            </MudChip>
+        }
+    </MudChipSet>
+}
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Class { get; set; } = "";
+
+    /// <summary>Currently selected item names — two-way bindable.</summary>
+    [Parameter] public HashSet<string> SelectedItems { get; set; } = [];
+    [Parameter] public EventCallback<HashSet<string>> SelectedItemsChanged { get; set; }
+
+    /// <summary>Asynchronous delegate that loads all available items from the data source.</summary>
+    [Parameter] public Func<Task<IEnumerable<string>>>? FetchItemsAsync { get; set; }
+
+    /// <summary>Title text shown in the dialog header.</summary>
+    [Parameter] public string DialogTitle { get; set; } = "Выбор";
+
+    /// <summary>MudBlazor icon string shown next to the dialog title.</summary>
+    [Parameter] public string DialogIcon { get; set; } = Icons.Material.Filled.List;
+
+    /// <summary>Message shown when the item list is empty.</summary>
+    [Parameter] public string EmptyMessage { get; set; } = "Список пуст";
+
+    /// <summary>Label for the selected-items section in the dialog.</summary>
+    [Parameter] public string SelectedSectionLabel { get; set; } = "Выбранные";
+
+    /// <summary>Prefix used for all data-testid attributes (e.g. "partner" → "partner-select-btn").</summary>
+    [Parameter] public string TestIdPrefix { get; set; } = "dictionary";
+
+    private async Task OpenSelectDialogAsync()
+    {
+        var items = FetchItemsAsync is not null ? await FetchItemsAsync() : [];
+
+        var parameters = new DialogParameters<DictionarySelectDialog>
+        {
+            { p => p.AllItems,             items               },
+            { p => p.PreSelected,          SelectedItems       },
+            { p => p.DialogTitle,          DialogTitle         },
+            { p => p.Icon,                 DialogIcon          },
+            { p => p.EmptyMessage,         EmptyMessage        },
+            { p => p.SelectedSectionLabel, SelectedSectionLabel },
+            { p => p.TestIdPrefix,         TestIdPrefix        }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog  = await DialogService.ShowAsync<DictionarySelectDialog>("", parameters, options);
+        var result  = await dialog.Result;
+
+        if (result is { Canceled: false, Data: HashSet<string> selected })
+        {
+            SelectedItems = selected;
+            await SelectedItemsChanged.InvokeAsync(SelectedItems);
+        }
+    }
+
+    private async Task RemoveItem(string name)
+    {
+        SelectedItems.Remove(name);
+        await SelectedItemsChanged.InvokeAsync(SelectedItems);
+    }
+}

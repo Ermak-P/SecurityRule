@@ -1,0 +1,125 @@
+@using SecurityRule.Web.Services
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icon" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@DialogTitle</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_filter" Label="@SearchLabel" Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true"
+                      Clearable="true"
+                      Class="mb-3"
+                      data-testid="@($"{TestIdPrefix}-search")" />
+
+        <MudStack Row="true" Spacing="1" Class="mb-2">
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectAll"
+                       data-testid="@($"{TestIdPrefix}-select-all")">
+                Выбрать все
+            </MudButton>
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="DeselectAll"
+                       data-testid="@($"{TestIdPrefix}-deselect-all")">
+                Снять все
+            </MudButton>
+            <MudSpacer />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="align-self-center">
+                Выбрано: @_state.SelectedNames.Count
+            </MudText>
+        </MudStack>
+
+        @if (!_state.AvailableItems.Any())
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyMessage</MudText>
+        }
+        else
+        {
+            <MudList T="string" Dense="true" data-testid="@($"{TestIdPrefix}-list")">
+                @foreach (var name in _state.FilteredItems(_filter))
+                {
+                    <MudListItem T="string" OnClick="@(() => _state.Toggle(name))"
+                                 Style="cursor: pointer;"
+                                 data-testid="@($"{TestIdPrefix}-item-{name}")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudCheckBox T="bool"
+                                         Value="@_state.IsSelected(name)"
+                                         ValueChanged="@(_ => _state.Toggle(name))"
+                                         Color="Color.Primary"
+                                         StopClickPropagation="true" />
+                            <MudText Style="flex:1">@name</MudText>
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+
+        @if (_state.SelectedNames.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">@SelectedSectionLabel</MudText>
+            <MudTable T="string" Items="@_state.SelectedNames" Dense="true" data-testid="@($"{TestIdPrefix}-selected-table")">
+                <HeaderContent>
+                    <MudTh>Название</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Название">@context</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       OnClick="@(() => _state.Remove(context))"
+                                       data-testid="@($"{TestIdPrefix}-remove-{context}")" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" data-testid="@($"{TestIdPrefix}-dialog-cancel")">Отмена</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok"
+                   data-testid="@($"{TestIdPrefix}-dialog-ok")">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>All item names loaded from the database.</summary>
+    [Parameter] public IEnumerable<string> AllItems { get; set; } = [];
+
+    /// <summary>Names of items already selected before the dialog opened.</summary>
+    [Parameter] public IEnumerable<string> PreSelected { get; set; } = [];
+
+    /// <summary>Title text shown in the dialog header.</summary>
+    [Parameter] public string DialogTitle { get; set; } = "Выбор";
+
+    /// <summary>MudBlazor icon shown next to the dialog title.</summary>
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.List;
+
+    /// <summary>Label for the search field.</summary>
+    [Parameter] public string SearchLabel { get; set; } = "Поиск";
+
+    /// <summary>Message shown when the item list is empty.</summary>
+    [Parameter] public string EmptyMessage { get; set; } = "Список пуст";
+
+    /// <summary>Label for the selected-items section.</summary>
+    [Parameter] public string SelectedSectionLabel { get; set; } = "Выбранные";
+
+    /// <summary>Prefix used for all data-testid attributes (e.g. "partner" → "partner-list").</summary>
+    [Parameter] public string TestIdPrefix { get; set; } = "dictionary";
+
+    private DictionaryInputState _state = new([]);
+    private string _filter = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        _state = new DictionaryInputState(AllItems, PreSelected);
+    }
+
+    private void SelectAll()   => _state.SelectAll(_filter);
+    private void DeselectAll() => _state.DeselectAll();
+
+    private void Ok()     => MudDialog.Close(DialogResult.Ok(_state.SelectedNames.ToHashSet()));
+    private void Cancel() => MudDialog.Cancel();
+}
