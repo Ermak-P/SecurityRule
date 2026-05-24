@@ -1,84 +1,147 @@
 @using SecurityRule.Web.Services
 
-<MudDialog>
+<MudDialog ContentClass="pa-0">
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icon" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">@DialogTitle</MudText>
+            <MudText Typo="Typo.h6" Style="font-weight:600; letter-spacing:.2px;">@DialogTitle</MudText>
         </MudStack>
     </TitleContent>
     <DialogContent>
-        <MudTextField @bind-Value="_filter" Label="@SearchLabel" Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
-                      Immediate="true"
-                      Clearable="true"
-                      Class="mb-3"
-                      data-testid="@($"{TestIdPrefix}-search")" />
 
-        <MudStack Row="true" Spacing="1" Class="mb-2">
-            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SelectAll"
+        @* ── Search ──────────────────────────────────────────────────── *@
+        <div class="px-4 pt-4 pb-2">
+            <MudTextField @bind-Value="_filter"
+                          Label="@SearchLabel"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          Clearable="true"
+                          FullWidth="true"
+                          data-testid="@($"{TestIdPrefix}-search")" />
+        </div>
+
+        @* ── Toolbar: select-all / deselect-all + count ──────────────── *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-3 pb-2" Spacing="0">
+            <MudButton Size="Size.Small"
+                       Variant="Variant.Text"
+                       StartIcon="@Icons.Material.Filled.CheckBox"
+                       Color="Color.Primary"
+                       OnClick="SelectAll"
                        data-testid="@($"{TestIdPrefix}-select-all")">
                 Выбрать все
             </MudButton>
-            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="DeselectAll"
+            <MudButton Size="Size.Small"
+                       Variant="Variant.Text"
+                       StartIcon="@Icons.Material.Filled.CheckBoxOutlineBlank"
+                       OnClick="DeselectAll"
                        data-testid="@($"{TestIdPrefix}-deselect-all")">
                 Снять все
             </MudButton>
             <MudSpacer />
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="align-self-center">
-                Выбрано: @_state.SelectedNames.Count
-            </MudText>
+            @if (_state.SelectedNames.Count > 0)
+            {
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
+                         Icon="@Icons.Material.Filled.Done">
+                    @($"{_state.SelectedNames.Count} выбрано")
+                </MudChip>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Ничего не выбрано</MudText>
+            }
         </MudStack>
 
+        <MudDivider />
+
+        @* ── Item list ───────────────────────────────────────────────── *@
         @if (!_state.AvailableItems.Any())
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyMessage</MudText>
+            @* Empty-state: no data at all *@
+            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="pa-8" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Secondary" Size="Size.Large" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyMessage</MudText>
+            </MudStack>
         }
         else
         {
-            <MudList T="string" Dense="true" data-testid="@($"{TestIdPrefix}-list")">
-                @foreach (var name in _state.FilteredItems(_filter))
-                {
-                    <MudListItem T="string" OnClick="@(() => _state.Toggle(name))"
-                                 Style="cursor: pointer;"
-                                 data-testid="@($"{TestIdPrefix}-item-{name}")">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudCheckBox T="bool"
-                                         Value="@_state.IsSelected(name)"
-                                         ValueChanged="@(_ => _state.Toggle(name))"
-                                         Color="Color.Primary"
-                                         StopClickPropagation="true" />
-                            <MudText Style="flex:1">@name</MudText>
-                        </MudStack>
-                    </MudListItem>
-                }
-            </MudList>
+            <div style="max-height:280px; overflow-y:auto;">
+                <MudList T="string" Dense="true" data-testid="@($"{TestIdPrefix}-list")">
+                    @if (_filteredItems.Any())
+                    {
+                        @foreach (var name in _filteredItems)
+                        {
+                            var isSelected = _state.IsSelected(name);
+                            <MudListItem T="string"
+                                         OnClick="@(() => _state.Toggle(name))"
+                                         Style="cursor:pointer;"
+                                         data-testid="@($"{TestIdPrefix}-item-{name}")">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudCheckBox T="bool"
+                                                 Value="@isSelected"
+                                                 ValueChanged="@(_ => _state.Toggle(name))"
+                                                 Color="Color.Primary"
+                                                 StopClickPropagation="true" />
+                                    <MudText Style="@($"flex:1; font-weight:{(isSelected ? "600" : "400")};")">@name</MudText>
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    }
+                    else
+                    {
+                        @* No-results state: filter matched nothing *@
+                        <MudListItem T="string" Disabled="true">
+                            <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">По запросу ничего не найдено</MudText>
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
+            </div>
         }
 
+        @* ── Selected chips ──────────────────────────────────────────── *@
         @if (_state.SelectedNames.Count > 0)
         {
-            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">@SelectedSectionLabel</MudText>
-            <MudTable T="string" Items="@_state.SelectedNames" Dense="true" data-testid="@($"{TestIdPrefix}-selected-table")">
-                <HeaderContent>
-                    <MudTh>Название</MudTh>
-                    <MudTh></MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Название">@context</MudTd>
-                    <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
-                                       OnClick="@(() => _state.Remove(context))"
-                                       data-testid="@($"{TestIdPrefix}-remove-{context}")" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
+            <MudDivider />
+            <div class="px-4 pt-3 pb-3" data-testid="@($"{TestIdPrefix}-selected-table")">
+                <MudText Typo="Typo.overline" Color="Color.Secondary" Style="letter-spacing:.08em;">
+                    @SelectedSectionLabel
+                </MudText>
+                <MudChipSet T="string" Class="mt-1">
+                    @foreach (var name in _state.SelectedNames)
+                    {
+                        <MudChip T="string"
+                                 Value="@name"
+                                 Color="Color.Primary"
+                                 Size="Size.Small"
+                                 Variant="Variant.Outlined"
+                                 OnClose="@(() => _state.Remove(name))"
+                                 data-testid="@($"{TestIdPrefix}-remove-{name}")">
+                            @name
+                        </MudChip>
+                    }
+                </MudChipSet>
+            </div>
         }
+
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" data-testid="@($"{TestIdPrefix}-dialog-cancel")">Отмена</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok"
-                   data-testid="@($"{TestIdPrefix}-dialog-ok")">OK</MudButton>
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel"
+                   data-testid="@($"{TestIdPrefix}-dialog-cancel")">
+            Отмена
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   EndIcon="@Icons.Material.Filled.Check"
+                   OnClick="Ok"
+                   data-testid="@($"{TestIdPrefix}-dialog-ok")">
+            OK
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -111,6 +174,8 @@
 
     private DictionaryInputState _state = new([]);
     private string _filter = string.Empty;
+
+    private IReadOnlyList<string> _filteredItems => _state.FilteredItems(_filter).ToList();
 
     protected override void OnParametersSet()
     {
