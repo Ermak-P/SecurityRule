@@ -42,7 +42,8 @@
                           FixedHeader="true"
                           Height="260px"
                           Elevation="0"
-                          RowClassFunc="@((item, _) => _fadingOutAvailable.Contains(item) ? "dict-row-exit" : "")">
+                          RowClassFunc="@((item, _) => _fadingOutAvailable.Contains(item) ? "dict-row-exit"
+                                                    : _fadingInAvailable.Contains(item) ? "dict-row-appear" : "")">
                     <HeaderContent>
                         <MudTh Style="width:40px; padding:4px 0 4px 12px;">
                             <MudCheckBox T="bool"
@@ -91,7 +92,8 @@
                       FixedHeader="true"
                       Height="160px"
                       Elevation="0"
-                      RowClassFunc="@((item, _) => _fadingOutSelected.Contains(item) ? "dict-row-exit" : "")">
+                      RowClassFunc="@((item, _) => _fadingOutSelected.Contains(item) ? "dict-row-exit"
+                                                : _fadingInSelected.Contains(item) ? "dict-row-appear" : "")">
                 <HeaderContent>
                     <MudTh Style="width:40px; padding:4px 0 4px 12px;" />
                     <MudTh Style="padding:4px 16px 4px 4px;">
@@ -176,6 +178,8 @@
     private string _filter = string.Empty;
     private readonly HashSet<string> _fadingOutAvailable = new();
     private readonly HashSet<string> _fadingOutSelected = new();
+    private readonly HashSet<string> _fadingInAvailable = new();
+    private readonly HashSet<string> _fadingInSelected = new();
 
     /// <summary>
     /// Items shown in the available table: only unselected items, plus any that are
@@ -204,8 +208,9 @@
     }
 
     /// <summary>
-    /// Plays the exit animation on the available-list row, then moves the item to the
-    /// selected list. Ignored when the item is already animating.
+    /// Plays the exit animation on the available-list row, moves the item to the selected
+    /// list with an enter animation, then clears the animation class.
+    /// Ignored when the item is already animating.
     /// </summary>
     private async Task ToggleAsync(string item)
     {
@@ -215,12 +220,17 @@
         await Task.Delay(150);
         _state.Toggle(item);
         _fadingOutAvailable.Remove(item);
+        _fadingInSelected.Add(item);
+        StateHasChanged();
+        await Task.Delay(200);
+        _fadingInSelected.Remove(item);
         StateHasChanged();
     }
 
     /// <summary>
-    /// Plays the exit animation on the selected-list row, then moves the item back to
-    /// the available list. Ignored when the item is already animating.
+    /// Plays the exit animation on the selected-list row, moves the item back to the
+    /// available list with an enter animation, then clears the animation class.
+    /// Ignored when the item is already animating.
     /// </summary>
     private async Task RemoveAsync(string item)
     {
@@ -230,6 +240,10 @@
         await Task.Delay(150);
         _state.Remove(item);
         _fadingOutSelected.Remove(item);
+        _fadingInAvailable.Add(item);
+        StateHasChanged();
+        await Task.Delay(200);
+        _fadingInAvailable.Remove(item);
         StateHasChanged();
     }
 

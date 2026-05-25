@@ -124,8 +124,9 @@ html, body {
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(-6px); }
 }
-.dict-available-list .mud-table-row,
-.dict-selected-list .mud-table-row {
+/* Enter animation applied only via explicit class — prevents flicker on re-render */
+.dict-available-list .mud-table-row.dict-row-appear,
+.dict-selected-list .mud-table-row.dict-row-appear {
     animation: dict-row-appear 0.18s ease-out both;
 }
 .dict-available-list .mud-table-row.dict-row-exit,
