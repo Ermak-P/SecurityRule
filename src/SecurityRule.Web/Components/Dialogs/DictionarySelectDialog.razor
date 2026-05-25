@@ -157,7 +157,8 @@
     private void ToggleAll(bool _)
     {
         if (_allFilteredSelected)
-            _state.DeselectAll();
+            foreach (var item in _filteredItems)
+                _state.Remove(item);
         else
             _state.SelectAll(_filter);
     }
