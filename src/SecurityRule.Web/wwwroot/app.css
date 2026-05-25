@@ -120,8 +120,18 @@ html, body {
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes dict-row-exit {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-6px); }
+}
+.dict-available-list .mud-table-row,
 .dict-selected-list .mud-table-row {
     animation: dict-row-appear 0.18s ease-out both;
+}
+.dict-available-list .mud-table-row.dict-row-exit,
+.dict-selected-list .mud-table-row.dict-row-exit {
+    animation: dict-row-exit 0.15s ease-in both;
+    pointer-events: none;
 }
 
 /* ─── Blazor error UI ──────────────────────────────────────────────────── */

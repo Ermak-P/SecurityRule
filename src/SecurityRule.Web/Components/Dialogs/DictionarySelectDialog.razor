@@ -34,14 +34,15 @@
         }
         else
         {
-            <div data-testid="@($"{TestIdPrefix}-list")">
+            <div class="dict-available-list" data-testid="@($"{TestIdPrefix}-list")">
                 <MudTable T="string"
-                          Items="@_filteredItems"
+                          Items="@_filteredAvailableItems"
                           Dense="true"
                           Hover="true"
                           FixedHeader="true"
                           Height="260px"
-                          Elevation="0">
+                          Elevation="0"
+                          RowClassFunc="@((item, _) => _fadingOutAvailable.Contains(item) ? "dict-row-exit" : "")">
                     <HeaderContent>
                         <MudTh Style="width:40px; padding:4px 0 4px 12px;">
                             <MudCheckBox T="bool"
@@ -57,20 +58,17 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-                               @onclick="@(() => _state.Toggle(context))">
+                               @onclick="@(() => ToggleAsync(context))">
                             <MudCheckBox T="bool"
-                                         Value="@_state.IsSelected(context)"
-                                         ValueChanged="@(_ => _state.Toggle(context))"
+                                         Value="false"
+                                         ValueChanged="@(_ => ToggleAsync(context))"
                                          Color="Color.Primary"
                                          StopClickPropagation="true"
                                          data-testid="@($"{TestIdPrefix}-item-{context}")" />
                         </MudTd>
                         <MudTd Style="padding:2px 16px 2px 4px; cursor:pointer;"
-                               @onclick="@(() => _state.Toggle(context))">
-                            <MudText Typo="Typo.body2"
-                                     Style="@(_state.IsSelected(context) ? "font-weight:600;" : "")">
-                                @context
-                            </MudText>
+                               @onclick="@(() => ToggleAsync(context))">
+                            <MudText Typo="Typo.body2">@context</MudText>
                         </MudTd>
                     </RowTemplate>
                     <NoRecordsContent>
@@ -92,34 +90,33 @@
                       Hover="true"
                       FixedHeader="true"
                       Height="160px"
-                      Elevation="0">
+                      Elevation="0"
+                      RowClassFunc="@((item, _) => _fadingOutSelected.Contains(item) ? "dict-row-exit" : "")">
                 <HeaderContent>
                     <MudTh Style="width:40px; padding:4px 0 4px 12px;" />
                     <MudTh Style="padding:4px 16px 4px 4px;">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                             <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">@SelectedSectionLabel</MudText>
-                            @if (_state.SelectedNames.Count > 0)
-                            {
-                                <MudChip T="string" Color="Color.Primary" Size="Size.Small"
-                                         Variant="Variant.Filled" DisableRipple="true">
-                                    @_state.SelectedNames.Count
-                                </MudChip>
-                            }
+                            <MudChip T="string" Color="Color.Primary" Size="Size.Small"
+                                     Variant="Variant.Filled" DisableRipple="true"
+                                     Style="@(_state.SelectedNames.Count == 0 ? "visibility:hidden;" : "")">
+                                @_state.SelectedNames.Count
+                            </MudChip>
                         </MudStack>
                     </MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-                           @onclick="@(() => _state.Remove(context))">
+                           @onclick="@(() => RemoveAsync(context))">
                         <MudCheckBox T="bool"
                                      Value="true"
-                                     ValueChanged="@(_ => _state.Remove(context))"
+                                     ValueChanged="@(_ => RemoveAsync(context))"
                                      Color="Color.Primary"
                                      StopClickPropagation="true"
                                      data-testid="@($"{TestIdPrefix}-remove-{context}")" />
                     </MudTd>
                     <MudTd Style="padding:2px 16px 2px 4px; cursor:pointer;"
-                           @onclick="@(() => _state.Remove(context))">
+                           @onclick="@(() => RemoveAsync(context))">
                         <MudText Typo="Typo.body2">@context</MudText>
                     </MudTd>
                 </RowTemplate>
@@ -177,26 +174,69 @@
 
     private DictionaryInputState _state = new([]);
     private string _filter = string.Empty;
+    private readonly HashSet<string> _fadingOutAvailable = new();
+    private readonly HashSet<string> _fadingOutSelected = new();
 
-    private IReadOnlyList<string> _filteredItems => _state.FilteredItems(_filter).ToList();
+    /// <summary>
+    /// Items shown in the available table: only unselected items, plus any that are
+    /// mid-exit animation (still visible until the CSS animation finishes).
+    /// </summary>
+    private IReadOnlyList<string> _filteredAvailableItems =>
+        _state.FilteredItems(_filter)
+              .Where(i => !_state.IsSelected(i) || _fadingOutAvailable.Contains(i))
+              .ToList();
 
-    /// <summary>True when every visible (filtered) item is selected.</summary>
+    /// <summary>All items matching the current filter, for header-checkbox logic.</summary>
+    private IReadOnlyList<string> _allItemsMatchingFilter =>
+        _state.FilteredItems(_filter).ToList();
+
+    /// <summary>True when every item matching the current filter is selected.</summary>
     private bool _allFilteredSelected =>
-        _filteredItems.Count > 0 && _filteredItems.All(n => _state.IsSelected(n));
+        _allItemsMatchingFilter.Count > 0 && _allItemsMatchingFilter.All(n => _state.IsSelected(n));
 
-    /// <summary>True when some (but not all) visible items are selected — drives the indeterminate state.</summary>
+    /// <summary>True when some (but not all) items matching the filter are selected.</summary>
     private bool _someFilteredSelected =>
-        _filteredItems.Any(n => _state.IsSelected(n)) && !_allFilteredSelected;
+        _allItemsMatchingFilter.Any(n => _state.IsSelected(n)) && !_allFilteredSelected;
 
     protected override void OnParametersSet()
     {
         _state = new DictionaryInputState(AllItems, PreSelected);
     }
 
+    /// <summary>
+    /// Plays the exit animation on the available-list row, then moves the item to the
+    /// selected list. Ignored when the item is already animating.
+    /// </summary>
+    private async Task ToggleAsync(string item)
+    {
+        if (_fadingOutAvailable.Contains(item)) return;
+        _fadingOutAvailable.Add(item);
+        StateHasChanged();
+        await Task.Delay(150);
+        _state.Toggle(item);
+        _fadingOutAvailable.Remove(item);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Plays the exit animation on the selected-list row, then moves the item back to
+    /// the available list. Ignored when the item is already animating.
+    /// </summary>
+    private async Task RemoveAsync(string item)
+    {
+        if (_fadingOutSelected.Contains(item)) return;
+        _fadingOutSelected.Add(item);
+        StateHasChanged();
+        await Task.Delay(150);
+        _state.Remove(item);
+        _fadingOutSelected.Remove(item);
+        StateHasChanged();
+    }
+
     private void ToggleAll(bool _)
     {
         if (_allFilteredSelected)
-            foreach (var item in _filteredItems)
+            foreach (var item in _allItemsMatchingFilter.ToList())
                 _state.Remove(item);
         else
             _state.SelectAll(_filter);
