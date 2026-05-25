@@ -23,43 +23,10 @@
                           data-testid="@($"{TestIdPrefix}-search")" />
         </div>
 
-        @* ── Toolbar: select-all / deselect-all + count ──────────────── *@
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-3 pb-2" Spacing="0">
-            <MudButton Size="Size.Small"
-                       Variant="Variant.Text"
-                       StartIcon="@Icons.Material.Filled.CheckBox"
-                       Color="Color.Primary"
-                       OnClick="SelectAll"
-                       data-testid="@($"{TestIdPrefix}-select-all")">
-                Выбрать все
-            </MudButton>
-            <MudButton Size="Size.Small"
-                       Variant="Variant.Text"
-                       StartIcon="@Icons.Material.Filled.CheckBoxOutlineBlank"
-                       OnClick="DeselectAll"
-                       data-testid="@($"{TestIdPrefix}-deselect-all")">
-                Снять все
-            </MudButton>
-            <MudSpacer />
-            @if (_state.SelectedNames.Count > 0)
-            {
-                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
-                         Icon="@Icons.Material.Filled.Done">
-                    @($"{_state.SelectedNames.Count} выбрано")
-                </MudChip>
-            }
-            else
-            {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Ничего не выбрано</MudText>
-            }
-        </MudStack>
-
-        <MudDivider />
-
-        @* ── Item list ───────────────────────────────────────────────── *@
+        @* ── Table ───────────────────────────────────────────────────── *@
         @if (!_state.AvailableItems.Any())
         {
-            @* Empty-state: no data at all *@
+            @* Empty-state: no data *@
             <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="pa-8" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Secondary" Size="Size.Large" />
                 <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyMessage</MudText>
@@ -67,64 +34,61 @@
         }
         else
         {
-            <div style="max-height:280px; overflow-y:auto;">
-                <MudList T="string" Dense="true" data-testid="@($"{TestIdPrefix}-list")">
-                    @if (_filteredItems.Any())
-                    {
-                        @foreach (var name in _filteredItems)
-                        {
-                            var isSelected = _state.IsSelected(name);
-                            <MudListItem T="string"
-                                         OnClick="@(() => _state.Toggle(name))"
-                                         Style="cursor:pointer;"
-                                         data-testid="@($"{TestIdPrefix}-item-{name}")">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                    <MudCheckBox T="bool"
-                                                 Value="@isSelected"
-                                                 ValueChanged="@(_ => _state.Toggle(name))"
-                                                 Color="Color.Primary"
-                                                 StopClickPropagation="true" />
-                                    <MudText Style="@($"flex:1; font-weight:{(isSelected ? "600" : "400")};")">@name</MudText>
-                                </MudStack>
-                            </MudListItem>
-                        }
-                    }
-                    else
-                    {
-                        @* No-results state: filter matched nothing *@
-                        <MudListItem T="string" Disabled="true">
-                            <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
-                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Size="Size.Small" />
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">По запросу ничего не найдено</MudText>
+            <div data-testid="@($"{TestIdPrefix}-list")">
+                <MudTable T="string"
+                          Items="@_filteredItems"
+                          Dense="true"
+                          Hover="true"
+                          FixedHeader="true"
+                          Height="360px"
+                          Elevation="0">
+                    <HeaderContent>
+                        <MudTh Style="width:40px; padding:4px 0 4px 12px;">
+                            <MudCheckBox T="bool"
+                                         Value="@_allFilteredSelected"
+                                         Indeterminate="@_someFilteredSelected"
+                                         ValueChanged="@ToggleAll"
+                                         Color="Color.Primary"
+                                         data-testid="@($"{TestIdPrefix}-select-all")" />
+                        </MudTh>
+                        <MudTh Style="padding:4px 16px 4px 4px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">Название</MudText>
+                                @if (_state.SelectedNames.Count > 0)
+                                {
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small"
+                                             Variant="Variant.Filled" DisableRipple="true">
+                                        @_state.SelectedNames.Count
+                                    </MudChip>
+                                }
                             </MudStack>
-                        </MudListItem>
-                    }
-                </MudList>
-            </div>
-        }
-
-        @* ── Selected chips ──────────────────────────────────────────── *@
-        @if (_state.SelectedNames.Count > 0)
-        {
-            <MudDivider />
-            <div class="px-4 pt-3 pb-3" data-testid="@($"{TestIdPrefix}-selected-table")">
-                <MudText Typo="Typo.overline" Color="Color.Secondary" Style="letter-spacing:.08em;">
-                    @SelectedSectionLabel
-                </MudText>
-                <MudChipSet T="string" Class="mt-1">
-                    @foreach (var name in _state.SelectedNames)
-                    {
-                        <MudChip T="string"
-                                 Value="@name"
-                                 Color="Color.Primary"
-                                 Size="Size.Small"
-                                 Variant="Variant.Outlined"
-                                 OnClose="@(() => _state.Remove(name))"
-                                 data-testid="@($"{TestIdPrefix}-remove-{name}")">
-                            @name
-                        </MudChip>
-                    }
-                </MudChipSet>
+                        </MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
+                               @onclick="@(() => _state.Toggle(context))">
+                            <MudCheckBox T="bool"
+                                         Value="@_state.IsSelected(context)"
+                                         ValueChanged="@(_ => _state.Toggle(context))"
+                                         Color="Color.Primary"
+                                         StopClickPropagation="true"
+                                         data-testid="@($"{TestIdPrefix}-item-{context}")" />
+                        </MudTd>
+                        <MudTd Style="padding:2px 16px 2px 4px; cursor:pointer;"
+                               @onclick="@(() => _state.Toggle(context))">
+                            <MudText Typo="Typo.body2"
+                                     Style="@(_state.IsSelected(context) ? "font-weight:600;" : "")">
+                                @context
+                            </MudText>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudStack AlignItems="AlignItems.Center" Class="py-4" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Size="Size.Small" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">По запросу ничего не найдено</MudText>
+                        </MudStack>
+                    </NoRecordsContent>
+                </MudTable>
             </div>
         }
 
@@ -177,13 +141,26 @@
 
     private IReadOnlyList<string> _filteredItems => _state.FilteredItems(_filter).ToList();
 
+    /// <summary>True when every visible (filtered) item is selected.</summary>
+    private bool _allFilteredSelected =>
+        _filteredItems.Count > 0 && _filteredItems.All(n => _state.IsSelected(n));
+
+    /// <summary>True when some (but not all) visible items are selected — drives the indeterminate state.</summary>
+    private bool _someFilteredSelected =>
+        _filteredItems.Any(n => _state.IsSelected(n)) && !_allFilteredSelected;
+
     protected override void OnParametersSet()
     {
         _state = new DictionaryInputState(AllItems, PreSelected);
     }
 
-    private void SelectAll()   => _state.SelectAll(_filter);
-    private void DeselectAll() => _state.DeselectAll();
+    private void ToggleAll(bool _)
+    {
+        if (_allFilteredSelected)
+            _state.DeselectAll();
+        else
+            _state.SelectAll(_filter);
+    }
 
     private void Ok()     => MudDialog.Close(DialogResult.Ok(_state.SelectedNames.ToHashSet()));
     private void Cancel() => MudDialog.Cancel();

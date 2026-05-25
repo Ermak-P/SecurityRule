@@ -152,9 +152,9 @@ public sealed class СервисыШаги
     [When("я выбираю партнёра {string} в диалоге")]
     public async Task ВыбратьПартнёраВДиалоге(string partnerName)
     {
-        // Click the list item row for the partner (MudListItem)
+        // Click the table row for the partner (MudTable row)
         await _state.Page
-            .Locator($"[data-testid='partner-list'] .mud-list-item")
+            .Locator($"[data-testid='partner-list'] .mud-table-row")
             .Filter(new() { HasText = partnerName })
             .ClickAsync();
         await _state.Page.WaitForTimeoutAsync(200);
