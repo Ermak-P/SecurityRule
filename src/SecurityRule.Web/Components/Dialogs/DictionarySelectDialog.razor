@@ -36,43 +36,31 @@
         else
         {
             <div class="dict-available-list" data-testid="@($"{TestIdPrefix}-list")">
-                <MudTable T="TItem"
-                          Items="@_filteredAvailableItems"
-                          Dense="true"
-                          Hover="true"
-                          FixedHeader="true"
-                          Height="260px"
-                          Elevation="0">
-                    <HeaderContent>
-                        <MudTh Style="width:40px; padding:4px 0 4px 12px;">
-                            <MudCheckBox T="bool"
-                                         Value="@_allFilteredSelected"
-                                         Indeterminate="@_someFilteredSelected"
-                                         ValueChanged="@ToggleAll"
-                                         Color="Color.Primary"
-                                         data-testid="@($"{TestIdPrefix}-select-all")" />
-                        </MudTh>
-                        @ColumnHeaders
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-                               @onclick="@(() => Toggle(context))">
-                            <MudCheckBox T="bool"
-                                         Value="false"
-                                         ValueChanged="@(_ => Toggle(context))"
-                                         Color="Color.Primary"
-                                         StopClickPropagation="true"
-                                         data-testid="@($"{TestIdPrefix}-item-{KeySelector(context)}")" />
-                        </MudTd>
-                        @if (RowCells is not null) @RowCells(context)
-                    </RowTemplate>
+                <DictionaryItemTable TItem="TItem"
+                                     Items="@_filteredAvailableItems"
+                                     KeySelector="@KeySelector"
+                                     CheckboxChecked="false"
+                                     OnToggle="@Toggle"
+                                     TestIdPrefix="@TestIdPrefix"
+                                     ItemTestIdSuffix="item"
+                                     Height="260px"
+                                     ColumnHeaders="@ColumnHeaders"
+                                     RowCells="@RowCells">
+                    <HeaderCheckbox>
+                        <MudCheckBox T="bool"
+                                     Value="@_allFilteredSelected"
+                                     Indeterminate="@_someFilteredSelected"
+                                     ValueChanged="@ToggleAll"
+                                     Color="Color.Primary"
+                                     data-testid="@($"{TestIdPrefix}-select-all")" />
+                    </HeaderCheckbox>
                     <NoRecordsContent>
                         <MudStack AlignItems="AlignItems.Center" Class="py-4" Spacing="1">
                             <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Size="Size.Small" />
                             <MudText Typo="Typo.body2" Color="Color.Secondary">По запросу ничего не найдено</MudText>
                         </MudStack>
                     </NoRecordsContent>
-                </MudTable>
+                </DictionaryItemTable>
             </div>
         }
 
@@ -86,35 +74,22 @@
                     @_state.SelectedNames.Count
                 </MudChip>
             </div>
-            <MudTable T="TItem"
-                      Items="@_selectedItems"
-                      Dense="true"
-                      Hover="true"
-                      FixedHeader="true"
-                      Height="140px"
-                      Elevation="0">
-                <HeaderContent>
-                    <MudTh Style="width:40px; padding:4px 0 4px 12px;" />
-                    @ColumnHeaders
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-                           @onclick="@(() => Remove(context))">
-                        <MudCheckBox T="bool"
-                                     Value="true"
-                                     ValueChanged="@(_ => Remove(context))"
-                                     Color="Color.Primary"
-                                     StopClickPropagation="true"
-                                     data-testid="@($"{TestIdPrefix}-remove-{KeySelector(context)}")" />
-                    </MudTd>
-                    @if (RowCells is not null) @RowCells(context)
-                </RowTemplate>
+            <DictionaryItemTable TItem="TItem"
+                                 Items="@_selectedItems"
+                                 KeySelector="@KeySelector"
+                                 CheckboxChecked="true"
+                                 OnToggle="@Remove"
+                                 TestIdPrefix="@TestIdPrefix"
+                                 ItemTestIdSuffix="remove"
+                                 Height="140px"
+                                 ColumnHeaders="@ColumnHeaders"
+                                 RowCells="@RowCells">
                 <NoRecordsContent>
                     <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">Ничего не выбрано</MudText>
                     </MudStack>
                 </NoRecordsContent>
-            </MudTable>
+            </DictionaryItemTable>
         </div>
 
     </DialogContent>

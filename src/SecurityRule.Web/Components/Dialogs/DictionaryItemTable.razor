@@ -1,0 +1,66 @@
+@typeparam TItem
+
+<MudTable T="TItem"
+          Items="@Items"
+          Dense="true"
+          Hover="true"
+          FixedHeader="true"
+          Height="@Height"
+          Elevation="0">
+    <HeaderContent>
+        <MudTh Style="width:40px; padding:4px 0 4px 12px;">
+            @HeaderCheckbox
+        </MudTh>
+        @ColumnHeaders
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
+               @onclick="@(() => OnToggle.InvokeAsync(context))">
+            <MudCheckBox T="bool"
+                         Value="@CheckboxChecked"
+                         ValueChanged="@(_ => OnToggle.InvokeAsync(context))"
+                         Color="Color.Primary"
+                         StopClickPropagation="true"
+                         data-testid="@($"{TestIdPrefix}-{ItemTestIdSuffix}-{KeySelector(context)}")" />
+        </MudTd>
+        @if (RowCells is not null) @RowCells(context)
+    </RowTemplate>
+    <NoRecordsContent>
+        @NoRecordsContent
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    /// <summary>Items to display in the table.</summary>
+    [Parameter] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    /// <summary>Returns the unique string key for an item (used for data-testid).</summary>
+    [Parameter] public Func<TItem, string> KeySelector { get; set; } = item => item?.ToString() ?? "";
+
+    /// <summary>Whether each row's checkbox is checked (false = available, true = selected).</summary>
+    [Parameter] public bool CheckboxChecked { get; set; }
+
+    /// <summary>Invoked when a row checkbox or row cell is clicked.</summary>
+    [Parameter] public EventCallback<TItem> OnToggle { get; set; }
+
+    /// <summary>Prefix for all data-testid attributes.</summary>
+    [Parameter] public string TestIdPrefix { get; set; } = "dictionary";
+
+    /// <summary>Suffix added to each row's data-testid (e.g. "item" or "remove").</summary>
+    [Parameter] public string ItemTestIdSuffix { get; set; } = "item";
+
+    /// <summary>CSS height of the table scroll area.</summary>
+    [Parameter] public string Height { get; set; } = "260px";
+
+    /// <summary>Content placed inside the header checkbox cell (e.g. a select-all checkbox or empty).</summary>
+    [Parameter] public RenderFragment? HeaderCheckbox { get; set; }
+
+    /// <summary>Header cells (&lt;MudTh&gt; elements) for the data columns.</summary>
+    [Parameter] public RenderFragment? ColumnHeaders { get; set; }
+
+    /// <summary>Data cells (&lt;MudTd&gt; elements) for each row.</summary>
+    [Parameter] public RenderFragment<TItem>? RowCells { get; set; }
+
+    /// <summary>Content shown when the table has no rows.</summary>
+    [Parameter] public RenderFragment? NoRecordsContent { get; set; }
+}
