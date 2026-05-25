@@ -12,7 +12,7 @@
 
         @* ── Search ──────────────────────────────────────────────────── *@
         <div class="px-4 pt-4 pb-2">
-            <MudTextField @bind-Value="_filter"
+            <MudTextField @bind-Value="Filter"
                           Label="@SearchLabel"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
@@ -155,60 +155,65 @@
     private DictionaryInputState _state = new([]);
     private string _filter = string.Empty;
 
-    private bool MatchesFilter(TItem item)
+    // ── Cached derived state (updated by RefreshLists) ───────────────────
+    private IReadOnlyList<TItem> _filteredAvailableItems = [];
+    private IReadOnlyList<TItem> _selectedItems = [];
+    private IReadOnlyList<TItem> _allItemsMatchingFilter = [];
+    private bool _allFilteredSelected;
+    private bool _someFilteredSelected;
+
+    /// <summary>Search text; updates cached lists whenever the value changes.</summary>
+    private string Filter
     {
-        if (string.IsNullOrWhiteSpace(_filter)) return true;
-        return FilterPredicate is not null
-            ? FilterPredicate(item, _filter)
-            : KeySelector(item).Contains(_filter, StringComparison.OrdinalIgnoreCase);
+        get => _filter;
+        set { _filter = value; RefreshLists(); }
     }
 
-    private IReadOnlyList<TItem> _filteredAvailableItems =>
-        AllItems
-            .Where(i => !_state.IsSelected(KeySelector(i)) && MatchesFilter(i))
-            .ToList();
+    private bool MatchesFilter(TItem item) =>
+        string.IsNullOrWhiteSpace(_filter) ||
+        (FilterPredicate is not null
+            ? FilterPredicate(item, _filter)
+            : KeySelector(item).Contains(_filter, StringComparison.OrdinalIgnoreCase));
 
-    private IReadOnlyList<TItem> _selectedItems =>
-        _state.SelectedNames
+    /// <summary>Recomputes all cached derived lists and checkbox states in one pass.</summary>
+    private void RefreshLists()
+    {
+        _allItemsMatchingFilter = AllItems.Where(MatchesFilter).ToList();
+        _filteredAvailableItems = _allItemsMatchingFilter
+            .Where(i => !_state.IsSelected(KeySelector(i)))
+            .ToList();
+        _selectedItems = _state.SelectedNames
             .OrderBy(k => k)
             .Where(k => _itemsByKey.ContainsKey(k))
             .Select(k => _itemsByKey[k])
             .ToList();
-
-    private IReadOnlyList<TItem> _allItemsMatchingFilter =>
-        AllItems.Where(MatchesFilter).ToList();
-
-    private bool _allFilteredSelected =>
-        _allItemsMatchingFilter.Count > 0 &&
-        _allItemsMatchingFilter.All(i => _state.IsSelected(KeySelector(i)));
-
-    private bool _someFilteredSelected =>
-        _allItemsMatchingFilter.Any(i => _state.IsSelected(KeySelector(i))) &&
-        !_allFilteredSelected;
+        _allFilteredSelected = _allItemsMatchingFilter.Count > 0 &&
+            _allItemsMatchingFilter.All(i => _state.IsSelected(KeySelector(i)));
+        _someFilteredSelected = _allItemsMatchingFilter.Any(i => _state.IsSelected(KeySelector(i))) &&
+            !_allFilteredSelected;
+    }
 
     protected override void OnParametersSet()
     {
         _itemsByKey = AllItems.ToDictionary(KeySelector, i => i);
         _state = new DictionaryInputState(AllItems.Select(KeySelector), PreSelected.Select(KeySelector));
+        RefreshLists();
     }
 
-    private void Toggle(TItem item) => _state.Toggle(KeySelector(item));
+    private void Toggle(TItem item) { _state.Toggle(KeySelector(item)); RefreshLists(); }
 
-    private void Remove(TItem item) => _state.Remove(KeySelector(item));
+    private void Remove(TItem item) { _state.Remove(KeySelector(item)); RefreshLists(); }
 
     private void ToggleAll(bool _)
     {
         if (_allFilteredSelected)
-        {
-            foreach (var item in _allItemsMatchingFilter.ToList())
+            foreach (var item in _allItemsMatchingFilter)
                 _state.Remove(KeySelector(item));
-        }
         else
-        {
             foreach (var item in _allItemsMatchingFilter)
                 if (!_state.IsSelected(KeySelector(item)))
                     _state.Toggle(KeySelector(item));
-        }
+        RefreshLists();
     }
 
     private void Ok()
