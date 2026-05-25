@@ -1,4 +1,5 @@
 @using SecurityRule.Web.Services
+@typeparam TItem
 
 <MudDialog ContentClass="pa-0">
     <TitleContent>
@@ -24,7 +25,7 @@
         </div>
 
         @* ── Available items table ───────────────────────────────────── *@
-        @if (!_state.AvailableItems.Any())
+        @if (!AllItems.Any())
         {
             @* Empty-state: no data *@
             <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="pa-8" Spacing="2">
@@ -35,14 +36,13 @@
         else
         {
             <div class="dict-available-list" data-testid="@($"{TestIdPrefix}-list")">
-                <MudTable T="string"
+                <MudTable T="TItem"
                           Items="@_filteredAvailableItems"
                           Dense="true"
                           Hover="true"
                           FixedHeader="true"
                           Height="260px"
-                          Elevation="0"
-                          RowClassFunc="@((item, _) => _fadingOutAvailable.Contains(item) ? "dict-row-exit" : "")">
+                          Elevation="0">
                     <HeaderContent>
                         <MudTh Style="width:40px; padding:4px 0 4px 12px;">
                             <MudCheckBox T="bool"
@@ -52,24 +52,19 @@
                                          Color="Color.Primary"
                                          data-testid="@($"{TestIdPrefix}-select-all")" />
                         </MudTh>
-                        <MudTh Style="padding:4px 16px 4px 4px;">
-                            <MudText Typo="Typo.body2" Style="font-weight:600;">Название</MudText>
-                        </MudTh>
+                        @ColumnHeaders
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-                               @onclick="@(() => ToggleAsync(context))">
+                               @onclick="@(() => Toggle(context))">
                             <MudCheckBox T="bool"
                                          Value="false"
-                                         ValueChanged="@(_ => ToggleAsync(context))"
+                                         ValueChanged="@(_ => Toggle(context))"
                                          Color="Color.Primary"
                                          StopClickPropagation="true"
-                                         data-testid="@($"{TestIdPrefix}-item-{context}")" />
+                                         data-testid="@($"{TestIdPrefix}-item-{KeySelector(context)}")" />
                         </MudTd>
-                        <MudTd Style="padding:2px 16px 2px 4px; cursor:pointer;"
-                               @onclick="@(() => ToggleAsync(context))">
-                            <MudText Typo="Typo.body2">@context</MudText>
-                        </MudTd>
+                        @if (RowCells is not null) @RowCells(context)
                     </RowTemplate>
                     <NoRecordsContent>
                         <MudStack AlignItems="AlignItems.Center" Class="py-4" Spacing="1">
@@ -81,44 +76,38 @@
             </div>
         }
 
-        @* ── Selected items table (always visible) ───────────────────── *@
+        @* ── Selected items section ───────────────────────────────────── *@
         <MudDivider />
         <div class="dict-selected-list" data-testid="@($"{TestIdPrefix}-selected-table")">
-            <MudTable T="string"
-                      Items="@_state.SelectedNames.OrderBy(n => n).ToList()"
+            <div style="display:flex; align-items:center; padding:6px 16px 6px 12px;">
+                <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">@SelectedSectionLabel</MudText>
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small"
+                         Variant="Variant.Filled" DisableRipple="true">
+                    @_state.SelectedNames.Count
+                </MudChip>
+            </div>
+            <MudTable T="TItem"
+                      Items="@_selectedItems"
                       Dense="true"
                       Hover="true"
                       FixedHeader="true"
-                      Height="160px"
-                      Elevation="0"
-                      RowClassFunc="@((item, _) => _fadingOutSelected.Contains(item) ? "dict-row-exit" : "")">
+                      Height="140px"
+                      Elevation="0">
                 <HeaderContent>
                     <MudTh Style="width:40px; padding:4px 0 4px 12px;" />
-                    <MudTh Style="padding:4px 16px 4px 4px;">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">@SelectedSectionLabel</MudText>
-                            <MudChip T="string" Color="Color.Primary" Size="Size.Small"
-                                     Variant="Variant.Filled" DisableRipple="true"
-                                     Style="">
-                                @_state.SelectedNames.Count
-                            </MudChip>
-                        </MudStack>
-                    </MudTh>
+                    @ColumnHeaders
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-                           @onclick="@(() => RemoveAsync(context))">
+                           @onclick="@(() => Remove(context))">
                         <MudCheckBox T="bool"
                                      Value="true"
-                                     ValueChanged="@(_ => RemoveAsync(context))"
+                                     ValueChanged="@(_ => Remove(context))"
                                      Color="Color.Primary"
                                      StopClickPropagation="true"
-                                     data-testid="@($"{TestIdPrefix}-remove-{context}")" />
+                                     data-testid="@($"{TestIdPrefix}-remove-{KeySelector(context)}")" />
                     </MudTd>
-                    <MudTd Style="padding:2px 16px 2px 4px; cursor:pointer;"
-                           @onclick="@(() => RemoveAsync(context))">
-                        <MudText Typo="Typo.body2">@context</MudText>
-                    </MudTd>
+                    @if (RowCells is not null) @RowCells(context)
                 </RowTemplate>
                 <NoRecordsContent>
                     <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
@@ -148,11 +137,26 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
 
-    /// <summary>All item names loaded from the database.</summary>
-    [Parameter] public IEnumerable<string> AllItems { get; set; } = [];
+    /// <summary>All items loaded from the data source.</summary>
+    [Parameter] public IEnumerable<TItem> AllItems { get; set; } = [];
 
-    /// <summary>Names of items already selected before the dialog opened.</summary>
-    [Parameter] public IEnumerable<string> PreSelected { get; set; } = [];
+    /// <summary>Items already selected before the dialog opened.</summary>
+    [Parameter] public IEnumerable<TItem> PreSelected { get; set; } = [];
+
+    /// <summary>Returns the unique string key for an item (used for identity, filtering, and test-ids).</summary>
+    [Parameter] public Func<TItem, string> KeySelector { get; set; } = item => item?.ToString() ?? "";
+
+    /// <summary>
+    /// Optional custom filter predicate. When null, defaults to a case-insensitive
+    /// contains check on <see cref="KeySelector"/>.
+    /// </summary>
+    [Parameter] public Func<TItem, string, bool>? FilterPredicate { get; set; }
+
+    /// <summary>Header cells (&lt;MudTh&gt; elements) for the data columns.</summary>
+    [Parameter] public RenderFragment? ColumnHeaders { get; set; }
+
+    /// <summary>Data cells (&lt;MudTd&gt; elements) for each row.</summary>
+    [Parameter] public RenderFragment<TItem>? RowCells { get; set; }
 
     /// <summary>Title text shown in the dialog header.</summary>
     [Parameter] public string DialogTitle { get; set; } = "Выбор";
@@ -172,76 +176,74 @@
     /// <summary>Prefix used for all data-testid attributes (e.g. "partner" → "partner-list").</summary>
     [Parameter] public string TestIdPrefix { get; set; } = "dictionary";
 
+    private Dictionary<string, TItem> _itemsByKey = [];
     private DictionaryInputState _state = new([]);
     private string _filter = string.Empty;
-    private readonly HashSet<string> _fadingOutAvailable = new();
-    private readonly HashSet<string> _fadingOutSelected = new();
 
-    /// <summary>
-    /// Items shown in the available table: only unselected items, plus any that are
-    /// mid-exit animation (still visible until the CSS animation finishes).
-    /// </summary>
-    private IReadOnlyList<string> _filteredAvailableItems =>
-        _state.FilteredItems(_filter)
-              .Where(i => !_state.IsSelected(i) || _fadingOutAvailable.Contains(i))
-              .ToList();
+    private bool MatchesFilter(TItem item)
+    {
+        if (string.IsNullOrWhiteSpace(_filter)) return true;
+        return FilterPredicate is not null
+            ? FilterPredicate(item, _filter)
+            : KeySelector(item).Contains(_filter, StringComparison.OrdinalIgnoreCase);
+    }
 
-    /// <summary>All items matching the current filter, for header-checkbox logic.</summary>
-    private IReadOnlyList<string> _allItemsMatchingFilter =>
-        _state.FilteredItems(_filter).ToList();
+    private IReadOnlyList<TItem> _filteredAvailableItems =>
+        AllItems
+            .Where(i => !_state.IsSelected(KeySelector(i)) && MatchesFilter(i))
+            .ToList();
 
-    /// <summary>True when every item matching the current filter is selected.</summary>
+    private IReadOnlyList<TItem> _selectedItems =>
+        _state.SelectedNames
+            .OrderBy(k => k)
+            .Where(k => _itemsByKey.ContainsKey(k))
+            .Select(k => _itemsByKey[k])
+            .ToList();
+
+    private IReadOnlyList<TItem> _allItemsMatchingFilter =>
+        AllItems.Where(MatchesFilter).ToList();
+
     private bool _allFilteredSelected =>
-        _allItemsMatchingFilter.Count > 0 && _allItemsMatchingFilter.All(n => _state.IsSelected(n));
+        _allItemsMatchingFilter.Count > 0 &&
+        _allItemsMatchingFilter.All(i => _state.IsSelected(KeySelector(i)));
 
-    /// <summary>True when some (but not all) items matching the filter are selected.</summary>
     private bool _someFilteredSelected =>
-        _allItemsMatchingFilter.Any(n => _state.IsSelected(n)) && !_allFilteredSelected;
+        _allItemsMatchingFilter.Any(i => _state.IsSelected(KeySelector(i))) &&
+        !_allFilteredSelected;
 
     protected override void OnParametersSet()
     {
-        _state = new DictionaryInputState(AllItems, PreSelected);
+        _itemsByKey = AllItems.ToDictionary(KeySelector, i => i);
+        _state = new DictionaryInputState(AllItems.Select(KeySelector), PreSelected.Select(KeySelector));
     }
 
-    /// <summary>
-    /// Plays the exit animation on the available-list row, then moves the item to the
-    /// selected list. Ignored when the item is already animating.
-    /// </summary>
-    private async Task ToggleAsync(string item)
-    {
-        if (_fadingOutAvailable.Contains(item)) return;
-        _fadingOutAvailable.Add(item);
-        StateHasChanged();
-        await Task.Delay(150);
-        _state.Toggle(item);
-        _fadingOutAvailable.Remove(item);
-        StateHasChanged();
-    }
+    private void Toggle(TItem item) => _state.Toggle(KeySelector(item));
 
-    /// <summary>
-    /// Plays the exit animation on the selected-list row, then moves the item back to
-    /// the available list. Ignored when the item is already animating.
-    /// </summary>
-    private async Task RemoveAsync(string item)
-    {
-        if (_fadingOutSelected.Contains(item)) return;
-        _fadingOutSelected.Add(item);
-        StateHasChanged();
-        await Task.Delay(150);
-        _state.Remove(item);
-        _fadingOutSelected.Remove(item);
-        StateHasChanged();
-    }
+    private void Remove(TItem item) => _state.Remove(KeySelector(item));
 
     private void ToggleAll(bool _)
     {
         if (_allFilteredSelected)
+        {
             foreach (var item in _allItemsMatchingFilter.ToList())
-                _state.Remove(item);
+                _state.Remove(KeySelector(item));
+        }
         else
-            _state.SelectAll(_filter);
+        {
+            foreach (var item in _allItemsMatchingFilter)
+                if (!_state.IsSelected(KeySelector(item)))
+                    _state.Toggle(KeySelector(item));
+        }
     }
 
-    private void Ok()     => MudDialog.Close(DialogResult.Ok(_state.SelectedNames.ToHashSet()));
+    private void Ok()
+    {
+        var selected = _state.SelectedNames
+            .Where(k => _itemsByKey.ContainsKey(k))
+            .Select(k => _itemsByKey[k])
+            .ToHashSet();
+        MudDialog.Close(DialogResult.Ok(selected));
+    }
+
     private void Cancel() => MudDialog.Cancel();
 }

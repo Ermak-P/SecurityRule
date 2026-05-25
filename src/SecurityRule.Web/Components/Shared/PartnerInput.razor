@@ -2,16 +2,29 @@
 @using SecurityRule.Domain.Interfaces
 @inject IPartnerNameRepository PartnerNameRepository
 
-<DictionaryInput Label="@Label"
+<DictionaryInput TItem="string"
+                 Label="@Label"
                  Class="@Class"
                  SelectedItems="SelectedPartners"
                  SelectedItemsChanged="OnSelectedItemsChanged"
                  FetchItemsAsync="FetchPartnersAsync"
+                 KeySelector="x => x"
                  DialogTitle="Выбор партнёров"
                  DialogIcon="@Icons.Material.Filled.Handshake"
                  EmptyMessage="Список партнёров пуст"
                  SelectedSectionLabel="Выбранные партнёры"
-                 TestIdPrefix="partner" />
+                 TestIdPrefix="partner">
+    <ColumnHeaders>
+        <MudTh Style="padding:4px 16px 4px 4px;">
+            <MudText Typo="Typo.body2" Style="font-weight:600;">Название</MudText>
+        </MudTh>
+    </ColumnHeaders>
+    <RowCells Context="item">
+        <MudTd Style="padding:2px 16px 2px 4px;">
+            <MudText Typo="Typo.body2">@item</MudText>
+        </MudTd>
+    </RowCells>
+</DictionaryInput>
 
 @code {
     [Parameter] public string Label { get; set; } = "Partner Name";
