@@ -115,19 +115,10 @@ html, body {
 /* ─── MudAlert compact ─────────────────────────────────────────────────── */
 .mud-alert { padding: 6px 12px !important; font-size: 0.8125rem !important; }
 
-/* ─── Dictionary/Partner select dialog — row animation ─────────────────── */
-@keyframes dict-row-appear {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
+/* ─── Dictionary/Partner select dialog — row exit animation ─────────────── */
 @keyframes dict-row-exit {
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(-6px); }
-}
-/* Enter animation applied only via explicit class — prevents flicker on re-render */
-.dict-available-list .mud-table-row.dict-row-appear,
-.dict-selected-list .mud-table-row.dict-row-appear {
-    animation: dict-row-appear 0.18s ease-out both;
 }
 .dict-available-list .mud-table-row.dict-row-exit,
 .dict-selected-list .mud-table-row.dict-row-exit {
