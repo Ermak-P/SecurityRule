@@ -83,48 +83,53 @@
             </div>
         }
 
-        @* ── Selected items table ─────────────────────────────────────── *@
-        @if (_state.SelectedNames.Count > 0)
-        {
-            <MudDivider />
-            <div data-testid="@($"{TestIdPrefix}-selected-table")">
-                <MudTable T="string"
-                          Items="@_state.SelectedNames.OrderBy(n => n).ToList()"
-                          Dense="true"
-                          Hover="true"
-                          FixedHeader="true"
-                          Height="160px"
-                          Elevation="0">
-                    <HeaderContent>
-                        <MudTh Style="width:40px; padding:4px 0 4px 12px;" />
-                        <MudTh Style="padding:4px 16px 4px 4px;">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">@SelectedSectionLabel</MudText>
+        @* ── Selected items table (always visible) ───────────────────── *@
+        <MudDivider />
+        <div class="dict-selected-list" data-testid="@($"{TestIdPrefix}-selected-table")">
+            <MudTable T="string"
+                      Items="@_state.SelectedNames.OrderBy(n => n).ToList()"
+                      Dense="true"
+                      Hover="true"
+                      FixedHeader="true"
+                      Height="160px"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="width:40px; padding:4px 0 4px 12px;" />
+                    <MudTh Style="padding:4px 16px 4px 4px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">@SelectedSectionLabel</MudText>
+                            @if (_state.SelectedNames.Count > 0)
+                            {
                                 <MudChip T="string" Color="Color.Primary" Size="Size.Small"
                                          Variant="Variant.Filled" DisableRipple="true">
                                     @_state.SelectedNames.Count
                                 </MudChip>
-                            </MudStack>
-                        </MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-                               @onclick="@(() => _state.Remove(context))">
-                            <MudCheckBox T="bool"
-                                         Value="true"
-                                         ValueChanged="@(_ => _state.Remove(context))"
-                                         Color="Color.Primary"
-                                         StopClickPropagation="true"
-                                         data-testid="@($"{TestIdPrefix}-remove-{context}")" />
-                        </MudTd>
-                        <MudTd Style="padding:2px 16px 2px 4px; cursor:pointer;"
-                               @onclick="@(() => _state.Remove(context))">
-                            <MudText Typo="Typo.body2">@context</MudText>
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
-            </div>
-        }
+                            }
+                        </MudStack>
+                    </MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
+                           @onclick="@(() => _state.Remove(context))">
+                        <MudCheckBox T="bool"
+                                     Value="true"
+                                     ValueChanged="@(_ => _state.Remove(context))"
+                                     Color="Color.Primary"
+                                     StopClickPropagation="true"
+                                     data-testid="@($"{TestIdPrefix}-remove-{context}")" />
+                    </MudTd>
+                    <MudTd Style="padding:2px 16px 2px 4px; cursor:pointer;"
+                           @onclick="@(() => _state.Remove(context))">
+                        <MudText Typo="Typo.body2">@context</MudText>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Ничего не выбрано</MudText>
+                    </MudStack>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
 
     </DialogContent>
     <DialogActions>
