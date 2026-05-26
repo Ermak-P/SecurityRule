@@ -10,24 +10,9 @@
     </TitleContent>
     <DialogContent>
 
-        @* ── Search ──────────────────────────────────────────────────── *@
-        <div class="px-4 pt-4 pb-2">
-            <MudTextField @bind-Value="Filter"
-                          Label="@SearchLabel"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                          Margin="Margin.Dense"
-                          Immediate="true"
-                          Clearable="true"
-                          FullWidth="true"
-                          data-testid="@($"{TestIdPrefix}-search")" />
-        </div>
-
-        @* ── Available items table ───────────────────────────────────── *@
+        @* ── Empty state ─────────────────────────────────────────────── *@
         @if (!AllItems.Any())
         {
-            @* Empty-state: no data *@
             <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="pa-8" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Secondary" Size="Size.Large" />
                 <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyMessage</MudText>
@@ -35,62 +20,84 @@
         }
         else
         {
-            <div class="dict-available-list" data-testid="@($"{TestIdPrefix}-list")">
-                <DictionaryItemTable TItem="TItem"
-                                     Items="@_filteredAvailableItems"
-                                     KeySelector="@KeySelector"
-                                     CheckboxChecked="false"
-                                     OnToggle="@Toggle"
-                                     TestIdPrefix="@TestIdPrefix"
-                                     ItemTestIdSuffix="item"
-                                     Height="260px"
-                                     ColumnHeaders="@ColumnHeaders"
-                                     RowCells="@RowCells">
-                    <HeaderCheckbox>
-                        <MudCheckBox T="bool"
-                                     Value="@_allFilteredSelected"
-                                     Indeterminate="@_someFilteredSelected"
-                                     ValueChanged="@ToggleAll"
-                                     Color="Color.Primary"
-                                     data-testid="@($"{TestIdPrefix}-select-all")" />
-                    </HeaderCheckbox>
-                    <NoRecordsContent>
-                        <MudStack AlignItems="AlignItems.Center" Class="py-4" Spacing="1">
-                            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Size="Size.Small" />
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">По запросу ничего не найдено</MudText>
-                        </MudStack>
-                    </NoRecordsContent>
-                </DictionaryItemTable>
+            @* ── Two-column layout: available ← | → selected ──────────── *@
+            <div style="display:flex; height:460px; overflow:hidden;">
+
+                @* ── Left: available items ─────────────────────────────── *@
+                <div style="flex:1; display:flex; flex-direction:column; overflow:hidden; border-right:1px solid var(--mud-palette-lines-default);">
+                    <div class="px-3 pt-3 pb-2" style="flex:0 0 auto;">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Доступные</MudText>
+                        <MudTextField @bind-Value="Filter"
+                                      Label="@SearchLabel"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Margin="Margin.Dense"
+                                      Immediate="true"
+                                      Clearable="true"
+                                      FullWidth="true"
+                                      data-testid="@($"{TestIdPrefix}-search")" />
+                    </div>
+                    <div style="flex:1; overflow:hidden;" data-testid="@($"{TestIdPrefix}-list")">
+                        <DictionaryItemTable TItem="TItem"
+                                             Items="@_filteredAvailableItems"
+                                             KeySelector="@KeySelector"
+                                             CheckboxChecked="false"
+                                             OnToggle="@Toggle"
+                                             TestIdPrefix="@TestIdPrefix"
+                                             ItemTestIdSuffix="item"
+                                             Height="100%"
+                                             ColumnHeaders="@ColumnHeaders"
+                                             RowCells="@RowCells">
+                            <HeaderCheckbox>
+                                <MudCheckBox T="bool"
+                                             Value="@_allFilteredSelected"
+                                             Indeterminate="@_someFilteredSelected"
+                                             ValueChanged="@ToggleAll"
+                                             Color="Color.Primary"
+                                             data-testid="@($"{TestIdPrefix}-select-all")" />
+                            </HeaderCheckbox>
+                            <NoRecordsContent>
+                                <MudStack AlignItems="AlignItems.Center" Class="py-4" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">По запросу ничего не найдено</MudText>
+                                </MudStack>
+                            </NoRecordsContent>
+                        </DictionaryItemTable>
+                    </div>
+                </div>
+
+                @* ── Right: selected items ─────────────────────────────── *@
+                <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+                    <div class="px-3 pt-3 pb-2" style="flex:0 0 auto; display:flex; align-items:center; gap:8px;">
+                        <MudText Typo="Typo.subtitle2" Style="flex:1;">@SelectedSectionLabel</MudText>
+                        <MudChip T="string" Color="Color.Primary" Size="Size.Small"
+                                 Variant="Variant.Filled" DisableRipple="true">
+                            @_state.SelectedNames.Count
+                        </MudChip>
+                    </div>
+                    <div style="flex:1; overflow:hidden;" data-testid="@($"{TestIdPrefix}-selected-table")">
+                        <DictionaryItemTable TItem="TItem"
+                                             Items="@_selectedItems"
+                                             KeySelector="@KeySelector"
+                                             CheckboxChecked="true"
+                                             OnToggle="@Remove"
+                                             TestIdPrefix="@TestIdPrefix"
+                                             ItemTestIdSuffix="remove"
+                                             Height="100%"
+                                             ColumnHeaders="@ColumnHeaders"
+                                             RowCells="@RowCells">
+                            <NoRecordsContent>
+                                <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Ничего не выбрано</MudText>
+                                </MudStack>
+                            </NoRecordsContent>
+                        </DictionaryItemTable>
+                    </div>
+                </div>
+
             </div>
         }
-
-        @* ── Selected items section ───────────────────────────────────── *@
-        <MudDivider />
-        <div class="dict-selected-list" data-testid="@($"{TestIdPrefix}-selected-table")">
-            <div style="display:flex; align-items:center; padding:6px 16px 6px 12px;">
-                <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">@SelectedSectionLabel</MudText>
-                <MudChip T="string" Color="Color.Primary" Size="Size.Small"
-                         Variant="Variant.Filled" DisableRipple="true">
-                    @_state.SelectedNames.Count
-                </MudChip>
-            </div>
-            <DictionaryItemTable TItem="TItem"
-                                 Items="@_selectedItems"
-                                 KeySelector="@KeySelector"
-                                 CheckboxChecked="true"
-                                 OnToggle="@Remove"
-                                 TestIdPrefix="@TestIdPrefix"
-                                 ItemTestIdSuffix="remove"
-                                 Height="140px"
-                                 ColumnHeaders="@ColumnHeaders"
-                                 RowCells="@RowCells">
-                <NoRecordsContent>
-                    <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Ничего не выбрано</MudText>
-                    </MudStack>
-                </NoRecordsContent>
-            </DictionaryItemTable>
-        </div>
 
     </DialogContent>
     <DialogActions>

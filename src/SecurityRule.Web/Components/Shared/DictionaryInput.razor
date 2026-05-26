@@ -13,7 +13,7 @@
 
 @if (SelectedItems.Count > 0)
 {
-    <MudChipSet T="string" Class="mt-1 mb-2" data-testid="@($"{TestIdPrefix}-chips")">
+    <MudStack Spacing="1" Class="mt-1 mb-2" data-testid="@($"{TestIdPrefix}-chips")">
         @foreach (var item in SelectedItems)
         {
             var display = KeySelector(item);
@@ -23,7 +23,7 @@
                 @display
             </MudChip>
         }
-    </MudChipSet>
+    </MudStack>
 }
 
 @code {
@@ -86,7 +86,7 @@
             ["TestIdPrefix"]         = TestIdPrefix,
         };
 
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog  = await DialogService.ShowAsync<DictionarySelectDialog<TItem>>("", parameters, options);
         var result  = await dialog.Result;
 
