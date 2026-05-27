@@ -39,7 +39,7 @@
                 <DictionaryItemTable TItem="TItem"
                                      Items="@_filteredAvailableItems"
                                      KeySelector="@KeySelector"
-                                     IsCheckedSelector="@(i => _state.IsSelected(KeySelector(i)))"
+                                     CheckboxChecked="false"
                                      OnToggle="@Toggle"
                                      TestIdPrefix="@TestIdPrefix"
                                      ItemTestIdSuffix="item"
@@ -154,6 +154,8 @@
     private Dictionary<string, TItem> _itemsByKey = [];
     private DictionaryInputState _state = new([]);
     private string _filter = string.Empty;
+    // Keys currently in-flight (selected but DOM not yet updated). Prevents double-toggle on fast clicks.
+    private readonly HashSet<string> _pendingKeys = [];
 
     private bool MatchesFilter(TItem item)
     {
@@ -165,7 +167,7 @@
 
     private IReadOnlyList<TItem> _filteredAvailableItems =>
         AllItems
-            .Where(MatchesFilter)
+            .Where(i => !_state.IsSelected(KeySelector(i)) && MatchesFilter(i))
             .ToList();
 
     private IReadOnlyList<TItem> _selectedItems =>
@@ -190,9 +192,22 @@
     {
         _itemsByKey = AllItems.ToDictionary(KeySelector, i => i);
         _state = new DictionaryInputState(AllItems.Select(KeySelector), PreSelected.Select(KeySelector));
+        _pendingKeys.Clear();
     }
 
-    private void Toggle(TItem item) => _state.Toggle(KeySelector(item));
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // After each render the DOM is up-to-date, so pending keys are no longer needed.
+        if (_pendingKeys.Count > 0)
+            _pendingKeys.Clear();
+    }
+
+    private void Toggle(TItem item)
+    {
+        var key = KeySelector(item);
+        if (!_pendingKeys.Add(key)) return; // ignore duplicate click while re-render is in flight
+        _state.Toggle(key);
+    }
 
     private void Remove(TItem item) => _state.Remove(KeySelector(item));
 
