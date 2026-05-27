@@ -1,0 +1,128 @@
+@using MudBlazor
+@using SecurityRule.Domain.Models
+
+@if (SelectedPartners.Count > 0)
+{
+    <MudText Typo="Typo.subtitle1" Class="mb-1">Возрастные диапазоны по партнёрам</MudText>
+
+    @foreach (var partner in SelectedPartners.Order())
+    {
+        var partnerRanges = AgeRanges.Where(r => r.PartnerName == partner).ToList();
+        var fromVal = _pendingFrom.GetValueOrDefault(partner);
+        var toVal   = _pendingTo.GetValueOrDefault(partner);
+
+        var availableFrom = fromVal.HasValue
+            ? AllAgeOptions
+            : (toVal.HasValue ? AllAgeOptions.Where(v => v <= toVal.Value) : AllAgeOptions);
+
+        var availableTo = fromVal.HasValue
+            ? AllAgeOptions.Where(v => v >= fromVal.Value)
+            : AllAgeOptions;
+
+        <MudPaper Outlined="true" Class="pa-3 mb-3">
+            <MudText Typo="Typo.body1" Style="font-weight:600;" Class="mb-2">@partner</MudText>
+
+            @if (partnerRanges.Count > 0)
+            {
+                <MudSimpleTable Dense="true" Hover="true" Class="mb-2">
+                    <thead>
+                        <tr>
+                            <th>От</th>
+                            <th>До</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var range in partnerRanges)
+                        {
+                            var r = range;
+                            <tr>
+                                <td>@r.AgeFrom</td>
+                                <td>@r.AgeTo</td>
+                                <td>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => RemoveRange(r))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudSelect T="int?" Value="@_pendingFrom.GetValueOrDefault(partner)"
+                           ValueChanged="@(v => SetFrom(partner, v))"
+                           Label="От" Clearable="true" Dense="true" Style="min-width:90px;">
+                    @foreach (var v in availableFrom)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)v)">@v</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="int?" Value="@_pendingTo.GetValueOrDefault(partner)"
+                           ValueChanged="@(v => SetTo(partner, v))"
+                           Label="До" Clearable="true" Dense="true" Style="min-width:90px;">
+                    @foreach (var v in availableTo)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)v)">@v</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               Disabled="@(!_pendingFrom.ContainsKey(partner) || !_pendingTo.ContainsKey(partner) || !_pendingFrom[partner].HasValue || !_pendingTo[partner].HasValue)"
+                               OnClick="@(() => AddRange(partner))" />
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public HashSet<string> SelectedPartners { get; set; } = [];
+    [Parameter] public List<PartnerAgeRange> AgeRanges { get; set; } = [];
+    [Parameter] public EventCallback<List<PartnerAgeRange>> AgeRangesChanged { get; set; }
+    [Parameter] public IReadOnlyList<int> AllAgeOptions { get; set; } = [];
+    [Parameter] public string Class { get; set; } = "";
+
+    private readonly Dictionary<string, int?> _pendingFrom = [];
+    private readonly Dictionary<string, int?> _pendingTo   = [];
+
+    private void SetFrom(string partner, int? value)
+    {
+        _pendingFrom[partner] = value;
+        // If selected "to" is now less than "from", clear "to"
+        if (value.HasValue && _pendingTo.TryGetValue(partner, out var to) && to.HasValue && to.Value < value.Value)
+            _pendingTo[partner] = null;
+    }
+
+    private void SetTo(string partner, int? value)
+    {
+        _pendingTo[partner] = value;
+        // If selected "from" is now greater than "to", clear "from"
+        if (value.HasValue && _pendingFrom.TryGetValue(partner, out var from) && from.HasValue && from.Value > value.Value)
+            _pendingFrom[partner] = null;
+    }
+
+    private async Task AddRange(string partner)
+    {
+        if (!_pendingFrom.TryGetValue(partner, out var from) || !from.HasValue) return;
+        if (!_pendingTo.TryGetValue(partner, out var to)   || !to.HasValue)   return;
+
+        AgeRanges.Add(new PartnerAgeRange
+        {
+            PartnerName = partner,
+            AgeFrom     = from.Value,
+            AgeTo       = to.Value,
+        });
+        _pendingFrom[partner] = null;
+        _pendingTo[partner]   = null;
+        await AgeRangesChanged.InvokeAsync(AgeRanges);
+    }
+
+    private async Task RemoveRange(PartnerAgeRange range)
+    {
+        AgeRanges.Remove(range);
+        await AgeRangesChanged.InvokeAsync(AgeRanges);
+    }
+}

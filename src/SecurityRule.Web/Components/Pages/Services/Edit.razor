@@ -5,6 +5,7 @@
 @inject IUserRepository UserRepository
 @inject ITagRepository TagRepository
 @inject IPartnerNameRepository PartnerNameRepository
+@inject IAgeOptionRepository AgeOptionRepository
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
@@ -39,6 +40,11 @@ else
             </MudSelect>
             <TagInput AllTags="@_allTagNames" @bind-SelectedTags="_selectedTags" Class="mb-3" />
             <PartnerInput @bind-SelectedPartners="_selectedPartners" Class="mb-3" />
+            <PartnerAgeRangeInput SelectedPartners="_selectedPartners"
+                                  AgeRanges="_ageRanges"
+                                  AgeRangesChanged="@(v => _ageRanges = v)"
+                                  AllAgeOptions="_allAgeOptions"
+                                  Class="mb-3" />
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
@@ -63,6 +69,8 @@ else
     private IEnumerable<string> _allTagNames = [];
     private HashSet<string> _selectedTags = [];
     private HashSet<string> _selectedPartners = [];
+    private IReadOnlyList<int> _allAgeOptions = [];
+    private List<PartnerAgeRange> _ageRanges = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,6 +78,7 @@ else
         _allServers = await ServerRepository.GetAllAsync();
         _allUsers = await UserRepository.GetAllAsync();
         _allTagNames = (await TagRepository.GetAllAsync()).Select(t => t.Name);
+        _allAgeOptions = await AgeOptionRepository.GetAllValuesAsync();
         if (_service != null)
         {
             _selectedServerIds = _service.Servers.Select(s => s.Id).ToList();
@@ -77,6 +86,9 @@ else
             _portText = _service.Port?.ToString() ?? string.Empty;
             _selectedTags = _service.Tags.Select(t => t.Name).ToHashSet();
             _selectedPartners = _service.Partners.Select(p => p.Name).ToHashSet();
+            _ageRanges = _service.PartnerAgeRanges
+                .Select(r => new PartnerAgeRange { PartnerName = r.PartnerName, AgeFrom = r.AgeFrom, AgeTo = r.AgeTo })
+                .ToList();
         }
     }
 
@@ -95,6 +107,10 @@ else
             _service.Partners = [];
             foreach (var partnerName in _selectedPartners)
                 _service.Partners.Add(await PartnerNameRepository.GetOrCreateAsync(partnerName));
+            _service.PartnerAgeRanges = _ageRanges
+                .Where(r => _selectedPartners.Contains(r.PartnerName))
+                .Select(r => new PartnerAgeRange { PartnerName = r.PartnerName, AgeFrom = r.AgeFrom, AgeTo = r.AgeTo })
+                .ToList();
             await AppServiceRepository.UpdateAsync(_service);
             Snackbar.Add("Сервис обновлён", Severity.Success);
             Navigation.NavigateTo($"/services/{Id}");

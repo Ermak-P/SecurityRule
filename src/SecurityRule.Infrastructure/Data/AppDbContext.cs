@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<PartnerName> PartnerNames => Set<PartnerName>();
+    public DbSet<AgeOption> AgeOptions => Set<AgeOption>();
+    public DbSet<PartnerAgeRange> PartnerAgeRanges => Set<PartnerAgeRange>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -138,6 +140,27 @@ public class AppDbContext : DbContext
             entity.HasMany(e => e.Services)
                   .WithMany(s => s.Partners)
                   .UsingEntity(j => j.ToTable("ServicePartnerNames"));
+        });
+
+        modelBuilder.Entity<AgeOption>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Value).IsUnique();
+            entity.HasData(
+                Enumerable.Range(0, 101)
+                    .Select(v => new AgeOption { Id = v + 1, Value = v })
+                    .ToArray()
+            );
+        });
+
+        modelBuilder.Entity<PartnerAgeRange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PartnerName).IsRequired().HasMaxLength(200);
+            entity.HasOne(e => e.AppService)
+                  .WithMany(s => s.PartnerAgeRanges)
+                  .HasForeignKey(e => e.AppServiceId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
