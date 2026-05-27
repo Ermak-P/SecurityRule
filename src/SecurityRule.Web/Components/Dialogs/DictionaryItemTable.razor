@@ -1,34 +1,37 @@
 @typeparam TItem
 
-<MudTable T="TItem"
-          Items="@Items"
-          Dense="true"
-          Hover="true"
-          FixedHeader="true"
-          Height="@Height"
-          Elevation="0">
-    <HeaderContent>
-        <MudTh Style="width:40px; padding:4px 0 4px 12px;">
-            @HeaderCheckbox
-        </MudTh>
-        @ColumnHeaders
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
-               @onclick="@(() => OnToggle.InvokeAsync(context))">
-            <MudCheckBox T="bool"
-                         Value="@CheckboxChecked"
-                         ValueChanged="@(_ => OnToggle.InvokeAsync(context))"
-                         Color="Color.Primary"
-                         StopClickPropagation="true"
-                         data-testid="@($"{TestIdPrefix}-{ItemTestIdSuffix}-{KeySelector(context)}")" />
-        </MudTd>
-        @if (RowCells is not null) @RowCells(context)
-    </RowTemplate>
-    <NoRecordsContent>
-        @NoRecordsContent
-    </NoRecordsContent>
-</MudTable>
+<div class="dict-table-wrapper">
+    <MudTable T="TItem"
+              Items="@Items"
+              Dense="true"
+              Hover="true"
+              FixedHeader="true"
+              Height="@Height"
+              Elevation="0">
+        <HeaderContent>
+            <MudTh Style="width:40px; padding:4px 0 4px 12px; background-color:var(--dict-header-bg, rgba(0,0,0,.06));">
+                @HeaderCheckbox
+            </MudTh>
+            @ColumnHeaders
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd Style="width:40px; padding:2px 0 2px 12px; cursor:pointer;"
+                   @onclick="@(() => OnToggle.InvokeAsync(context))">
+                <MudCheckBox T="bool"
+                             Value="@(IsCheckedSelector is not null ? IsCheckedSelector(context) : CheckboxChecked)"
+                             ValueChanged="@(_ => OnToggle.InvokeAsync(context))"
+                             Color="Color.Primary"
+                             DisableRipple="true"
+                             StopClickPropagation="true"
+                             data-testid="@($"{TestIdPrefix}-{ItemTestIdSuffix}-{KeySelector(context)}")" />
+            </MudTd>
+            @if (RowCells is not null) @RowCells(context)
+        </RowTemplate>
+        <NoRecordsContent>
+            @NoRecordsContent
+        </NoRecordsContent>
+    </MudTable>
+</div>
 
 @code {
     /// <summary>Items to display in the table.</summary>
@@ -39,6 +42,12 @@
 
     /// <summary>Whether each row's checkbox is checked (false = available, true = selected).</summary>
     [Parameter] public bool CheckboxChecked { get; set; }
+
+    /// <summary>
+    /// Per-item checked state. When provided, overrides <see cref="CheckboxChecked"/> for each row,
+    /// allowing the same table to display mixed checked/unchecked rows.
+    /// </summary>
+    [Parameter] public Func<TItem, bool>? IsCheckedSelector { get; set; }
 
     /// <summary>Invoked when a row checkbox or row cell is clicked.</summary>
     [Parameter] public EventCallback<TItem> OnToggle { get; set; }

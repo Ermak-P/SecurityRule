@@ -39,7 +39,7 @@
                 <DictionaryItemTable TItem="TItem"
                                      Items="@_filteredAvailableItems"
                                      KeySelector="@KeySelector"
-                                     CheckboxChecked="false"
+                                     IsCheckedSelector="@(i => _state.IsSelected(KeySelector(i)))"
                                      OnToggle="@Toggle"
                                      TestIdPrefix="@TestIdPrefix"
                                      ItemTestIdSuffix="item"
@@ -165,7 +165,7 @@
 
     private IReadOnlyList<TItem> _filteredAvailableItems =>
         AllItems
-            .Where(i => !_state.IsSelected(KeySelector(i)) && MatchesFilter(i))
+            .Where(MatchesFilter)
             .ToList();
 
     private IReadOnlyList<TItem> _selectedItems =>

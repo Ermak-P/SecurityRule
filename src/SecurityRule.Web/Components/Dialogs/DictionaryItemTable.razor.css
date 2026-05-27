@@ -1,0 +1,10 @@
+.dict-table-wrapper {
+    border: 1px solid rgba(0, 0, 0, 0.23);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Header background: subtle tint to distinguish from body rows */
+.dict-table-wrapper ::deep .mud-table thead th {
+    background-color: rgba(0, 0, 0, 0.06);
+}
