@@ -17,7 +17,7 @@
 
 @if (_state.SelectedTags.Count > 0)
 {
-    <MudChipSet T="string" Class="mt-1 mb-2">
+    <MudChipSet T="string" Class="mt-1 mb-2" SelectedColor="Color.Info">
         @foreach (var tag in _state.SelectedTags.OrderBy(t => t))
         {
             @if (_editingTag == tag)
@@ -31,7 +31,8 @@
                                   Variant="Variant.Outlined"
                                   Style="min-width:80px;max-width:180px;"
                                   Immediate="true"
-                                  OnKeyDown="@HandleEditKeyDown" />
+                                  OnKeyDown="@HandleEditKeyDown"
+                                  OnBlur="@(async _ => await CommitEdit())" />
                 </span>
             }
             else
