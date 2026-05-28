@@ -17,33 +17,35 @@
 
 @if (_state.SelectedTags.Count > 0)
 {
-    <MudChipSet T="string" Class="mt-1 mb-2" SelectedColor="Color.Info">
-        @foreach (var tag in _state.SelectedTags.OrderBy(t => t))
-        {
-            @if (_editingTag == tag)
+    <ChipLayout>
+        <MudChipSet T="string" Class="mt-1 mb-2" SelectedColor="Color.Info">
+            @foreach (var tag in _state.SelectedTags.OrderBy(t => t))
             {
-                <span style="display:inline-flex;align-items:center;margin:2px 4px;">
-                    <MudTextField T="string"
-                                  @ref="_editField"
-                                  Value="@_editValue"
-                                  ValueChanged="@(v => _editValue = v ?? string.Empty)"
-                                  Margin="Margin.Dense"
-                                  Variant="Variant.Outlined"
-                                  Style="min-width:80px;max-width:180px;"
-                                  Immediate="true"
-                                  OnKeyDown="@HandleEditKeyDown"
-                                  OnBlur="@(async _ => await CommitEdit())" />
-                </span>
+                @if (_editingTag == tag)
+                {
+                    <span style="display:inline-flex;align-items:center;margin:2px 4px;">
+                        <MudTextField T="string"
+                                      @ref="_editField"
+                                      Value="@_editValue"
+                                      ValueChanged="@(v => _editValue = v ?? string.Empty)"
+                                      Margin="Margin.Dense"
+                                      Variant="Variant.Outlined"
+                                      Style="min-width:80px;max-width:180px;"
+                                      Immediate="true"
+                                      OnKeyDown="@HandleEditKeyDown"
+                                      OnBlur="@(async _ => await CommitEdit())" />
+                    </span>
+                }
+                else
+                {
+                    <span @ondblclick="@(() => BeginEdit(tag))" style="display:inline-block;">
+                        <MudChip T="string" Value="@tag" OnClose="@(() => RemoveTag(tag))"
+                                 Color="Color.Info" Size="Size.Small">@tag</MudChip>
+                    </span>
+                }
             }
-            else
-            {
-                <span @ondblclick="@(() => BeginEdit(tag))" style="display:inline-block;">
-                    <MudChip T="string" Value="@tag" OnClose="@(() => RemoveTag(tag))"
-                             Color="Color.Info" Size="Size.Small">@tag</MudChip>
-                </span>
-            }
-        }
-    </MudChipSet>
+        </MudChipSet>
+    </ChipLayout>
 }
 
 @code {
