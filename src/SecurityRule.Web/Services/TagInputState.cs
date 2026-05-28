@@ -37,6 +37,22 @@ public class TagInputState
     public bool RemoveTag(string tag) => _selected.Remove(tag);
 
     /// <summary>
+    /// Renames <paramref name="oldTag"/> to <paramref name="newTag"/> inside the selection.
+    /// If <paramref name="newTag"/> is already selected the old tag is simply removed.
+    /// Returns <c>false</c> when <paramref name="oldTag"/> was not selected.
+    /// </summary>
+    public bool RenameTag(string oldTag, string newTag)
+    {
+        if (!_selected.Remove(oldTag)) return false;
+        var trimmed = newTag.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed)) return true; // just remove
+        if (!_knownTags.Contains(trimmed))
+            _knownTags.Add(trimmed);
+        _selected.Add(trimmed);
+        return true;
+    }
+
+    /// <summary>
     /// Returns known tags that are not yet selected and whose name contains
     /// <paramref name="filter"/> (case-insensitive).
     /// When <paramref name="filter"/> is null or whitespace all available tags are returned.
