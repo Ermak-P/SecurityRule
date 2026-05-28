@@ -5,15 +5,18 @@
 
 <PageTitle>Связи</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-    <MudText Typo="Typo.h4" GutterBottom="true">Связи</MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
-                   Title="Добавить"
-                   OnClick="@(() => Navigation.NavigateTo($"/connections/create"))" />
-    <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" Color="Color.Primary"
-                   Title="Карта связей"
-                   OnClick="@(() => Navigation.NavigateTo($"/connections/map"))" />
-</MudStack>
+<div class="page-header">
+    <div>
+        <MudText Typo="Typo.h4">Связи</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Сетевые связи между сервисами</MudText>
+    </div>
+    <MudStack Row="true" Spacing="1">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AccountTree"
+                   OnClick="@(() => Navigation.NavigateTo("/connections/map"))">Карта связей</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Navigation.NavigateTo("/connections/create"))">Добавить</MudButton>
+    </MudStack>
+</div>
 
 @if (_loading)
 {
