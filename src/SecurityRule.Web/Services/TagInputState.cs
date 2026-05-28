@@ -38,17 +38,17 @@ public class TagInputState
 
     /// <summary>
     /// Renames <paramref name="oldTag"/> to <paramref name="newTag"/> inside the selection.
-    /// If <paramref name="newTag"/> is already selected the old tag is simply removed.
+    /// If <paramref name="newTag"/> is already selected the old tag is simply removed (merge).
     /// Returns <c>false</c> when <paramref name="oldTag"/> was not selected.
     /// </summary>
     public bool RenameTag(string oldTag, string newTag)
     {
         if (!_selected.Remove(oldTag)) return false;
         var trimmed = newTag.Trim();
-        if (string.IsNullOrWhiteSpace(trimmed)) return true; // just remove
+        if (string.IsNullOrWhiteSpace(trimmed)) return true; // just remove, no replacement
         if (!_knownTags.Contains(trimmed))
             _knownTags.Add(trimmed);
-        _selected.Add(trimmed);
+        _selected.Add(trimmed); // HashSet.Add is idempotent: no-op if trimmed already present
         return true;
     }
 
