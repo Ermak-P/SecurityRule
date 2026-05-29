@@ -315,7 +315,7 @@ public class Agent
         // Строим список доступных инструментов для включения в промпт
         var toolsList = new StringBuilder();
         foreach (var tool in _toolRegistry.GetAllTools())
-            toolsList.AppendLine($"  - {tool.Name}: {tool.Description.Split('.')[0]}");
+            toolsList.AppendLine($"  - {tool.Name}: {tool.Description.Split('.').FirstOrDefault() ?? tool.Description}");
 
         var systemPrompt = $"""
             Ты — AI агент специализирующийся на анализе и изменении .NET/C# проектов.
@@ -380,7 +380,7 @@ public class Agent
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.Write($"  🔧 {tool.Name}");
             Console.ResetColor();
-            Console.WriteLine($": {tool.Description.Split('.')[0]}");
+            Console.WriteLine($": {tool.Description.Split('.').FirstOrDefault() ?? tool.Description}");
         }
         Console.WriteLine("───────────────────────────────────────────────────────");
     }

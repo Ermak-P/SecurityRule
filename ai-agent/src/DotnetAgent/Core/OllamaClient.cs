@@ -180,7 +180,11 @@ public class OllamaClient
                     .ToArray();
             }
         }
-        catch { /* игнорируем ошибки — возвращаем пустой список */ }
+        catch (Exception ex)
+        {
+            // Логируем в консоль для диагностики, возвращаем пустой список
+            Console.Error.WriteLine($"[OllamaClient] Ошибка при получении списка моделей: {ex.Message}");
+        }
 
         return Array.Empty<string>();
     }

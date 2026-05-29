@@ -405,8 +405,18 @@ public static class FileSystemTools
                 // При ошибке восстанавливаем из бэкапа
                 if (File.Exists(backupPath))
                 {
-                    try { File.Copy(backupPath, fullPath, overwrite: true); File.Delete(backupPath); }
-                    catch { /* если даже восстановление не удалось — ничего не делаем */ }
+                    try
+                    {
+                        File.Copy(backupPath, fullPath, overwrite: true);
+                        File.Delete(backupPath);
+                    }
+                    catch (Exception restoreEx)
+                    {
+                        return Task.FromResult(
+                            $"❌ Критическая ошибка: не удалось записать файл ({ex.Message}) " +
+                            $"и не удалось восстановить из резервной копии ({restoreEx.Message}). " +
+                            $"Бэкап находится по адресу: {backupPath}");
+                    }
                 }
                 return Task.FromResult($"❌ Ошибка записи файла '{relativePath}': {ex.Message}");
             }
@@ -621,12 +631,13 @@ public static class FileSystemTools
                     if (matchCount >= MaxResults)
                     {
                         results.AppendLine($"... (показаны первые {MaxResults} совпадений, поиск прерван)");
-                        goto Done;
+                        break;
                     }
                 }
+
+                if (matchCount >= MaxResults) break;
             }
 
-            Done:
             if (matchCount == 0)
                 return Task.FromResult(
                     $"Текст '{query}' не найден в файлах с расширением {extensionsStr}. " +
