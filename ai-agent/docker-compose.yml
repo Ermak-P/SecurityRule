@@ -1,0 +1,59 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Docker Compose для запуска Ollama — локального LLM сервера.
+#
+# Ollama — это приложение которое позволяет запускать большие языковые модели
+# (LLM) прямо на вашем компьютере, без отправки данных в интернет.
+#
+# КАК ЗАПУСТИТЬ:
+#   1. docker compose up -d          — запустить в фоне
+#   2. docker compose logs -f        — посмотреть логи
+#   3. docker compose down           — остановить
+#
+# СКАЧАТЬ МОДЕЛЬ (обязательный шаг после первого запуска!):
+#   docker exec -it ollama ollama pull qwen2.5-coder:7b
+#
+# РЕКОМЕНДУЕМЫЕ МОДЕЛИ:
+#   - qwen2.5-coder:7b   (~4.5 GB) — хорошее качество кода, поддерживает tool calling
+#   - qwen2.5-coder:14b  (~8 GB)   — лучше качество, нужно больше RAM/VRAM
+#   - llama3.2:3b        (~2 GB)   — лёгкая, но хуже работает с кодом
+#   - codellama:7b       (~4 GB)   — специализирована для кода
+#
+# ТРЕБОВАНИЯ:
+#   Минимум: 8 GB RAM (для модели 7b)
+#   Рекомендуется: 16 GB RAM или GPU с поддержкой CUDA/ROCm
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      # Порт 11434 — стандартный порт Ollama API
+      # После запуска API доступен на http://localhost:11434
+      - "11434:11434"
+    volumes:
+      # Сохраняем скачанные модели в Docker volume
+      # Это позволяет не скачивать модели заново при пересоздании контейнера
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+
+    # ── Поддержка GPU (раскомментируй если есть NVIDIA GPU) ──────────────────
+    # Если есть NVIDIA GPU с CUDA — раскомментируй блок ниже.
+    # Это значительно ускорит работу модели (10-50x быстрее).
+    # Требуется: nvidia-container-toolkit (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+    #
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  # Docker volume для хранения скачанных моделей
+  # Данные сохраняются между перезапусками контейнера
+  ollama_models:
+    driver: local
