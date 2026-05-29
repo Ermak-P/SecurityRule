@@ -124,8 +124,13 @@ html, body {
 /* ─── MudAlert compact ─────────────────────────────────────────────────── */
 .mud-alert { padding: 6px 12px !important; font-size: 0.8125rem !important; }
 
-/* ─── ChipLayout column orientation ───────────────────────────────────── */
-.chip-layout-column .mud-chip-set {
+/* ─── ChipLayout flex container ────────────────────────────────────────── */
+.chip-layout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.chip-layout-column {
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: flex-start;
