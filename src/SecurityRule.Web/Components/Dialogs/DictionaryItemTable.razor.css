@@ -1,0 +1,16 @@
+.dict-table-wrapper {
+    border-radius: 4px;
+    /* box-shadow не зависит от overflow и не скрывается потомками */
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.23);
+    overflow: hidden;
+}
+
+/* Цвет шапки: таргетируем MudBlazor-класс, чтобы охватить все th включая ColumnHeaders из родителя */
+.dict-table-wrapper ::deep .mud-table-head-cell {
+    background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Убираем CSS-переходы на строках — они задерживают визуальное исчезновение строки */
+.dict-table-wrapper ::deep tr {
+    transition: none !important;
+}

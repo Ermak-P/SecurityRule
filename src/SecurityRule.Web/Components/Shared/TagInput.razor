@@ -1,31 +1,55 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Web
 
-<MudAutocomplete T="string" @ref="_autocomplete"
-                 Label="@Label" Class="@Class"
-                 SearchFunc="@SearchAvailable"
-                 TextChanged="@OnTextChanged"
-                 ValueChanged="@OnItemSelected"
-                 OnKeyDown="@HandleKeyDown"
-                 ResetValueOnEmptyText="true"
-                 CoerceText="false"
-                 CoerceValue="false"
-                 Placeholder="@Placeholder" />
+<MudTextField T="string"
+              @bind-Value="_inputText"
+              Label="@Label"
+              Class="@Class"
+              Placeholder="@Placeholder"
+              Variant="Variant.Text"
+              Margin="Margin.Dense"
+              Immediate="true"
+              OnKeyDown="@HandleKeyDown"
+              Adornment="Adornment.End"
+              AdornmentIcon="@Icons.Material.Filled.AddCircleOutline"
+              AdornmentColor="Color.Primary"
+              OnAdornmentClick="@CommitFromButton" />
 
 @if (_state.SelectedTags.Count > 0)
 {
-    <MudChipSet T="string" Class="mt-1 mb-2">
-        @foreach (var tag in _state.SelectedTags)
+    <ChipLayout Class="mt-1 mb-2">
+        @foreach (var tag in _state.SelectedTags.OrderBy(t => t))
         {
-            <MudChip T="string" Value="@tag" OnClose="@(() => RemoveTag(tag))" Color="Color.Info" Size="Size.Small">@tag</MudChip>
+            @if (_editingTag == tag)
+            {
+                <span style="display:inline-flex;align-items:center;margin:2px 4px;">
+                    <MudTextField T="string"
+                                  @ref="_editField"
+                                  Value="@_editValue"
+                                  ValueChanged="@(v => _editValue = v ?? string.Empty)"
+                                  Margin="Margin.Dense"
+                                  Variant="Variant.Outlined"
+                                  Style="min-width:80px;max-width:180px;"
+                                  Immediate="true"
+                                  OnKeyDown="@HandleEditKeyDown"
+                                  OnBlur="@(async _ => await CommitEdit())" />
+                </span>
+            }
+            else
+            {
+                <span @ondblclick="@(() => BeginEdit(tag))" style="display:inline-block;">
+                    <MudChip T="string" Value="@tag" OnClose="@(() => RemoveTag(tag))"
+                             Color="Color.Info" Size="Size.Small">@tag</MudChip>
+                </span>
+            }
         }
-    </MudChipSet>
+    </ChipLayout>
 }
 
 @code {
     [Parameter] public string Label       { get; set; } = "Теги";
     [Parameter] public string Class       { get; set; } = "";
-    [Parameter] public string Placeholder { get; set; } = "Введите тег и нажмите Enter";
+    [Parameter] public string Placeholder { get; set; } = "Введите тег, нажмите Enter";
 
     /// <summary>All known tags (from DB) provided by the parent.</summary>
     [Parameter] public IEnumerable<string> AllTags { get; set; } = [];
@@ -34,44 +58,97 @@
     [Parameter] public HashSet<string> SelectedTags { get; set; } = [];
     [Parameter] public EventCallback<HashSet<string>> SelectedTagsChanged { get; set; }
 
-    private MudAutocomplete<string> _autocomplete = null!;
+    private MudTextField<string>? _editField;
     private TagInputState _state = null!;
-    private string _typedText = string.Empty;
+    private string _inputText = string.Empty;
+
+    // Edit state
+    private string? _editingTag;
+    private string  _editValue = string.Empty;
+    private bool    _focusEditField;
 
     protected override void OnParametersSet()
     {
-        // Re-create state only when the inputs change; keep existing selection.
         _state = new TagInputState(AllTags, SelectedTags);
     }
 
-    private Task<IEnumerable<string>> SearchAvailable(string value, CancellationToken _)
-        => Task.FromResult(_state.SearchAvailable(value));
-
-    private void OnTextChanged(string value) => _typedText = value ?? string.Empty;
-
-    private async Task OnItemSelected(string value)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (string.IsNullOrWhiteSpace(value)) return;
-        await CommitTag(value.Trim());
+        if (_focusEditField && _editField is not null)
+        {
+            _focusEditField = false;
+            await _editField.FocusAsync();
+        }
     }
+
+    // ── Add tag ────────────────────────────────────────────────────────────────
 
     private async Task HandleKeyDown(KeyboardEventArgs args)
     {
-        if (args.Key == "Enter" && !string.IsNullOrWhiteSpace(_typedText))
-            await CommitTag(_typedText.Trim());
+        if (args.Key == "Enter" && !string.IsNullOrWhiteSpace(_inputText))
+            await CommitInput();
     }
 
-    private async Task CommitTag(string tag)
+    private async Task CommitFromButton()
     {
+        if (!string.IsNullOrWhiteSpace(_inputText))
+            await CommitInput();
+    }
+
+    private async Task CommitInput()
+    {
+        var tag = _inputText.Trim();
         if (!_state.AddTag(tag)) return;
-        _typedText = string.Empty;
-        await _autocomplete.ClearAsync();
+        _inputText = string.Empty;
         await SelectedTagsChanged.InvokeAsync(_state.SelectedTags.ToHashSet());
     }
+
+    // ── Remove tag ─────────────────────────────────────────────────────────────
 
     private async Task RemoveTag(string tag)
     {
         _state.RemoveTag(tag);
         await SelectedTagsChanged.InvokeAsync(_state.SelectedTags.ToHashSet());
+    }
+
+    // ── Edit tag (double-click) ────────────────────────────────────────────────
+
+    private void BeginEdit(string tag)
+    {
+        _editingTag = tag;
+        _editValue  = tag;
+        _focusEditField = true;
+    }
+
+    private async Task HandleEditKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await CommitEdit();
+        else if (args.Key == "Escape")
+            CancelEdit();
+    }
+
+    private async Task CommitEdit()
+    {
+        if (_editingTag is null) return;
+        var newValue = _editValue.Trim();
+        if (string.IsNullOrWhiteSpace(newValue))
+        {
+            // Empty → just remove
+            _state.RemoveTag(_editingTag);
+        }
+        else
+        {
+            _state.RenameTag(_editingTag, newValue);
+        }
+        _editingTag = null;
+        _editValue  = string.Empty;
+        await SelectedTagsChanged.InvokeAsync(_state.SelectedTags.ToHashSet());
+    }
+
+    private void CancelEdit()
+    {
+        _editingTag = null;
+        _editValue  = string.Empty;
     }
 }

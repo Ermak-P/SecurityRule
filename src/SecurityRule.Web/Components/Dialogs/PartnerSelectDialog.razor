@@ -1,0 +1,20 @@
+@* Obsolete: functionality has been moved to DictionarySelectDialog. *@
+@* This file delegates to DictionarySelectDialog for backward compatibility. *@
+
+<DictionarySelectDialog AllItems="@AllPartners"
+                        PreSelected="@PreSelected"
+                        DialogTitle="Выбор партнёров"
+                        Icon="@Icons.Material.Filled.Handshake"
+                        EmptyMessage="Список партнёров пуст"
+                        SelectedSectionLabel="Выбранные партнёры"
+                        TestIdPrefix="partner" />
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>All partner names loaded from the database.</summary>
+    [Parameter] public IEnumerable<string> AllPartners { get; set; } = [];
+
+    /// <summary>Names of partners already selected before the dialog opened.</summary>
+    [Parameter] public IEnumerable<string> PreSelected { get; set; } = [];
+}

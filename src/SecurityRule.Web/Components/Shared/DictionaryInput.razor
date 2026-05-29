@@ -1,0 +1,105 @@
+@using MudBlazor
+@inject IDialogService DialogService
+@typeparam TItem
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="@Class">
+    <MudText Typo="Typo.body1" Style="min-width:120px">@Label</MudText>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Search"
+               OnClick="OpenSelectDialogAsync"
+               data-testid="@($"{TestIdPrefix}-select-btn")">
+        Выбрать
+    </MudButton>
+</MudStack>
+
+@if (SelectedItems.Count > 0)
+{
+    <MudChipSet T="string" Class="mt-1 mb-2" data-testid="@($"{TestIdPrefix}-chips")">
+        @foreach (var item in SelectedItems)
+        {
+            var display = KeySelector(item);
+            <MudChip T="string" Value="@display" OnClose="@(() => RemoveItem(item))"
+                     Color="Color.Primary" Size="Size.Small"
+                     data-testid="@($"{TestIdPrefix}-chip-{display}")">
+                @display
+            </MudChip>
+        }
+    </MudChipSet>
+}
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Class { get; set; } = "";
+
+    /// <summary>Currently selected items — two-way bindable.</summary>
+    [Parameter] public HashSet<TItem> SelectedItems { get; set; } = [];
+    [Parameter] public EventCallback<HashSet<TItem>> SelectedItemsChanged { get; set; }
+
+    /// <summary>Asynchronous delegate that loads all available items from the data source.</summary>
+    [Parameter] public Func<Task<IEnumerable<TItem>>>? FetchItemsAsync { get; set; }
+
+    /// <summary>Returns the unique string key for an item (used for chip labels, identity, and test-ids).</summary>
+    [Parameter] public Func<TItem, string> KeySelector { get; set; } = item => item?.ToString() ?? "";
+
+    /// <summary>
+    /// Optional custom filter predicate for the dialog search. When null, defaults to a
+    /// case-insensitive contains check on <see cref="KeySelector"/>.
+    /// </summary>
+    [Parameter] public Func<TItem, string, bool>? FilterPredicate { get; set; }
+
+    /// <summary>Header cells (&lt;MudTh&gt; elements) rendered in the dialog table header.</summary>
+    [Parameter] public RenderFragment? ColumnHeaders { get; set; }
+
+    /// <summary>Data cells (&lt;MudTd&gt; elements) rendered for each row in the dialog.</summary>
+    [Parameter] public RenderFragment<TItem>? RowCells { get; set; }
+
+    /// <summary>Title text shown in the dialog header.</summary>
+    [Parameter] public string DialogTitle { get; set; } = "Выбор";
+
+    /// <summary>MudBlazor icon string shown next to the dialog title.</summary>
+    [Parameter] public string DialogIcon { get; set; } = Icons.Material.Filled.List;
+
+    /// <summary>Message shown when the item list is empty.</summary>
+    [Parameter] public string EmptyMessage { get; set; } = "Список пуст";
+
+    /// <summary>Label for the selected-items section in the dialog.</summary>
+    [Parameter] public string SelectedSectionLabel { get; set; } = "Выбранные";
+
+    /// <summary>Prefix used for all data-testid attributes (e.g. "partner" → "partner-select-btn").</summary>
+    [Parameter] public string TestIdPrefix { get; set; } = "dictionary";
+
+    private async Task OpenSelectDialogAsync()
+    {
+        var items = FetchItemsAsync is not null ? await FetchItemsAsync() : [];
+
+        var parameters = new DialogParameters
+        {
+            ["AllItems"]             = items,
+            ["PreSelected"]          = SelectedItems,
+            ["KeySelector"]          = KeySelector,
+            ["FilterPredicate"]      = FilterPredicate,
+            ["ColumnHeaders"]        = ColumnHeaders,
+            ["RowCells"]             = RowCells,
+            ["DialogTitle"]          = DialogTitle,
+            ["Icon"]                 = DialogIcon,
+            ["EmptyMessage"]         = EmptyMessage,
+            ["SelectedSectionLabel"] = SelectedSectionLabel,
+            ["TestIdPrefix"]         = TestIdPrefix,
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog  = await DialogService.ShowAsync<DictionarySelectDialog<TItem>>("", parameters, options);
+        var result  = await dialog.Result;
+
+        if (result is { Canceled: false, Data: HashSet<TItem> selected })
+        {
+            SelectedItems = selected;
+            await SelectedItemsChanged.InvokeAsync(SelectedItems);
+        }
+    }
+
+    private async Task RemoveItem(TItem item)
+    {
+        SelectedItems.Remove(item);
+        await SelectedItemsChanged.InvokeAsync(SelectedItems);
+    }
+}

@@ -1,0 +1,239 @@
+@using SecurityRule.Web.Services
+@typeparam TItem
+
+<MudDialog ContentClass="pa-0">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icon" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Style="font-weight:600; letter-spacing:.2px;">@DialogTitle</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+
+        @* ── Search ──────────────────────────────────────────────────── *@
+        <div class="px-4 pt-4 pb-2">
+            <MudTextField @bind-Value="_filter"
+                          Label="@SearchLabel"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          Clearable="true"
+                          FullWidth="true"
+                          data-testid="@($"{TestIdPrefix}-search")" />
+        </div>
+
+        @* ── Available items table ───────────────────────────────────── *@
+        @if (!AllItems.Any())
+        {
+            @* Empty-state: no data *@
+            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="pa-8" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Secondary" Size="Size.Large" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyMessage</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <div class="dict-available-list" data-testid="@($"{TestIdPrefix}-list")">
+                <DictionaryItemTable TItem="TItem"
+                                     Items="@_filteredAvailableItems"
+                                     KeySelector="@KeySelector"
+                                     CheckboxChecked="false"
+                                     OnToggle="@Toggle"
+                                     TestIdPrefix="@TestIdPrefix"
+                                     ItemTestIdSuffix="item"
+                                     Height="260px"
+                                     ColumnHeaders="@ColumnHeaders"
+                                     RowCells="@RowCells">
+                    <HeaderCheckbox>
+                        <MudCheckBox T="bool"
+                                     Value="@_allFilteredSelected"
+                                     Indeterminate="@_someFilteredSelected"
+                                     ValueChanged="@ToggleAll"
+                                     Color="Color.Primary"
+                                     data-testid="@($"{TestIdPrefix}-select-all")" />
+                    </HeaderCheckbox>
+                    <NoRecordsContent>
+                        <MudStack AlignItems="AlignItems.Center" Class="py-4" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Size="Size.Small" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">По запросу ничего не найдено</MudText>
+                        </MudStack>
+                    </NoRecordsContent>
+                </DictionaryItemTable>
+            </div>
+        }
+
+        @* ── Selected items section ───────────────────────────────────── *@
+        <MudDivider />
+        <div class="dict-selected-list" data-testid="@($"{TestIdPrefix}-selected-table")">
+            <div style="display:flex; align-items:center; padding:6px 16px 6px 12px;">
+                <MudText Typo="Typo.body2" Style="font-weight:600; flex:1;">@SelectedSectionLabel</MudText>
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small"
+                         Variant="Variant.Filled" DisableRipple="true">
+                    @_state.SelectedNames.Count
+                </MudChip>
+            </div>
+            <DictionaryItemTable TItem="TItem"
+                                 Items="@_selectedItems"
+                                 KeySelector="@KeySelector"
+                                 CheckboxChecked="true"
+                                 OnToggle="@Remove"
+                                 TestIdPrefix="@TestIdPrefix"
+                                 ItemTestIdSuffix="remove"
+                                 Height="140px"
+                                 ColumnHeaders="@ColumnHeaders"
+                                 RowCells="@RowCells">
+                <NoRecordsContent>
+                    <MudStack AlignItems="AlignItems.Center" Class="py-3" Spacing="1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Ничего не выбрано</MudText>
+                    </MudStack>
+                </NoRecordsContent>
+            </DictionaryItemTable>
+        </div>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel"
+                   data-testid="@($"{TestIdPrefix}-dialog-cancel")">
+            Отмена
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   EndIcon="@Icons.Material.Filled.Check"
+                   OnClick="Ok"
+                   data-testid="@($"{TestIdPrefix}-dialog-ok")">
+            OK
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>All items loaded from the data source.</summary>
+    [Parameter] public IEnumerable<TItem> AllItems { get; set; } = [];
+
+    /// <summary>Items already selected before the dialog opened.</summary>
+    [Parameter] public IEnumerable<TItem> PreSelected { get; set; } = [];
+
+    /// <summary>Returns the unique string key for an item (used for identity, filtering, and test-ids).</summary>
+    [Parameter] public Func<TItem, string> KeySelector { get; set; } = item => item?.ToString() ?? "";
+
+    /// <summary>
+    /// Optional custom filter predicate. When null, defaults to a case-insensitive
+    /// contains check on <see cref="KeySelector"/>.
+    /// </summary>
+    [Parameter] public Func<TItem, string, bool>? FilterPredicate { get; set; }
+
+    /// <summary>Header cells (&lt;MudTh&gt; elements) for the data columns.</summary>
+    [Parameter] public RenderFragment? ColumnHeaders { get; set; }
+
+    /// <summary>Data cells (&lt;MudTd&gt; elements) for each row.</summary>
+    [Parameter] public RenderFragment<TItem>? RowCells { get; set; }
+
+    /// <summary>Title text shown in the dialog header.</summary>
+    [Parameter] public string DialogTitle { get; set; } = "Выбор";
+
+    /// <summary>MudBlazor icon shown next to the dialog title.</summary>
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.List;
+
+    /// <summary>Label for the search field.</summary>
+    [Parameter] public string SearchLabel { get; set; } = "Поиск";
+
+    /// <summary>Message shown when the item list is empty.</summary>
+    [Parameter] public string EmptyMessage { get; set; } = "Список пуст";
+
+    /// <summary>Label for the selected-items section.</summary>
+    [Parameter] public string SelectedSectionLabel { get; set; } = "Выбранные";
+
+    /// <summary>Prefix used for all data-testid attributes (e.g. "partner" → "partner-list").</summary>
+    [Parameter] public string TestIdPrefix { get; set; } = "dictionary";
+
+    private Dictionary<string, TItem> _itemsByKey = [];
+    private DictionaryInputState _state = new([]);
+    private string _filter = string.Empty;
+    // Keys currently in-flight (selected but DOM not yet updated). Prevents double-toggle on fast clicks.
+    private readonly HashSet<string> _pendingKeys = [];
+
+    private bool MatchesFilter(TItem item)
+    {
+        if (string.IsNullOrWhiteSpace(_filter)) return true;
+        return FilterPredicate is not null
+            ? FilterPredicate(item, _filter)
+            : KeySelector(item).Contains(_filter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private IReadOnlyList<TItem> _filteredAvailableItems =>
+        AllItems
+            .Where(i => !_state.IsSelected(KeySelector(i)) && MatchesFilter(i))
+            .ToList();
+
+    private IReadOnlyList<TItem> _selectedItems =>
+        _state.SelectedNames
+            .OrderBy(k => k)
+            .Where(k => _itemsByKey.ContainsKey(k))
+            .Select(k => _itemsByKey[k])
+            .ToList();
+
+    private IReadOnlyList<TItem> _allItemsMatchingFilter =>
+        AllItems.Where(MatchesFilter).ToList();
+
+    private bool _allFilteredSelected =>
+        _allItemsMatchingFilter.Count > 0 &&
+        _allItemsMatchingFilter.All(i => _state.IsSelected(KeySelector(i)));
+
+    private bool _someFilteredSelected =>
+        _allItemsMatchingFilter.Any(i => _state.IsSelected(KeySelector(i))) &&
+        !_allFilteredSelected;
+
+    protected override void OnParametersSet()
+    {
+        _itemsByKey = AllItems.ToDictionary(KeySelector, i => i);
+        _state = new DictionaryInputState(AllItems.Select(KeySelector), PreSelected.Select(KeySelector));
+        _pendingKeys.Clear();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // After each render the DOM is up-to-date, so pending keys are no longer needed.
+        if (_pendingKeys.Count > 0)
+            _pendingKeys.Clear();
+    }
+
+    private void Toggle(TItem item)
+    {
+        var key = KeySelector(item);
+        if (!_pendingKeys.Add(key)) return; // ignore duplicate click while re-render is in flight
+        _state.Toggle(key);
+    }
+
+    private void Remove(TItem item) => _state.Remove(KeySelector(item));
+
+    private void ToggleAll(bool _)
+    {
+        if (_allFilteredSelected)
+        {
+            foreach (var item in _allItemsMatchingFilter.ToList())
+                _state.Remove(KeySelector(item));
+        }
+        else
+        {
+            foreach (var item in _allItemsMatchingFilter)
+                if (!_state.IsSelected(KeySelector(item)))
+                    _state.Toggle(KeySelector(item));
+        }
+    }
+
+    private void Ok()
+    {
+        var selected = _state.SelectedNames
+            .Where(k => _itemsByKey.ContainsKey(k))
+            .Select(k => _itemsByKey[k])
+            .ToHashSet();
+        MudDialog.Close(DialogResult.Ok(selected));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

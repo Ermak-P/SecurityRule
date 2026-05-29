@@ -106,7 +106,7 @@ namespace SecurityRule.E2E.Tests.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сервисы.feature.ndjson", 11);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Сервисы.feature.ndjson", 13);
         }
         
         [global::NUnit.Framework.TestAttribute()]
@@ -435,6 +435,93 @@ namespace SecurityRule.E2E.Tests.Features
 #line hidden
 #line 60
     await testRunner.ThenAsync("поле \"Название\" содержит значение \"CloneSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Выбор партнёров через диалог и сохранение сервиса")]
+        public async global::System.Threading.Tasks.Task ВыборПартнёровЧерезДиалогИСохранениеСервиса()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "9";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Выбор партнёров через диалог и сохранение сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 62
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 63
+    await testRunner.GivenAsync("в системе доступны партнёры \"PartnerA\" и \"PartnerB\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 64
+    await testRunner.WhenAsync("я перехожу на страницу добавления сервиса", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 65
+    await testRunner.AndAsync("я заполняю поле \"Название\" значением \"SvcWithPartners\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 66
+    await testRunner.AndAsync("я нажимаю кнопку выбора партнёров", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 67
+    await testRunner.AndAsync("я выбираю партнёра \"PartnerA\" в диалоге", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 68
+    await testRunner.AndAsync("я нажимаю OK в диалоге выбора партнёров", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 69
+    await testRunner.AndAsync("я нажимаю кнопку \"Сохранить\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 70
+    await testRunner.ThenAsync("я нахожусь на странице \"/services\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
+#line hidden
+#line 71
+    await testRunner.AndAsync("я вижу текст \"SvcWithPartners\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::NUnit.Framework.TestAttribute()]
+        [global::NUnit.Framework.DescriptionAttribute("Выбранные партнёры отображаются на странице деталей сервиса")]
+        public async global::System.Threading.Tasks.Task ВыбранныеПартнёрыОтображаютсяНаСтраницеДеталейСервиса()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "10";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Выбранные партнёры отображаются на странице деталей сервиса", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 73
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 74
+    await testRunner.GivenAsync("в системе доступны партнёры \"ShowPartner\" и \"OtherPartner\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Дано ");
+#line hidden
+#line 75
+    await testRunner.AndAsync("в системе существует сервис \"PartnerDetailsSvc\" с партнёром \"ShowPartner\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "И ");
+#line hidden
+#line 76
+    await testRunner.WhenAsync("я открываю страницу деталей сервиса \"PartnerDetailsSvc\"", ((string)(null)), ((global::Reqnroll.Table)(null)), "Когда ");
+#line hidden
+#line 77
+    await testRunner.ThenAsync("я вижу текст \"ShowPartner\" на странице", ((string)(null)), ((global::Reqnroll.Table)(null)), "Тогда ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

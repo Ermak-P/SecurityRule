@@ -5,12 +5,14 @@
 
 <PageTitle>Сертификаты</PageTitle>
 
-<MudStack Row="true" Spacing="1">
-    <MudText Typo="Typo.h4" GutterBottom="true">Сертификаты</MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
-                   Title="Добавить"
-                   OnClick="@(() => Navigation.NavigateTo($"/certificates/create"))" />
-</MudStack>
+<div class="page-header">
+    <div>
+        <MudText Typo="Typo.h4">Сертификаты</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">SSL/TLS сертификаты</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Navigation.NavigateTo("/certificates/create"))">Добавить</MudButton>
+</div>
 
 @if (_loading)
 {

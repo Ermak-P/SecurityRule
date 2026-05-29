@@ -5,12 +5,14 @@
 
 <PageTitle>Группы</PageTitle>
 
-<MudStack Row="true" Spacing="1">
-    <MudText Typo="Typo.h4" GutterBottom="true">Группы</MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
-                   Title="Добавить"
-                   OnClick="@(() => Navigation.NavigateTo($"/groups/create"))" />
-</MudStack>
+<div class="page-header">
+    <div>
+        <MudText Typo="Typo.h4">Группы</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Группы пользователей</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Navigation.NavigateTo("/groups/create"))">Добавить</MudButton>
+</div>
 
 @if (_loading)
 {

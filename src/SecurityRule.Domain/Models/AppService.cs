@@ -13,4 +13,6 @@ public class AppService
     public ICollection<Tag> Tags { get; set; } = new List<Tag>();
     public ICollection<ServiceConnection> SourceConnections { get; set; } = new List<ServiceConnection>();
     public ICollection<ServiceConnection> DestinationConnections { get; set; } = new List<ServiceConnection>();
+    public ICollection<PartnerName> Partners { get; set; } = new List<PartnerName>();
+    public ICollection<PartnerAgeRange> PartnerAgeRanges { get; set; } = new List<PartnerAgeRange>();
 }

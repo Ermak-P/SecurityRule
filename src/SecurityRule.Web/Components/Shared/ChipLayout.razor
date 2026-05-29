@@ -1,0 +1,13 @@
+@using MudBlazor
+
+<div class="chip-layout @(IsColumn ? "chip-layout-column" : "") @Class">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+
+    /// <summary>When true chips are arranged in a column; when false (default) in a row.</summary>
+    [Parameter] public bool IsColumn { get; set; } = false;
+}

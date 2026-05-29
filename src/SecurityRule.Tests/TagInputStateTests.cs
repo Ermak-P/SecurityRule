@@ -92,6 +92,78 @@ public class TagInputStateTests
         state.RemoveTag("ghost").Should().BeFalse();
     }
 
+    // ── RenameTag ─────────────────────────────────────────────────────────────
+
+    [Test]
+    public void RenameTag_Updates_Selection_With_New_Name()
+    {
+        var state = new TagInputState(["backend"], ["backend"]);
+
+        var renamed = state.RenameTag("backend", "api");
+
+        renamed.Should().BeTrue();
+        state.SelectedTags.Should().ContainSingle().Which.Should().Be("api");
+    }
+
+    [Test]
+    public void RenameTag_Trims_Whitespace_In_New_Name()
+    {
+        var state = new TagInputState([], ["backend"]);
+
+        state.RenameTag("backend", "  api  ");
+
+        state.SelectedTags.Should().ContainSingle().Which.Should().Be("api");
+    }
+
+    [Test]
+    public void RenameTag_Returns_False_When_OldTag_Not_Selected()
+    {
+        var state = new TagInputState([]);
+
+        state.RenameTag("ghost", "new").Should().BeFalse();
+    }
+
+    [Test]
+    public void RenameTag_Removes_OldTag_And_Adds_NewTag_To_KnownTags()
+    {
+        var state = new TagInputState(["backend"], ["backend"]);
+
+        state.RenameTag("backend", "api");
+
+        state.KnownTags.Should().Contain("api");
+    }
+
+    [Test]
+    public void RenameTag_Does_Not_Duplicate_KnownTags_When_NewTag_Already_Known()
+    {
+        var state = new TagInputState(["backend", "api"], ["backend"]);
+
+        state.RenameTag("backend", "api");
+
+        state.KnownTags.Where(t => t == "api").Should().ContainSingle();
+    }
+
+    [Test]
+    public void RenameTag_With_Empty_NewName_Removes_OldTag_From_Selection()
+    {
+        var state = new TagInputState([], ["backend"]);
+
+        state.RenameTag("backend", "  ");
+
+        state.SelectedTags.Should().BeEmpty();
+    }
+
+    [Test]
+    public void RenameTag_When_NewTag_Already_Selected_Merges_Cleanly()
+    {
+        var state = new TagInputState([], ["backend", "api"]);
+
+        state.RenameTag("backend", "api");
+
+        // "backend" removed, "api" already present → only "api" remains
+        state.SelectedTags.Should().ContainSingle().Which.Should().Be("api");
+    }
+
     // ── SearchAvailable ───────────────────────────────────────────────────────
 
     [Test]

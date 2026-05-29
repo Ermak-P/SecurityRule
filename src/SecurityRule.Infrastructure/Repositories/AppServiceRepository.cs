@@ -21,6 +21,7 @@ public class AppServiceRepository : IAppServiceRepository
             .Include(s => s.Servers)
             .Include(s => s.Certificates)
             .Include(s => s.Tags)
+            .Include(s => s.Partners)
             .ToListAsync(cancellationToken);
 
     public async Task<AppService?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -30,6 +31,8 @@ public class AppServiceRepository : IAppServiceRepository
             .Include(s => s.Servers)
             .Include(s => s.Certificates)
             .Include(s => s.Tags)
+            .Include(s => s.Partners)
+            .Include(s => s.PartnerAgeRanges)
             .Include(s => s.SourceConnections)
                 .ThenInclude(r => r.SourceServer)
             .Include(s => s.SourceConnections)
@@ -55,6 +58,8 @@ public class AppServiceRepository : IAppServiceRepository
         var existing = await _context.AppServices
             .Include(s => s.Servers)
             .Include(s => s.Tags)
+            .Include(s => s.Partners)
+            .Include(s => s.PartnerAgeRanges)
             .FirstOrDefaultAsync(s => s.Id == service.Id, cancellationToken);
         if (existing == null) return;
 
@@ -79,6 +84,25 @@ public class AppServiceRepository : IAppServiceRepository
         existing.Tags.Clear();
         foreach (var tag in trackedTags)
             existing.Tags.Add(tag);
+
+        var partnerIds = service.Partners.Select(p => p.Id).ToList();
+        var trackedPartners = await _context.PartnerNames
+            .Where(p => partnerIds.Contains(p.Id))
+            .ToListAsync(cancellationToken);
+
+        existing.Partners.Clear();
+        foreach (var partner in trackedPartners)
+            existing.Partners.Add(partner);
+
+        existing.PartnerAgeRanges.Clear();
+        foreach (var range in service.PartnerAgeRanges)
+            existing.PartnerAgeRanges.Add(new Domain.Models.PartnerAgeRange
+            {
+                AppServiceId = existing.Id,
+                PartnerName  = range.PartnerName,
+                AgeFrom      = range.AgeFrom,
+                AgeTo        = range.AgeTo,
+            });
 
         await _context.SaveChangesAsync(cancellationToken);
     }

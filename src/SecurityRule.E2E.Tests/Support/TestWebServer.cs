@@ -133,13 +133,14 @@ public sealed class TestWebServer : IAsyncDisposable
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         // Load with related entities so EF tracks the junction-table rows
-        var services = await db.AppServices.Include(s => s.Servers).Include(s => s.Tags).ToListAsync();
+        var services = await db.AppServices.Include(s => s.Servers).Include(s => s.Tags).Include(s => s.Partners).ToListAsync();
         db.AppServices.RemoveRange(services);
         await db.SaveChangesAsync();
 
         var servers = await db.Servers.Include(s => s.Tags).ToListAsync();
         db.Servers.RemoveRange(servers);
         db.Tags.RemoveRange(db.Tags);
+        db.PartnerNames.RemoveRange(db.PartnerNames);
         db.Certificates.RemoveRange(db.Certificates);
         db.ServiceConnections.RemoveRange(db.ServiceConnections);
         db.Groups.RemoveRange(db.Groups);

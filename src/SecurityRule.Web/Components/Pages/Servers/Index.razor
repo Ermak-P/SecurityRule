@@ -5,12 +5,14 @@
 
 <PageTitle>Серверы</PageTitle>
 
-<MudStack Row="true" Spacing="1">
-    <MudText Typo="Typo.h4" GutterBottom="true">Серверы</MudText>
-    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
-                   Title="Добавить"
-                   OnClick="@(() => Navigation.NavigateTo($"/servers/create"))" />
-</MudStack>
+<div class="page-header">
+    <div>
+        <MudText Typo="Typo.h4">Серверы</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Управление серверами инфраструктуры</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Navigation.NavigateTo("/servers/create"))">Добавить</MudButton>
+</div>
 
 @if (_loading)
 {

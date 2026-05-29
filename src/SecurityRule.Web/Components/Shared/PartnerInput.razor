@@ -1,0 +1,48 @@
+@using MudBlazor
+@using SecurityRule.Domain.Interfaces
+@inject IPartnerNameRepository PartnerNameRepository
+
+<DictionaryInput TItem="string"
+                 Label="@Label"
+                 Class="@Class"
+                 SelectedItems="SelectedPartners"
+                 SelectedItemsChanged="OnSelectedItemsChanged"
+                 FetchItemsAsync="FetchPartnersAsync"
+                 KeySelector="x => x"
+                 DialogTitle="Выбор партнёров"
+                 DialogIcon="@Icons.Material.Filled.Handshake"
+                 EmptyMessage="Список партнёров пуст"
+                 SelectedSectionLabel="Выбранные партнёры"
+                 TestIdPrefix="partner">
+    <ColumnHeaders>
+        <MudTh Style="padding:4px 16px 4px 4px;">
+            <MudText Typo="Typo.body2" Style="font-weight:600;">Название</MudText>
+        </MudTh>
+    </ColumnHeaders>
+    <RowCells Context="item">
+        <MudTd Style="padding:2px 16px 2px 4px;">
+            <MudText Typo="Typo.body2">@item</MudText>
+        </MudTd>
+    </RowCells>
+</DictionaryInput>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Partner Name";
+    [Parameter] public string Class { get; set; } = "";
+
+    /// <summary>Currently selected partner names — two-way bindable.</summary>
+    [Parameter] public HashSet<string> SelectedPartners { get; set; } = [];
+    [Parameter] public EventCallback<HashSet<string>> SelectedPartnersChanged { get; set; }
+
+    private async Task<IEnumerable<string>> FetchPartnersAsync()
+    {
+        var partners = await PartnerNameRepository.GetAllAsync();
+        return partners.Select(p => p.Name);
+    }
+
+    private async Task OnSelectedItemsChanged(HashSet<string> items)
+    {
+        SelectedPartners = items;
+        await SelectedPartnersChanged.InvokeAsync(SelectedPartners);
+    }
+}

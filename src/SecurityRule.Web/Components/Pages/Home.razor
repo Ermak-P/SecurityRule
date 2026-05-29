@@ -18,7 +18,7 @@
 
 <MudGrid Spacing="2" Class="mb-4">
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/servers"))">
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;border-left:3px solid var(--mud-palette-primary);" @onclick="@(() => Navigation.NavigateTo("/servers"))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
                 <MudAvatar Color="Color.Primary" Variant="Variant.Outlined">
                     <MudIcon Icon="@Icons.Material.Filled.Dns" />
@@ -31,7 +31,7 @@
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/services"))">
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;border-left:3px solid var(--mud-palette-secondary);" @onclick="@(() => Navigation.NavigateTo("/services"))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
                 <MudAvatar Color="Color.Secondary" Variant="Variant.Outlined">
                     <MudIcon Icon="@Icons.Material.Filled.MiscellaneousServices" />
@@ -44,7 +44,7 @@
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/certificates"))">
+        <MudPaper Outlined="true" Class="stat-card" Style="@($"cursor:pointer;border-left:3px solid {(_expiredCertCount > 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")}")" @onclick="@(() => Navigation.NavigateTo("/certificates"))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
                 <MudAvatar Color="@(_expiredCertCount > 0 ? Color.Error : Color.Success)" Variant="Variant.Outlined">
                     <MudIcon Icon="@Icons.Material.Filled.Security" />
@@ -57,7 +57,7 @@
         </MudPaper>
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
-        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;" @onclick="@(() => Navigation.NavigateTo("/connections"))">
+        <MudPaper Outlined="true" Class="stat-card" Style="cursor:pointer;border-left:3px solid var(--mud-palette-warning);" @onclick="@(() => Navigation.NavigateTo("/connections"))">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-3">
                 <MudAvatar Color="Color.Warning" Variant="Variant.Outlined">
                     <MudIcon Icon="@Icons.Material.Filled.CompareArrows" />

@@ -29,6 +29,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<ITagRepository, TagRepository>();
+        services.AddScoped<IPartnerNameRepository, PartnerNameRepository>();
+        services.AddScoped<IAgeOptionRepository, AgeOptionRepository>();
         services.AddScoped<ISearchService, SearchService>();
         if (useActiveDirectory && OperatingSystem.IsWindows())
             services.AddScoped<IAdService, ActiveDirectoryService>();

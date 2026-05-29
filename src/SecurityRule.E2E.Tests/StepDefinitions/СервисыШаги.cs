@@ -1,4 +1,6 @@
+using Microsoft.Playwright;
 using Reqnroll;
+using SecurityRule.Domain.Interfaces;
 using SecurityRule.Domain.Models;
 using SecurityRule.E2E.Tests.Support;
 
@@ -21,7 +23,7 @@ public sealed class СервисыШаги
     public async Task ВСистемеСуществуетСервис(string name)
     {
         using var scope = _state.Services.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+        var repo = scope.ServiceProvider.GetRequiredService<IAppServiceRepository>();
         await repo.AddAsync(new AppService { Name = name, UserName = string.Empty });
     }
 
@@ -30,8 +32,8 @@ public sealed class СервисыШаги
     public async Task ВСистемеСуществуетСервисСПользователем(string serviceName, string userName)
     {
         using var scope = _state.Services.CreateScope();
-        var userRepo    = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IUserRepository>();
-        var serviceRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+        var userRepo    = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var serviceRepo = scope.ServiceProvider.GetRequiredService<IAppServiceRepository>();
 
         var users = await userRepo.GetAllAsync();
         var user  = users.First(u => u.Name == userName);
@@ -43,8 +45,8 @@ public sealed class СервисыШаги
     public async Task ВСистемеСуществуетСервисССертификатом(string serviceName, string certDescription)
     {
         using var scope = _state.Services.CreateScope();
-        var certRepo    = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.ICertificateRepository>();
-        var serviceRepo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+        var certRepo    = scope.ServiceProvider.GetRequiredService<ICertificateRepository>();
+        var serviceRepo = scope.ServiceProvider.GetRequiredService<IAppServiceRepository>();
 
         var cert = new Certificate
         {
@@ -71,8 +73,36 @@ public sealed class СервисыШаги
     public async Task ВСистемеСуществуетПользователь(string name)
     {
         using var scope = _state.Services.CreateScope();
-        var repo = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IUserRepository>();
+        var repo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
         await repo.AddAsync(new User { Name = name });
+    }
+
+    /// <summary>Seeds the PartnerNames database table with two partners.</summary>
+    [Given("в системе доступны партнёры {string} и {string}")]
+    public async Task ВСистемеДоступныПартнёры(string name1, string name2)
+    {
+        using var scope = _state.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IPartnerNameRepository>();
+        await repo.GetOrCreateAsync(name1);
+        await repo.GetOrCreateAsync(name2);
+    }
+
+    /// <summary>Creates a service with a pre-selected partner directly in the database.</summary>
+    [Given("в системе существует сервис {string} с партнёром {string}")]
+    public async Task ВСистемеСуществуетСервисСПартнёром(string serviceName, string partnerName)
+    {
+        using var scope = _state.Services.CreateScope();
+        var serviceRepo = scope.ServiceProvider.GetRequiredService<IAppServiceRepository>();
+        var partnerRepo = scope.ServiceProvider.GetRequiredService<IPartnerNameRepository>();
+
+        var partner = await partnerRepo.GetOrCreateAsync(partnerName);
+        var service = new AppService
+        {
+            Name     = serviceName,
+            UserName = string.Empty,
+            Partners = new List<PartnerName> { partner }
+        };
+        await serviceRepo.AddAsync(service);
     }
 
     // ── When: navigation ──────────────────────────────────────────────────────
@@ -110,12 +140,43 @@ public sealed class СервисыШаги
         await _state.Page.NavigateAndWaitForBlazorAsync($"{_state.BaseUrl}/services/create?cloneFrom={id}");
     }
 
+    [When("я нажимаю кнопку выбора партнёров")]
+    public async Task НажатьКнопкуВыбораПартнёров()
+    {
+        await _state.Page.GetByTestId("partner-select-btn").ClickAsync();
+        await _state.Page.WaitForSelectorAsync("[data-testid='partner-list'], [data-testid='partner-dialog-cancel']",
+            new() { Timeout = 5000 });
+        await _state.Page.WaitForTimeoutAsync(300);
+    }
+
+    [When("я выбираю партнёра {string} в диалоге")]
+    public async Task ВыбратьПартнёраВДиалоге(string partnerName)
+    {
+        // Click the table row for the partner (MudTable row)
+        await _state.Page
+            .Locator($"[data-testid='partner-list'] .mud-table-row")
+            .Filter(new() { HasText = partnerName })
+            .ClickAsync();
+        await _state.Page.WaitForTimeoutAsync(200);
+    }
+
+    [When("я нажимаю OK в диалоге выбора партнёров")]
+    public async Task НажатьOKВДиалоге()
+    {
+        await _state.Page.GetByTestId("partner-dialog-ok").ClickAsync();
+        await _state.Page.WaitForFunctionAsync(
+            "() => !document.querySelector('.mud-overlay-dialog')",
+            null,
+            new() { Timeout = 5000, PollingInterval = 100 });
+        await _state.Page.WaitForTimeoutAsync(300);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<int> GetServiceIdAsync(string name)
     {
         using var scope = _state.Services.CreateScope();
-        var repo     = scope.ServiceProvider.GetRequiredService<SecurityRule.Domain.Interfaces.IAppServiceRepository>();
+        var repo     = scope.ServiceProvider.GetRequiredService<IAppServiceRepository>();
         var services = await repo.GetAllAsync();
         return services.First(s => s.Name == name).Id;
     }
