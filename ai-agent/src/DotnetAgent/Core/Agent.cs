@@ -51,6 +51,17 @@ public class Agent
     private SessionStore? _sessionStore;
     private long _currentSessionId;
 
+    /// <summary>
+    /// Фиксированный промпт для команды "обнови контекст".
+    /// Пользователь просто вводит команду — агент получает этот текст автоматически.
+    /// </summary>
+    private const string UpdateContextPrompt =
+        "Проанализируй проект полностью: технологии, фреймворки, NuGet-пакеты, " +
+        "структуру директорий и проектов в солюшене, назначение каждого проекта, " +
+        "ключевые классы и интерфейсы, точки входа, паттерны и архитектурные решения, " +
+        "соглашения по именованию и коду. " +
+        "Собери всё это в структурированное описание и сохрани с помощью save_project_context.";
+
     public Agent(OllamaClient ollamaClient, ToolRegistry toolRegistry, AgentConfig config)
     {
         _ollamaClient = ollamaClient;
@@ -161,6 +172,19 @@ public class Agent
                 // Фаза 3: список последних сессий
                 case "сессии" or "sessions":
                     PrintSessions();
+                    continue;
+
+                // Обновление контекста проекта одной командой
+                case "обнови контекст" or "update context" or "обновить контекст":
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("Запускаю анализ проекта и обновление контекста...");
+                    Console.ResetColor();
+                    userInput = UpdateContextPrompt;
+                    break;
+
+                // Статус контекста проекта
+                case "контекст" or "context":
+                    PrintContextStatus();
                     continue;
             }
 
@@ -567,7 +591,7 @@ public class Agent
     }
 
     /// <summary>Выводит помощь</summary>
-    private static void PrintHelp()
+    private void PrintHelp()
     {
         Console.WriteLine("""
 
@@ -586,6 +610,10 @@ public class Agent
             > Запусти сборку проекта
             > Сгенерируй тесты для класса OrderService
           
+          Контекст проекта (ускоряет работу в больших солюшенах):
+            обнови контекст — проанализировать проект и сохранить контекст
+            контекст        — показать статус сохранённого контекста
+          
           Служебные команды:
             история     — показать историю разговора
             очистить    — очистить историю (новый контекст)
@@ -596,5 +624,37 @@ public class Agent
             выход       — завершить работу
         ───────────────────────────────────────────────────────
         """);
+    }
+
+    /// <summary>Выводит статус сохранённого контекста проекта</summary>
+    private void PrintContextStatus()
+    {
+        var contextFile = Tools.ContextTools.GetContextFilePath(_config.ProjectPath);
+        Console.WriteLine("\n─── Контекст проекта ───────────────────────────────────");
+        if (File.Exists(contextFile))
+        {
+            var info = new FileInfo(contextFile);
+            var size = info.Length;
+            var modified = info.LastWriteTime;
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"  ✓ Контекст загружен: {contextFile}");
+            Console.ResetColor();
+            Console.WriteLine($"  Размер:   {size:N0} байт");
+            Console.WriteLine($"  Обновлён: {modified:yyyy-MM-dd HH:mm}");
+            Console.WriteLine();
+            Console.WriteLine("  Чтобы обновить — введите: обнови контекст");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("  ⚠  Контекст не сохранён.");
+            Console.ResetColor();
+            Console.WriteLine($"  Файл не найден: {contextFile}");
+            Console.WriteLine();
+            Console.WriteLine("  Введите: обнови контекст");
+            Console.WriteLine("  Агент проанализирует проект и сохранит описание.");
+            Console.WriteLine("  При следующем запуске контекст загрузится автоматически.");
+        }
+        Console.WriteLine("───────────────────────────────────────────────────────");
     }
 }

@@ -178,6 +178,18 @@ Console.WriteLine("  > Запусти сборку проекта");
 Console.WriteLine("  > Сгенерируй тесты для OrderService");
 Console.WriteLine();
 
+// Подсказка по контексту проекта
+var contextFile = ContextTools.GetContextFilePath(config.ProjectPath);
+if (!File.Exists(contextFile))
+{
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine("💡 Подсказка: контекст проекта не сохранён.");
+    Console.WriteLine("   Введите 'обнови контекст' — агент проанализирует проект один раз");
+    Console.WriteLine("   и сохранит описание. При следующих запусках он будет работать быстрее.");
+    Console.ResetColor();
+    Console.WriteLine();
+}
+
 await agent.RunAsync();
 
 return 0;
