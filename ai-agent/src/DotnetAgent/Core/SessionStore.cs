@@ -141,7 +141,7 @@ public sealed class SessionStore : IDisposable
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>Загружает историю сообщений для сессии (без system-сообщений).</summary>
+    /// <summary>Загружает историю сообщений для сессии.</summary>
     public IReadOnlyList<ChatMessage> LoadMessages(long sessionId)
     {
         using var cmd = _connection.CreateCommand();

@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
 
     <!-- Целевой фреймворк: .NET 9 -->
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
 
     <!-- Включить nullable reference types — помогает избежать NullReferenceException -->
     <Nullable>enable</Nullable>

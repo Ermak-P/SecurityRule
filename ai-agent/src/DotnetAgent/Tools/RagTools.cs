@@ -247,7 +247,7 @@ public static class RagTools
 
             foreach (var (id, content, distance) in results)
             {
-                var similarity = 1f - distance; // ChromaDB использует L2 distance
+                var similarity = 1f / (1f + distance); // нормализуем L2 distance в [0,1]
                 sb.AppendLine($"📄 {id} (схожесть: {similarity:P0})");
                 // Показываем первые 20 строк файла как превью
                 var preview = string.Join("\n", content.Split('\n').Take(20));

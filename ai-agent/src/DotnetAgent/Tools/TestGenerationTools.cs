@@ -153,7 +153,8 @@ public static class TestGenerationTools
                         sb.AppendLine($"        {p.Type} {p.Identifier.Text} = default!;");
                     sb.AppendLine();
                     sb.AppendLine("        // Act");
-                    var awaitKeyword = returnType == "Task" || returnType == "ValueTask" ? "await " : "var result = await ";
+                    var isVoidTask = returnType == "Task" || returnType == "ValueTask";
+                    var awaitKeyword = isVoidTask ? "await " : "var result = await ";
                     var argsStr = string.Join(", ", parms.Select(p => p.Identifier.Text));
                     sb.AppendLine($"        {awaitKeyword}_sut.{methodName}({argsStr});");
                     sb.AppendLine();
