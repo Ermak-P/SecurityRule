@@ -67,6 +67,35 @@ if (string.IsNullOrEmpty(config.ProjectPath) || !Directory.Exists(config.Project
 // Нормализуем путь
 config.ProjectPath = Path.GetFullPath(config.ProjectPath);
 
+// ─── Автозагрузка контекста проекта ──────────────────────────────────────────
+// Если agent.json не задал ProjectContext явно — ищем .agent-context.md в проекте
+if (string.IsNullOrWhiteSpace(config.ProjectContext))
+{
+    var contextFilePath = ContextTools.GetContextFilePath(config.ProjectPath);
+    if (File.Exists(contextFilePath))
+    {
+        try
+        {
+            config.ProjectContext = File.ReadAllText(contextFilePath);
+            if (!isMcpMode)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"✓ Загружен контекст проекта из {ContextTools.ContextFileName}");
+                Console.ResetColor();
+            }
+        }
+        catch (Exception ex)
+        {
+            if (!isMcpMode)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"⚠️  Не удалось загрузить контекст проекта: {ex.Message}");
+                Console.ResetColor();
+            }
+        }
+    }
+}
+
 if (!isMcpMode)
 {
     Console.WriteLine($"📁 Проект:    {config.ProjectPath}");
@@ -93,6 +122,9 @@ var toolRegistry = new ToolRegistry();
 
 // ── Фаза 1: инструменты файловой системы ──────────────────────────────────────
 toolRegistry.RegisterMany(FileSystemTools.Create(config.ProjectPath));
+
+// ── Контекст проекта (сохранение / загрузка анализа) ──────────────────────────
+toolRegistry.RegisterMany(ContextTools.Create(config.ProjectPath));
 
 // ── Фаза 2: Roslyn (анализ C# кода) ───────────────────────────────────────────
 toolRegistry.RegisterMany(RoslynTools.Create(config.ProjectPath));
