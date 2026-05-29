@@ -458,34 +458,50 @@ public class Agent
         foreach (var tool in _toolRegistry.GetAllTools())
             toolsList.AppendLine($"  - {tool.Name}: {tool.Description.Split('.').FirstOrDefault() ?? tool.Description}");
 
-        var systemPrompt = $"""
-            Ты — AI агент специализирующийся на анализе и изменении .NET/C# проектов.
-            Твоя цель — помогать разработчику понимать и улучшать код.
-            
-            АНАЛИЗИРУЕМЫЙ ПРОЕКТ: {_config.ProjectPath}
-            
-            ДОСТУПНЫЕ ИНСТРУМЕНТЫ:
-            {toolsList}
-            
-            КАК РАБОТАТЬ:
-            1. Начинай с list_files чтобы понять структуру проекта
-            2. Используй read_file для чтения файлов ПЕРЕД любыми изменениями
-            3. Используй get_class_info для анализа структуры C# классов
-            4. Используй search_in_files для поиска классов, методов, паттернов
-            5. Используй patch_method для изменения одного метода (лучше чем write_file для больших файлов)
-            6. Используй dotnet_build после изменений чтобы убедиться что код компилируется
-            7. Объясняй что ты делаешь и почему
-            
-            ПРАВИЛА:
-            - Всегда читай файл перед изменением
-            - Сохраняй стиль кода существующего проекта
-            - Отвечай на русском языке
-            - Работай только с файлами внутри директории проекта
-            - Если задача неясна — уточни у пользователя
-            - Сообщай об ошибках понятным языком
-            """;
+        var projectContextSection = !string.IsNullOrWhiteSpace(_config.ProjectContext)
+            ? $"\nКОНТЕКСТ ПРОЕКТА:\n{_config.ProjectContext}\n"
+            : "";
 
-        return new ChatMessage { Role = "system", Content = systemPrompt };
+        var sessionContinuationHint = _conversationHistory.Count > 0
+            ? "\nЭто продолжение существующей сессии. Структура проекта уже известна — не вызывай list_files повторно если пользователь не просит.\n"
+            : "";
+
+        var systemPromptExtra = !string.IsNullOrWhiteSpace(_config.SystemPromptExtra)
+            ? $"\n{_config.SystemPromptExtra}"
+            : "";
+
+        var systemPrompt = new StringBuilder();
+        systemPrompt.AppendLine("Ты — AI агент специализирующийся на анализе и изменении .NET/C# проектов.");
+        systemPrompt.AppendLine("Твоя цель — помогать разработчику понимать и улучшать код.");
+        systemPrompt.AppendLine();
+        systemPrompt.AppendLine($"АНАЛИЗИРУЕМЫЙ ПРОЕКТ: {_config.ProjectPath}");
+        if (!string.IsNullOrWhiteSpace(projectContextSection))
+            systemPrompt.Append(projectContextSection);
+        systemPrompt.AppendLine();
+        systemPrompt.AppendLine("ДОСТУПНЫЕ ИНСТРУМЕНТЫ:");
+        systemPrompt.Append(toolsList);
+        systemPrompt.AppendLine("КАК РАБОТАТЬ:");
+        systemPrompt.AppendLine("1. Начинай с list_files чтобы понять структуру проекта");
+        systemPrompt.AppendLine("2. Используй read_file для чтения файлов ПЕРЕД любыми изменениями");
+        systemPrompt.AppendLine("3. Используй get_class_info для анализа структуры C# классов");
+        systemPrompt.AppendLine("4. Используй search_in_files для поиска классов, методов, паттернов");
+        systemPrompt.AppendLine("5. Используй patch_method для изменения одного метода (лучше чем write_file для больших файлов)");
+        systemPrompt.AppendLine("6. Используй dotnet_build после изменений чтобы убедиться что код компилируется");
+        systemPrompt.AppendLine("7. Объясняй что ты делаешь и почему");
+        systemPrompt.AppendLine();
+        systemPrompt.AppendLine("ПРАВИЛА:");
+        systemPrompt.AppendLine("- Всегда читай файл перед изменением");
+        systemPrompt.AppendLine("- Сохраняй стиль кода существующего проекта");
+        systemPrompt.AppendLine("- Отвечай на русском языке");
+        systemPrompt.AppendLine("- Работай только с файлами внутри директории проекта");
+        systemPrompt.AppendLine("- Если задача неясна — уточни у пользователя");
+        systemPrompt.AppendLine("- Сообщай об ошибках понятным языком");
+        if (!string.IsNullOrWhiteSpace(sessionContinuationHint))
+            systemPrompt.Append(sessionContinuationHint);
+        if (!string.IsNullOrWhiteSpace(systemPromptExtra))
+            systemPrompt.Append(systemPromptExtra);
+
+        return new ChatMessage { Role = "system", Content = systemPrompt.ToString() };
     }
 
     /// <summary>Выводит краткую историю разговора</summary>

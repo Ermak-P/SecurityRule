@@ -102,6 +102,29 @@ public class AgentConfig
     public bool EnableSessionPersistence { get; set; } = true;
 
     /// <summary>
+    /// Статичное описание проекта (5–20 строк), которое всегда вставляется в системный промпт.
+    ///
+    /// Сюда можно написать: структуру, технологии, ключевые классы, архитектурные решения.
+    /// Агент будет знать контекст с первого сообщения и не будет сканировать файлы впустую.
+    ///
+    /// Пример:
+    ///   "ASP.NET Core 8 + Blazor Server. Основные сущности: Server, AppService, ServiceConnection.
+    ///    Репозитории находятся в Infrastructure/Repositories/. Всё покрыто E2E-тестами на Playwright."
+    /// </summary>
+    public string? ProjectContext { get; set; } = null;
+
+    /// <summary>
+    /// Свободный текст, дописываемый в конец системного промпта.
+    ///
+    /// Используйте для добавления специфики проекта без изменения кода агента:
+    /// доменные правила, соглашения по именованию, запрещённые паттерны и т.п.
+    ///
+    /// Пример:
+    ///   "Никогда не изменяй миграции вручную. Все классы должны иметь XML-документацию."
+    /// </summary>
+    public string? SystemPromptExtra { get; set; } = null;
+
+    /// <summary>
     /// Фаза 5: URL ChromaDB для RAG.
     /// ChromaDB должен быть запущен: docker run -d -p 8000:8000 chromadb/chroma
     /// </summary>
