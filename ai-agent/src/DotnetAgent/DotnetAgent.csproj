@@ -18,23 +18,15 @@
     <RootNamespace>DotnetAgent</RootNamespace>
   </PropertyGroup>
 
-  <!--
-    ЗАВИСИМОСТИ (NuGet пакеты)
-    
-    На данном этапе мы намеренно НЕ добавляем внешние пакеты.
-    Всё необходимое (HttpClient, System.Text.Json) уже входит в .NET 9.
-    
-    В будущих фазах можно добавить:
-    
-    Фаза 2 — анализ кода через Roslyn:
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.*" />
-    
-    Фаза 3 — официальный .NET AI абстракционный слой:
-    <PackageReference Include="Microsoft.Extensions.AI" Version="9.*" />
-    <PackageReference Include="Microsoft.Extensions.AI.Ollama" Version="9.*" />
-    
-    Фаза 4 — работа с Git:
-    <PackageReference Include="LibGit2Sharp" Version="0.*" />
-  -->
+  <ItemGroup>
+    <!-- Фаза 2 — анализ кода через Roslyn (AST, классы, методы) -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+
+    <!-- Фаза 3 — SQLite для хранения сессий -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.5" />
+
+    <!-- Фаза 4 — работа с Git -->
+    <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
+  </ItemGroup>
 
 </Project>

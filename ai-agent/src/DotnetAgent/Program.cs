@@ -4,39 +4,50 @@
 // Здесь мы:
 //   1. Читаем конфигурацию (путь до проекта, настройки модели)
 //   2. Создаём все зависимости (HTTP клиент, реестр инструментов, агент)
-//   3. Запускаем главный интерактивный цикл
+//   3. Запускаем главный интерактивный цикл (или MCP сервер)
 // ─────────────────────────────────────────────────────────────────────────────
 
 using DotnetAgent.Config;
 using DotnetAgent.Core;
+using DotnetAgent.Mcp;
+using DotnetAgent.Rag;
 using DotnetAgent.Tools;
 
+// ─── Режим MCP сервера (Фаза 4) ──────────────────────────────────────────────
+// Если запущено с флагом --mcp — запускаем stdio MCP сервер
+// и не выводим никакой UI в консоль
+var isMcpMode = args.Contains("--mcp");
+
 // ─── Отображение заголовка ────────────────────────────────────────────────────
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("╔══════════════════════════════════════════╗");
-Console.WriteLine("║        .NET AI Агент  v0.1.0             ║");
-Console.WriteLine("║  Локальный ассистент для .NET проектов   ║");
-Console.WriteLine("╚══════════════════════════════════════════╝");
-Console.ResetColor();
-Console.WriteLine();
+if (!isMcpMode)
+{
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine("╔══════════════════════════════════════════╗");
+    Console.WriteLine("║        .NET AI Агент  v2.0.0             ║");
+    Console.WriteLine("║  Локальный ассистент для .NET проектов   ║");
+    Console.WriteLine("╚══════════════════════════════════════════╝");
+    Console.ResetColor();
+    Console.WriteLine();
+}
 
 // ─── Загрузка конфигурации ────────────────────────────────────────────────────
-// Конфигурацию заполняем значениями по умолчанию.
-// В будущем можно загружать из appsettings.json или переменных окружения.
-var config = new AgentConfig();
+// Пробуем загрузить из agent.json, иначе используем значения по умолчанию
+var configFilePath = args.FirstOrDefault(a => a.StartsWith("--config="))?.Split('=', 2)[1];
+var config = AgentConfig.LoadFromFileOrDefault(configFilePath);
 
 // Путь до проекта можно передать первым аргументом командной строки:
 //   dotnet run -- "C:\Projects\MyApp"
 // Или переменной окружения DOTNET_AGENT_PROJECT_PATH
-if (args.Length > 0)
+var projectPathArg = args.FirstOrDefault(a => !a.StartsWith("--"));
+if (!string.IsNullOrEmpty(projectPathArg))
 {
-    config.ProjectPath = args[0];
+    config.ProjectPath = projectPathArg;
 }
 else if (Environment.GetEnvironmentVariable("DOTNET_AGENT_PROJECT_PATH") is { } envPath && !string.IsNullOrEmpty(envPath))
 {
     config.ProjectPath = envPath;
 }
-else
+else if (!isMcpMode)
 {
     // Если путь не передан — спрашиваем у пользователя интерактивно
     Console.Write("📁 Введите путь до .NET проекта: ");
@@ -53,48 +64,88 @@ if (string.IsNullOrEmpty(config.ProjectPath) || !Directory.Exists(config.Project
     return 1; // Код выхода 1 = ошибка
 }
 
-// Нормализуем путь (убираем trailing slash и т.п.)
+// Нормализуем путь
 config.ProjectPath = Path.GetFullPath(config.ProjectPath);
 
-// Показываем итоговую конфигурацию
-Console.WriteLine($"📁 Проект:    {config.ProjectPath}");
-Console.WriteLine($"🤖 Модель:    {config.ModelName}");
-Console.WriteLine($"🌐 Ollama:    {config.OllamaUrl}");
-Console.WriteLine();
+if (!isMcpMode)
+{
+    Console.WriteLine($"📁 Проект:    {config.ProjectPath}");
+    Console.WriteLine($"🤖 Модель:    {config.ModelName}");
+    Console.WriteLine($"🌐 Ollama:    {config.OllamaUrl}");
+    Console.WriteLine($"💾 Сессии:    {(config.EnableSessionPersistence ? "включены" : "отключены")}");
+    Console.WriteLine($"📡 Streaming: {(config.EnableStreaming ? "включён" : "отключён")}");
+    Console.WriteLine();
+}
 
-// ─── Создание зависимостей (Dependency Injection вручную) ────────────────────
-// В production приложении лучше использовать Microsoft.Extensions.DependencyInjection,
-// но для простоты стартера создаём зависимости вручную.
+// ─── Создание зависимостей ────────────────────────────────────────────────────
 
-// HTTP клиент для запросов к Ollama API
-// Таймаут 5 минут — некоторые запросы к LLM могут занимать время
+// HTTP клиент для Ollama API
 var httpClient = new HttpClient
 {
     Timeout = TimeSpan.FromMinutes(5)
 };
 
-// Клиент для Ollama API (обёртка над HttpClient)
+// Клиент Ollama
 var ollamaClient = new OllamaClient(httpClient, config.OllamaUrl, config.ModelName);
 
-// Реестр инструментов — агент будет использовать их для работы с проектом
+// Реестр инструментов
 var toolRegistry = new ToolRegistry();
 
-// Регистрируем инструменты для работы с файловой системой:
-// list_files, read_file, write_file, create_file, search_in_files
+// ── Фаза 1: инструменты файловой системы ──────────────────────────────────────
 toolRegistry.RegisterMany(FileSystemTools.Create(config.ProjectPath));
 
-// Главный агент — объединяет LLM и инструменты
-var agent = new Agent(ollamaClient, toolRegistry, config);
+// ── Фаза 2: Roslyn (анализ C# кода) ───────────────────────────────────────────
+toolRegistry.RegisterMany(RoslynTools.Create(config.ProjectPath));
+
+// ── Фаза 2: dotnet build / dotnet test ────────────────────────────────────────
+toolRegistry.RegisterMany(BuildTools.Create(config.ProjectPath));
+
+// ── Фаза 4: Git интеграция ─────────────────────────────────────────────────────
+var gitTools = GitTools.Create(config.ProjectPath).ToList();
+toolRegistry.RegisterMany(gitTools);
+
+// ── Фаза 5: генерация тестов ───────────────────────────────────────────────────
+toolRegistry.RegisterMany(TestGenerationTools.Create(config.ProjectPath));
+
+// ── Фаза 5: RAG (ChromaDB) — регистрируем если ChromaDB доступен ───────────────
+// Создаём ChromaClient и проверяем доступность ChromaDB
+var chromaHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+var chromaClient = new ChromaClient(chromaHttpClient, config.ChromaDbUrl);
+if (await chromaClient.IsAvailableAsync())
+{
+    toolRegistry.RegisterMany(RagTools.Create(
+        config.ProjectPath, chromaClient, config.OllamaUrl, config.EmbeddingModel));
+    if (!isMcpMode)
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"✓ ChromaDB доступен — RAG инструменты активированы");
+        Console.ResetColor();
+        Console.WriteLine();
+    }
+}
 
 // ─── Запуск ────────────────────────────────────────────────────────────────────
-Console.WriteLine("Введите задачу или 'выход' для завершения.");
+
+// Фаза 4: MCP режим — запускаем stdio MCP сервер
+if (isMcpMode)
+{
+    var mcpServer = new McpServer(toolRegistry);
+    await mcpServer.RunAsync();
+    return 0;
+}
+
+// Обычный консольный режим
+var agent = new Agent(ollamaClient, toolRegistry, config);
+
+Console.WriteLine("Введите задачу или 'помощь' для списка команд.");
 Console.WriteLine("Примеры:");
 Console.WriteLine("  > Покажи структуру проекта");
-Console.WriteLine("  > Найди все контроллеры в проекте");
-Console.WriteLine("  > Прочитай файл Program.cs");
-Console.WriteLine("  > Добавь логирование в UserService");
+Console.WriteLine("  > Найди все контроллеры");
+Console.WriteLine("  > Покажи структуру класса UserService");
+Console.WriteLine("  > Запусти сборку проекта");
+Console.WriteLine("  > Сгенерируй тесты для OrderService");
 Console.WriteLine();
 
 await agent.RunAsync();
 
-return 0; // Код выхода 0 = успех
+return 0;

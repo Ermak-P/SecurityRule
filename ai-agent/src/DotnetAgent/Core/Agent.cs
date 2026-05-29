@@ -2,6 +2,7 @@ using System.Text;
 using DotnetAgent.Config;
 using DotnetAgent.Models;
 using DotnetAgent.Tools;
+using DotnetAgent.Core;
 
 namespace DotnetAgent.Core;
 
@@ -34,19 +35,22 @@ namespace DotnetAgent.Core;
 /// Цикл продолжается пока LLM вызывает инструменты.
 /// Когда LLM даёт текстовый ответ без tool_calls — цикл завершается.
 /// ══════════════════════════════════════════════════════════
+///
+/// Фаза 3: streaming ответов, сохранение сессий, planning mode, undo.
 /// </summary>
 public class Agent
 {
     private readonly OllamaClient _ollamaClient;
     private readonly ToolRegistry _toolRegistry;
     private readonly AgentConfig _config;
+    private readonly UndoManager _undoManager = new();
 
-    // История разговора.
-    // Сохраняется между запросами внутри одной сессии (пока программа запущена).
-    // Позволяет LLM помнить контекст предыдущих сообщений.
-    //
-    // Формат: [system, user, assistant, tool, assistant, user, assistant, ...]
+    // История разговора (в рамках сессии)
     private readonly List<ChatMessage> _conversationHistory = new();
+
+    // Фаза 3: хранилище сессий (может быть null если persistence отключена)
+    private SessionStore? _sessionStore;
+    private long _currentSessionId;
 
     public Agent(OllamaClient ollamaClient, ToolRegistry toolRegistry, AgentConfig config)
     {
@@ -99,9 +103,12 @@ public class Agent
 
         Console.WriteLine();
 
+        // ── Фаза 3: загрузка сессии ────────────────────────────────────────────
+        if (_config.EnableSessionPersistence)
+            await InitializeSessionAsync();
+
         // ── Инициализация системного промпта ──────────────────────────────────
         // Системный промпт добавляется один раз в начале разговора.
-        // Он задаёт "личность" и правила поведения LLM.
         _conversationHistory.Add(BuildSystemMessage());
 
         // Кешируем список инструментов (не меняется в ходе работы)
@@ -131,7 +138,6 @@ public class Agent
                     continue;
 
                 case "очистить" or "clear":
-                    // Очищаем историю но оставляем системный промпт
                     _conversationHistory.RemoveAll(m => m.Role != "system");
                     Console.WriteLine("✓ История разговора очищена.");
                     continue;
@@ -143,13 +149,74 @@ public class Agent
                 case "помощь" or "help":
                     PrintHelp();
                     continue;
+
+                // Фаза 3: откат последнего изменения
+                case "undo" or "отменить" or "откат":
+                    var undoResult = _undoManager.Undo();
+                    if (undoResult == null)
+                        Console.WriteLine("Нечего отменять.");
+                    else
+                        Console.WriteLine(undoResult);
+                    continue;
+
+                // Фаза 3: список последних сессий
+                case "сессии" or "sessions":
+                    PrintSessions();
+                    continue;
             }
 
             // Добавляем сообщение пользователя в историю
             _conversationHistory.Add(new ChatMessage { Role = "user", Content = userInput });
 
+            // Фаза 3: сохраняем в БД
+            if (_sessionStore != null)
+                _sessionStore.SaveMessage(_currentSessionId,
+                    _conversationHistory[^1]);
+
             // Запускаем цикл агента
             await RunAgentLoopAsync(toolDefinitions);
+        }
+    }
+
+    /// <summary>
+    /// Фаза 3: инициализация или восстановление сессии.
+    /// </summary>
+    private async Task InitializeSessionAsync()
+    {
+        try
+        {
+            _sessionStore = SessionStore.CreateDefault();
+            var lastSession = _sessionStore.GetLastSession(_config.ProjectPath);
+
+            if (lastSession != null)
+            {
+                Console.WriteLine($"Найдена предыдущая сессия: {lastSession.Name} ({lastSession.CreatedAt})");
+                Console.Write("Продолжить? (д/н): ");
+                var answer = Console.ReadLine()?.Trim().ToLowerInvariant() ?? "";
+
+                if (answer is "д" or "y" or "yes" or "да")
+                {
+                    _currentSessionId = lastSession.Id;
+                    var history = _sessionStore.LoadMessages(_currentSessionId);
+                    _conversationHistory.AddRange(history);
+                    Console.WriteLine($"✓ Загружено {history.Count} сообщений из предыдущей сессии.");
+                    Console.WriteLine();
+                    return;
+                }
+            }
+
+            // Создаём новую сессию
+            var sessionName = $"Сессия {DateTime.Now:yyyy-MM-dd HH:mm}";
+            _currentSessionId = _sessionStore.CreateSession(_config.ProjectPath, sessionName);
+            Console.WriteLine($"✓ Новая сессия создана: {sessionName}");
+            Console.WriteLine();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"⚠️  Сессии недоступны: {ex.Message}");
+            Console.ResetColor();
+            _sessionStore = null;
         }
     }
 
@@ -160,7 +227,7 @@ public class Agent
     /// Если LLM возвращает tool_calls — выполняет инструменты и повторяет.
     /// Если LLM возвращает текст — выводит его пользователю и завершает цикл.
     ///
-    /// Максимум MaxToolCallsPerRequest итераций для защиты от бесконечного цикла.
+    /// Фаза 3: для финального ответа используется streaming.
     /// </summary>
     private async Task RunAgentLoopAsync(List<ToolDefinition> toolDefinitions)
     {
@@ -185,24 +252,20 @@ public class Agent
             }
             catch (Exception ex)
             {
-                // Очищаем строку "Думаю..."
                 Console.Write("\r                    \r");
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"❌ Ошибка: {ex.Message}");
                 Console.ResetColor();
 
-                // Удаляем последнее сообщение пользователя из истории
-                // чтобы пользователь мог повторить запрос
+                // Удаляем последнее сообщение пользователя чтобы он мог повторить запрос
                 if (_conversationHistory.Count > 0 && _conversationHistory[^1].Role == "user")
                     _conversationHistory.RemoveAt(_conversationHistory.Count - 1);
 
                 return;
             }
 
-            // Очищаем строку "Думаю..."
             Console.Write("\r                    \r");
 
-            // Проверяем корректность ответа
             if (response.Message == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -213,6 +276,8 @@ public class Agent
 
             // Добавляем ответ LLM в историю разговора
             _conversationHistory.Add(response.Message);
+            if (_sessionStore != null)
+                _sessionStore.SaveMessage(_currentSessionId, response.Message);
 
             // ── Обработка вызовов инструментов ────────────────────────────────
             if (response.Message.ToolCalls is { Count: > 0 } toolCalls)
@@ -227,18 +292,15 @@ public class Agent
                     break;
                 }
 
-                // Выполняем каждый запрошенный инструмент
                 foreach (var toolCall in toolCalls)
                 {
                     toolCallCount++;
                     var toolName = toolCall.Function.Name;
 
-                    // Показываем какой инструмент вызывается
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.Write($"  🔧 {toolName}");
                     Console.ResetColor();
 
-                    // Ищем и выполняем инструмент
                     var tool = _toolRegistry.GetTool(toolName);
                     string toolResult;
 
@@ -253,7 +315,16 @@ public class Agent
                     {
                         try
                         {
+                            // Фаза 3: backup для undo перед инструментами изменяющими файлы
+                            using var tx = _undoManager.BeginTransaction(toolName);
+                            BackupToolFiles(tx, toolName, toolCall.Function.Arguments);
+
                             toolResult = await tool.ExecuteAsync(toolCall.Function.Arguments);
+
+                            // Фиксируем undo только если инструмент что-то изменил
+                            if (IsWritingTool(toolName))
+                                tx.Commit();
+
                             Console.ForegroundColor = ConsoleColor.DarkGray;
                             Console.WriteLine($" → {toolResult.Length} симв.");
                             Console.ResetColor();
@@ -267,52 +338,123 @@ public class Agent
                         }
                     }
 
-                    // Добавляем результат в историю как сообщение role="tool"
-                    // Ollama передаст этот результат обратно в LLM на следующей итерации
-                    _conversationHistory.Add(new ChatMessage
-                    {
-                        Role = "tool",
-                        Content = toolResult
-                    });
+                    var toolMessage = new ChatMessage { Role = "tool", Content = toolResult };
+                    _conversationHistory.Add(toolMessage);
+                    if (_sessionStore != null)
+                        _sessionStore.SaveMessage(_currentSessionId, toolMessage);
                 }
 
-                // Продолжаем цикл — LLM получит результаты инструментов и продолжит работу
+                // Продолжаем цикл — LLM получит результаты и продолжит работу
                 continue;
             }
 
             // ── Финальный ответ LLM ────────────────────────────────────────────
-            // Если LLM не вызвал инструменты — он дал финальный ответ
             if (!string.IsNullOrEmpty(response.Message.Content))
             {
                 Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine("── Ответ ──────────────────────────────────────────────────");
                 Console.ResetColor();
-                Console.WriteLine(response.Message.Content);
+
+                // Фаза 3: streaming для финального ответа (пересказываем через stream API)
+                if (_config.EnableStreaming)
+                {
+                    await StreamFinalResponseAsync(toolDefinitions);
+                    return; // streaming сам добавляет сообщение в историю
+                }
+                else
+                {
+                    Console.WriteLine(response.Message.Content);
+                }
+
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.WriteLine("───────────────────────────────────────────────────────────");
                 Console.ResetColor();
             }
 
-            // Выходим из цикла агента
             break;
         }
     }
 
     /// <summary>
+    /// Фаза 3: streaming финального ответа от LLM.
+    ///
+    /// Заменяем последнее assistant-сообщение в истории на "streaming-заготовку"
+    /// и добавляем streaming ответ, выводя токены по мере поступления.
+    /// </summary>
+    private async Task StreamFinalResponseAsync(List<ToolDefinition> toolDefinitions)
+    {
+        // Убираем последнее assistant-сообщение (оно содержит ответ без streaming)
+        // и получаем streaming ответ через отдельный запрос
+        if (_conversationHistory.Count > 0 && _conversationHistory[^1].Role == "assistant")
+            _conversationHistory.RemoveAt(_conversationHistory.Count - 1);
+
+        // Также убираем его из БД (будет добавлен заново со streaming содержимым)
+        // Простой способ: просто получим streaming версию
+
+        var fullResponse = new StringBuilder();
+
+        try
+        {
+            await foreach (var token in _ollamaClient.ChatStreamAsync(
+                _conversationHistory, toolDefinitions,
+                _config.Temperature, _config.ContextWindowSize))
+            {
+                Console.Write(token);
+                fullResponse.Append(token);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"\n❌ Ошибка streaming: {ex.Message}");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine("───────────────────────────────────────────────────────────");
+        Console.ResetColor();
+
+        // Сохраняем полный ответ в историю
+        var assistantMessage = new ChatMessage
+        {
+            Role = "assistant",
+            Content = fullResponse.ToString()
+        };
+        _conversationHistory.Add(assistantMessage);
+        if (_sessionStore != null)
+            _sessionStore.SaveMessage(_currentSessionId, assistantMessage);
+    }
+
+    /// <summary>
+    /// Фаза 3: перед записью файла сохраняем backup для undo.
+    /// </summary>
+    private static void BackupToolFiles(UndoTransaction tx, string toolName, System.Text.Json.JsonElement args)
+    {
+        if (!IsWritingTool(toolName)) return;
+
+        if (args.TryGetProperty("path", out var pathEl))
+            tx.BackupFile(pathEl.GetString() ?? "");
+        else if (args.TryGetProperty("file_path", out var filePathEl))
+            tx.BackupFile(filePathEl.GetString() ?? "");
+    }
+
+    private static bool IsWritingTool(string toolName) =>
+        toolName is "write_file" or "create_file" or "patch_method" or "git_commit";
+
+    /// <summary>
     /// Создаёт системный промпт для LLM.
     ///
-    /// Системный промпт — это инструкции которые задают "личность" LLM:
+    /// Системный промпт задаёт "личность" LLM:
     ///   - Кто он такой (агент для .NET проектов)
-    ///   - Что он умеет (какие инструменты использовать)
+    ///   - Какие инструменты доступны
     ///   - Какие правила соблюдать
     ///   - На каком языке отвечать
-    ///
-    /// Качество системного промпта напрямую влияет на полезность агента!
     /// </summary>
     private ChatMessage BuildSystemMessage()
     {
-        // Строим список доступных инструментов для включения в промпт
         var toolsList = new StringBuilder();
         foreach (var tool in _toolRegistry.GetAllTools())
             toolsList.AppendLine($"  - {tool.Name}: {tool.Description.Split('.').FirstOrDefault() ?? tool.Description}");
@@ -329,9 +471,11 @@ public class Agent
             КАК РАБОТАТЬ:
             1. Начинай с list_files чтобы понять структуру проекта
             2. Используй read_file для чтения файлов ПЕРЕД любыми изменениями
-            3. Используй search_in_files для поиска классов, методов, паттернов
-            4. При изменении файлов: read_file → изменить → write_file (с ПОЛНЫМ содержимым)
-            5. Объясняй что ты делаешь и почему
+            3. Используй get_class_info для анализа структуры C# классов
+            4. Используй search_in_files для поиска классов, методов, паттернов
+            5. Используй patch_method для изменения одного метода (лучше чем write_file для больших файлов)
+            6. Используй dotnet_build после изменений чтобы убедиться что код компилируется
+            7. Объясняй что ты делаешь и почему
             
             ПРАВИЛА:
             - Всегда читай файл перед изменением
@@ -371,6 +515,28 @@ public class Agent
         Console.WriteLine("───────────────────────────────────────────────────────");
     }
 
+    /// <summary>Фаза 3: выводит список сессий для текущего проекта</summary>
+    private void PrintSessions()
+    {
+        if (_sessionStore == null)
+        {
+            Console.WriteLine("Сессии отключены (EnableSessionPersistence = false).");
+            return;
+        }
+
+        var sessions = _sessionStore.ListSessions(_config.ProjectPath);
+        if (sessions.Count == 0)
+        {
+            Console.WriteLine("Нет сохранённых сессий.");
+            return;
+        }
+
+        Console.WriteLine("\n─── Последние сессии ───────────────────────────────────");
+        foreach (var s in sessions)
+            Console.WriteLine($"  [{s.Id}] {s.Name} ({s.CreatedAt})");
+        Console.WriteLine("───────────────────────────────────────────────────────");
+    }
+
     /// <summary>Выводит список доступных инструментов</summary>
     private void PrintAvailableTools()
     {
@@ -396,15 +562,21 @@ public class Agent
           Примеры задач:
             > Покажи структуру проекта
             > Найди все классы наследующие ControllerBase
+            > Покажи структуру класса UserService
+            > Найди где используется метод GetById
             > Прочитай файл Program.cs
             > Найди все TODO комментарии
             > Добавь XML документацию к методу GetUsers
             > Создай новый сервис EmailService с интерфейсом IEmailService
+            > Запусти сборку проекта
+            > Сгенерируй тесты для класса OrderService
           
           Служебные команды:
             история     — показать историю разговора
             очистить    — очистить историю (новый контекст)
             инструменты — список доступных инструментов
+            сессии      — список последних сессий
+            undo        — отменить последнее изменение файла
             помощь      — эта справка
             выход       — завершить работу
         ───────────────────────────────────────────────────────

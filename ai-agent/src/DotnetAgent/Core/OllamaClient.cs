@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using DotnetAgent.Models;
 
@@ -138,6 +140,91 @@ public class OllamaClient
             throw new InvalidOperationException($"Ошибка от Ollama: {response.Error}");
 
         return response;
+    }
+
+    /// <summary>
+    /// Стриминговый чат с Ollama — возвращает токены по мере генерации.
+    ///
+    /// Фаза 3: реализует streaming-вывод (как ChatGPT).
+    /// Используется когда LLM даёт финальный текстовый ответ (без tool_calls).
+    ///
+    /// Пример использования:
+    /// <code>
+    ///   await foreach (var chunk in ollamaClient.ChatStreamAsync(messages))
+    ///       Console.Write(chunk);
+    /// </code>
+    /// </summary>
+    /// <returns>AsyncEnumerable токенов текста</returns>
+    public async IAsyncEnumerable<string> ChatStreamAsync(
+        List<ChatMessage> messages,
+        List<ToolDefinition>? tools = null,
+        float temperature = 0.1f,
+        int contextWindowSize = 8192,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var request = new ChatRequest
+        {
+            Model = _modelName,
+            Messages = messages,
+            Tools = tools,
+            Stream = true,
+            Options = new GenerationOptions
+            {
+                Temperature = temperature,
+                NumCtx = contextWindowSize
+            }
+        };
+
+        var requestJson = JsonSerializer.Serialize(request, JsonOptions);
+        using var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage httpResponse;
+        try
+        {
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/chat")
+            {
+                Content = content
+            };
+            httpResponse = await _httpClient.SendAsync(httpRequest,
+                HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new InvalidOperationException(
+                $"Не удалось подключиться к Ollama: {ex.Message}", ex);
+        }
+
+        if (!httpResponse.IsSuccessStatusCode)
+        {
+            var errorBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(
+                $"Ollama вернул ошибку {(int)httpResponse.StatusCode}: {errorBody}");
+        }
+
+        await using var stream = await httpResponse.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new System.IO.StreamReader(stream, Encoding.UTF8);
+
+        while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            ChatResponse? chunk;
+            try
+            {
+                chunk = JsonSerializer.Deserialize<ChatResponse>(line, JsonOptions);
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+
+            if (chunk?.Message?.Content is { Length: > 0 } token)
+                yield return token;
+
+            if (chunk?.Done == true)
+                break;
+        }
     }
 
     /// <summary>
