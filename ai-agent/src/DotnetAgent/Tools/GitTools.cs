@@ -31,6 +31,8 @@ public static class GitTools
             new GitDiffTool(gitRoot),
             new GitCommitTool(gitRoot),
             new GitLogTool(gitRoot),
+            new GitChangedFilesTool(gitRoot),
+            new GitDiffBranchTool(gitRoot),
         };
     }
 
@@ -335,4 +337,272 @@ public static class GitTools
             }
         }
     }
+
+    // ─── git_changed_files ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Показывает список файлов изменённых в текущей ветке относительно базовой.
+    /// Используется агентом для определения какие файлы нужно проревьюировать.
+    /// </summary>
+    private sealed class GitChangedFilesTool : IAgentTool
+    {
+        private readonly string _gitRoot;
+
+        public GitChangedFilesTool(string gitRoot) => _gitRoot = gitRoot;
+
+        public string Name => "git_changed_files";
+
+        public string Description =>
+            "Показывает список файлов изменённых в текущей ветке по сравнению с базовой веткой. " +
+            "Используй для code review: сначала вызови этот инструмент чтобы узнать какие файлы изменились, " +
+            "затем прочитай их через read_file и проанализируй.";
+
+        public object Parameters => new
+        {
+            type = "object",
+            properties = new
+            {
+                base_branch = new
+                {
+                    type = "string",
+                    description = "Базовая ветка для сравнения (по умолчанию: main или master). " +
+                                  "Примеры: 'main', 'master', 'origin/main', 'develop'"
+                }
+            },
+            required = Array.Empty<string>()
+        };
+
+        public Task<string> ExecuteAsync(JsonElement arguments)
+        {
+            var baseBranch = arguments.TryGetProperty("base_branch", out var branchEl)
+                ? branchEl.GetString()?.Trim() ?? ""
+                : "";
+
+            try
+            {
+                using var repo = new Repository(_gitRoot);
+
+                var baseCommit = ResolveBaseCommit(repo, baseBranch);
+                if (baseCommit == null)
+                    return Task.FromResult(
+                        $"Ветка '{baseBranch}' не найдена. " +
+                        "Попробуй указать другую базовую ветку: 'main', 'master', 'origin/main'.");
+
+                var headCommit = repo.Head.Tip;
+                if (headCommit == null)
+                    return Task.FromResult("Нет коммитов в текущей ветке.");
+
+                // Находим общего предка (merge-base) — точку ветвления
+                var mergeBase = repo.ObjectDatabase.FindMergeBase(baseCommit, headCommit);
+                var fromTree = (mergeBase ?? baseCommit).Tree;
+
+                var diff = repo.Diff.Compare<TreeChanges>(fromTree, headCommit.Tree);
+
+                if (!diff.Any())
+                    return Task.FromResult(
+                        $"Нет изменений между текущей веткой ({repo.Head.FriendlyName}) " +
+                        $"и {ResolvedBranchName(repo, baseBranch)}.");
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"Ветка: {repo.Head.FriendlyName}");
+                sb.AppendLine($"База:  {ResolvedBranchName(repo, baseBranch)}");
+                sb.AppendLine($"Изменено файлов: {diff.Count()}");
+                sb.AppendLine();
+
+                foreach (var change in diff.OrderBy(c => c.Path))
+                {
+                    var icon = change.Status switch
+                    {
+                        ChangeKind.Added => "A",
+                        ChangeKind.Deleted => "D",
+                        ChangeKind.Modified => "M",
+                        ChangeKind.Renamed => "R",
+                        _ => "?"
+                    };
+                    sb.AppendLine($"  {icon}  {change.Path}");
+                }
+
+                return Task.FromResult(sb.ToString().TrimEnd());
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult($"Ошибка git_changed_files: {ex.Message}");
+            }
+        }
+
+        private static Commit? ResolveBaseCommit(Repository repo, string branchName)
+        {
+            // Если ветка не указана — пробуем main, потом master
+            if (string.IsNullOrEmpty(branchName))
+            {
+                return TryGetBranchTip(repo, "main")
+                    ?? TryGetBranchTip(repo, "master")
+                    ?? TryGetBranchTip(repo, "origin/main")
+                    ?? TryGetBranchTip(repo, "origin/master");
+            }
+
+            return TryGetBranchTip(repo, branchName);
+        }
+
+        private static Commit? TryGetBranchTip(Repository repo, string name)
+        {
+            var branch = repo.Branches[name];
+            return branch?.Tip;
+        }
+
+        private static string ResolvedBranchName(Repository repo, string requested)
+        {
+            if (!string.IsNullOrEmpty(requested)) return requested;
+
+            foreach (var candidate in new[] { "main", "master", "origin/main", "origin/master" })
+                if (repo.Branches[candidate] != null) return candidate;
+
+            return "базовой ветки";
+        }
+    }
+
+    // ─── git_diff_branch ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Показывает полный diff текущей ветки относительно базовой.
+    /// Это основной инструмент для code review — показывает что именно изменилось.
+    /// </summary>
+    private sealed class GitDiffBranchTool : IAgentTool
+    {
+        private readonly string _gitRoot;
+
+        public GitDiffBranchTool(string gitRoot) => _gitRoot = gitRoot;
+
+        public string Name => "git_diff_branch";
+
+        public string Description =>
+            "Показывает полный diff изменений в текущей ветке по сравнению с базовой веткой. " +
+            "Идеален для code review: показывает что именно добавлено/удалено/изменено. " +
+            "Можно ограничить одним файлом через file_path.";
+
+        public object Parameters => new
+        {
+            type = "object",
+            properties = new
+            {
+                base_branch = new
+                {
+                    type = "string",
+                    description = "Базовая ветка для сравнения (по умолчанию: main или master). " +
+                                  "Примеры: 'main', 'master', 'origin/main', 'develop'"
+                },
+                file_path = new
+                {
+                    type = "string",
+                    description = "Показать diff только для этого файла (необязательно). " +
+                                  "Используй относительный путь от корня репозитория."
+                }
+            },
+            required = Array.Empty<string>()
+        };
+
+        public Task<string> ExecuteAsync(JsonElement arguments)
+        {
+            var baseBranch = arguments.TryGetProperty("base_branch", out var branchEl)
+                ? branchEl.GetString()?.Trim() ?? ""
+                : "";
+
+            string? filePath = null;
+            if (arguments.TryGetProperty("file_path", out var pathEl))
+                filePath = pathEl.GetString()?.Trim().Trim('"', '\'');
+
+            try
+            {
+                using var repo = new Repository(_gitRoot);
+
+                var baseCommit = ResolveBaseCommit(repo, baseBranch);
+                if (baseCommit == null)
+                    return Task.FromResult(
+                        $"Ветка '{baseBranch}' не найдена. " +
+                        "Попробуй указать другую базовую ветку: 'main', 'master', 'origin/main'.");
+
+                var headCommit = repo.Head.Tip;
+                if (headCommit == null)
+                    return Task.FromResult("Нет коммитов в текущей ветке.");
+
+                var mergeBase = repo.ObjectDatabase.FindMergeBase(baseCommit, headCommit);
+                var fromTree = (mergeBase ?? baseCommit).Tree;
+
+                Patch diff;
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    diff = repo.Diff.Compare<Patch>(fromTree, headCommit.Tree,
+                        new[] { filePath });
+                }
+                else
+                {
+                    diff = repo.Diff.Compare<Patch>(fromTree, headCommit.Tree);
+                }
+
+                if (!diff.Any())
+                    return Task.FromResult("Нет изменений.");
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"Ветка: {repo.Head.FriendlyName}");
+                sb.AppendLine($"База:  {ResolvedBranchName(repo, baseBranch)}");
+                sb.AppendLine();
+
+                const int maxLines = 800;
+                var lineCount = 0;
+
+                foreach (var entry in diff)
+                {
+                    sb.AppendLine($"--- {entry.OldPath}");
+                    sb.AppendLine($"+++ {entry.Path}");
+                    foreach (var line in entry.Patch.Split('\n'))
+                    {
+                        sb.AppendLine(line);
+                        if (++lineCount >= maxLines)
+                        {
+                            sb.AppendLine(
+                                $"\n... (обрезано, всего {diff.LinesAdded + diff.LinesDeleted} строк изменено). " +
+                                "Используй file_path чтобы посмотреть diff конкретного файла.");
+                            return Task.FromResult(sb.ToString().TrimEnd());
+                        }
+                    }
+                }
+
+                return Task.FromResult(sb.ToString().TrimEnd());
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult($"Ошибка git_diff_branch: {ex.Message}");
+            }
+        }
+
+        private static Commit? ResolveBaseCommit(Repository repo, string branchName)
+        {
+            if (string.IsNullOrEmpty(branchName))
+            {
+                return TryGetBranchTip(repo, "main")
+                    ?? TryGetBranchTip(repo, "master")
+                    ?? TryGetBranchTip(repo, "origin/main")
+                    ?? TryGetBranchTip(repo, "origin/master");
+            }
+
+            return TryGetBranchTip(repo, branchName);
+        }
+
+        private static Commit? TryGetBranchTip(Repository repo, string name)
+        {
+            var branch = repo.Branches[name];
+            return branch?.Tip;
+        }
+
+        private static string ResolvedBranchName(Repository repo, string requested)
+        {
+            if (!string.IsNullOrEmpty(requested)) return requested;
+
+            foreach (var candidate in new[] { "main", "master", "origin/main", "origin/master" })
+                if (repo.Branches[candidate] != null) return candidate;
+
+            return "базовой ветки";
+        }
+    }
 }
+
