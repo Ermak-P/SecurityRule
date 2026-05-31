@@ -173,6 +173,43 @@ Before closing the task, confirm:
 
 ---
 
+## Branch Conventions
+
+- The default (main) branch of this repository is **`development`**, not `main` or `master`.
+- Feature branches follow the pattern `f/f-<number>` (e.g. `f/f-355`).
+- Task branches follow the pattern `tasks/task-<number>` (e.g. `tasks/task-123`).
+
+---
+
+## Branch Review Command
+
+When the user says **"сделай ревью ветки `<branch>` относительно `<base>`"** (or any equivalent phrasing such as "review branch X relative to Y / against Y / compared to Y"):
+
+1. Fetch both branches so their history is available locally:
+   ```bash
+   git fetch origin <base>:<base>
+   git fetch origin <branch>:<branch>
+   ```
+2. Identify the commits that belong to `<branch>` but not `<base>`:
+   ```bash
+   git log <base>..<branch> --oneline
+   ```
+3. Produce the full diff of all changes introduced by `<branch>` relative to `<base>`:
+   ```bash
+   git diff <base>...<branch>
+   ```
+   *(three-dot syntax — compares `<branch>` tip to the common ancestor with `<base>`)*
+4. Analyse the diff and provide a structured code review covering:
+   - **Summary** of what changed and why
+   - **Architecture / design** observations (Clean Architecture compliance, SOLID, layer rules)
+   - **Bugs or logic errors** found
+   - **Security issues**
+   - **Testing gaps** (missing unit / integration / E2E tests per the Testing Requirements above)
+   - **Code quality** remarks (naming, complexity, comments)
+   - **Suggestions** for improvement
+
+---
+
 ## Workflow Rules
 
 - Always read the relevant existing code before making changes
