@@ -439,6 +439,11 @@ public static class GitTools
     /// </summary>
     private sealed class GitDiffBranchTool : IAgentTool
     {
+        /// <summary>
+        /// Максимальное количество строк diff в одном ответе.
+        /// Ограничение защищает контекстное окно LLM от переполнения при больших PR.
+        /// Для более детального просмотра используйте параметр file_path.
+        /// </summary>
         private const int MaxDiffLines = 800;
 
         private readonly string _gitRoot;
