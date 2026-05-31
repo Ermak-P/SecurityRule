@@ -355,7 +355,7 @@ public static class GitTools
         public string Description =>
             "Показывает список файлов изменённых в текущей ветке по сравнению с базовой веткой. " +
             "Используй для code review: сначала вызови этот инструмент чтобы узнать какие файлы изменились, " +
-            "затем прочитай их через read_file и проанализируй.";
+            "затем вызови git_diff_branch с параметром file_path чтобы увидеть конкретные изменения в каждом файле.";
 
         public object Parameters => new
         {
@@ -382,7 +382,7 @@ public static class GitTools
             {
                 using var repo = new Repository(_gitRoot);
 
-                var baseCommit = ResolveBaseCommit(repo, baseBranch);
+                var baseCommit = GitBranchHelpers.ResolveBaseCommit(repo, baseBranch);
                 if (baseCommit == null)
                     return Task.FromResult(
                         $"Ветка '{baseBranch}' не найдена. " +
@@ -401,11 +401,11 @@ public static class GitTools
                 if (!diff.Any())
                     return Task.FromResult(
                         $"Нет изменений между текущей веткой ({repo.Head.FriendlyName}) " +
-                        $"и {ResolvedBranchName(repo, baseBranch)}.");
+                        $"и {GitBranchHelpers.ResolvedBranchName(repo, baseBranch)}.");
 
                 var sb = new StringBuilder();
                 sb.AppendLine($"Ветка: {repo.Head.FriendlyName}");
-                sb.AppendLine($"База:  {ResolvedBranchName(repo, baseBranch)}");
+                sb.AppendLine($"База:  {GitBranchHelpers.ResolvedBranchName(repo, baseBranch)}");
                 sb.AppendLine($"Изменено файлов: {diff.Count()}");
                 sb.AppendLine();
 
@@ -429,36 +429,6 @@ public static class GitTools
                 return Task.FromResult($"Ошибка git_changed_files: {ex.Message}");
             }
         }
-
-        private static Commit? ResolveBaseCommit(Repository repo, string branchName)
-        {
-            // Если ветка не указана — пробуем main, потом master
-            if (string.IsNullOrEmpty(branchName))
-            {
-                return TryGetBranchTip(repo, "main")
-                    ?? TryGetBranchTip(repo, "master")
-                    ?? TryGetBranchTip(repo, "origin/main")
-                    ?? TryGetBranchTip(repo, "origin/master");
-            }
-
-            return TryGetBranchTip(repo, branchName);
-        }
-
-        private static Commit? TryGetBranchTip(Repository repo, string name)
-        {
-            var branch = repo.Branches[name];
-            return branch?.Tip;
-        }
-
-        private static string ResolvedBranchName(Repository repo, string requested)
-        {
-            if (!string.IsNullOrEmpty(requested)) return requested;
-
-            foreach (var candidate in new[] { "main", "master", "origin/main", "origin/master" })
-                if (repo.Branches[candidate] != null) return candidate;
-
-            return "базовой ветки";
-        }
     }
 
     // ─── git_diff_branch ──────────────────────────────────────────────────────
@@ -469,6 +439,8 @@ public static class GitTools
     /// </summary>
     private sealed class GitDiffBranchTool : IAgentTool
     {
+        private const int MaxDiffLines = 800;
+
         private readonly string _gitRoot;
 
         public GitDiffBranchTool(string gitRoot) => _gitRoot = gitRoot;
@@ -478,6 +450,7 @@ public static class GitTools
         public string Description =>
             "Показывает полный diff изменений в текущей ветке по сравнению с базовой веткой. " +
             "Идеален для code review: показывает что именно добавлено/удалено/изменено. " +
+            $"Вывод обрезается на {MaxDiffLines} строках — используй file_path для больших изменений. " +
             "Можно ограничить одним файлом через file_path.";
 
         public object Parameters => new
@@ -515,7 +488,7 @@ public static class GitTools
             {
                 using var repo = new Repository(_gitRoot);
 
-                var baseCommit = ResolveBaseCommit(repo, baseBranch);
+                var baseCommit = GitBranchHelpers.ResolveBaseCommit(repo, baseBranch);
                 if (baseCommit == null)
                     return Task.FromResult(
                         $"Ветка '{baseBranch}' не найдена. " +
@@ -544,10 +517,9 @@ public static class GitTools
 
                 var sb = new StringBuilder();
                 sb.AppendLine($"Ветка: {repo.Head.FriendlyName}");
-                sb.AppendLine($"База:  {ResolvedBranchName(repo, baseBranch)}");
+                sb.AppendLine($"База:  {GitBranchHelpers.ResolvedBranchName(repo, baseBranch)}");
                 sb.AppendLine();
 
-                const int maxLines = 800;
                 var lineCount = 0;
 
                 foreach (var entry in diff)
@@ -557,10 +529,10 @@ public static class GitTools
                     foreach (var line in entry.Patch.Split('\n'))
                     {
                         sb.AppendLine(line);
-                        if (++lineCount >= maxLines)
+                        if (++lineCount >= MaxDiffLines)
                         {
                             sb.AppendLine(
-                                $"\n... (обрезано, всего {diff.LinesAdded + diff.LinesDeleted} строк изменено). " +
+                                $"\n... (обрезано на {MaxDiffLines} строках, всего {diff.LinesAdded + diff.LinesDeleted} строк изменено). " +
                                 "Используй file_path чтобы посмотреть diff конкретного файла.");
                             return Task.FromResult(sb.ToString().TrimEnd());
                         }
@@ -574,8 +546,17 @@ public static class GitTools
                 return Task.FromResult($"Ошибка git_diff_branch: {ex.Message}");
             }
         }
+    }
 
-        private static Commit? ResolveBaseCommit(Repository repo, string branchName)
+    // ─── Общие вспомогательные методы для branch-инструментов ────────────────
+
+    private static class GitBranchHelpers
+    {
+        /// <summary>
+        /// Разрешает базовый коммит по имени ветки.
+        /// Если ветка не указана — пробует main → master → origin/main → origin/master.
+        /// </summary>
+        public static Commit? ResolveBaseCommit(Repository repo, string branchName)
         {
             if (string.IsNullOrEmpty(branchName))
             {
@@ -588,13 +569,16 @@ public static class GitTools
             return TryGetBranchTip(repo, branchName);
         }
 
-        private static Commit? TryGetBranchTip(Repository repo, string name)
+        public static Commit? TryGetBranchTip(Repository repo, string name)
         {
             var branch = repo.Branches[name];
             return branch?.Tip;
         }
 
-        private static string ResolvedBranchName(Repository repo, string requested)
+        /// <summary>
+        /// Возвращает читаемое имя базовой ветки (используется в выводе агента).
+        /// </summary>
+        public static string ResolvedBranchName(Repository repo, string requested)
         {
             if (!string.IsNullOrEmpty(requested)) return requested;
 
