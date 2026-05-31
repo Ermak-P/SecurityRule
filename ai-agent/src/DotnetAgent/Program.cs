@@ -96,6 +96,26 @@ if (string.IsNullOrWhiteSpace(config.ProjectContext))
     }
 }
 
+// ─── Автозагрузка инструкций из .github/copilot-instructions.md ──────────────
+// Ищем папку .github поднимаясь вверх от пути проекта.
+// Содержимое copilot-instructions.md добавляется в SystemPromptExtra —
+// так агент сразу знает правила проекта без сканирования файлов.
+var copilotInstructions = GithubTools.LoadCopilotInstructions(config.ProjectPath);
+if (copilotInstructions != null)
+{
+    var instructionsSection = $"\nПРАВИЛА ПРОЕКТА (из .github/copilot-instructions.md):\n{copilotInstructions}";
+    config.SystemPromptExtra = string.IsNullOrWhiteSpace(config.SystemPromptExtra)
+        ? instructionsSection
+        : config.SystemPromptExtra + instructionsSection;
+
+    if (!isMcpMode)
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"✓ Загружены инструкции из .github/copilot-instructions.md");
+        Console.ResetColor();
+    }
+}
+
 if (!isMcpMode)
 {
     Console.WriteLine($"📁 Проект:    {config.ProjectPath}");
@@ -135,6 +155,9 @@ toolRegistry.RegisterMany(BuildTools.Create(config.ProjectPath));
 // ── Фаза 4: Git интеграция ─────────────────────────────────────────────────────
 var gitTools = GitTools.Create(config.ProjectPath).ToList();
 toolRegistry.RegisterMany(gitTools);
+
+// ── .github интеграция (workflows, copilot-instructions, шаблоны PR) ──────────
+toolRegistry.RegisterMany(GithubTools.Create(config.ProjectPath));
 
 // ── Фаза 5: генерация тестов ───────────────────────────────────────────────────
 toolRegistry.RegisterMany(TestGenerationTools.Create(config.ProjectPath));
