@@ -230,6 +230,16 @@ public class Agent
                 case "контекст" or "context":
                     PrintContextStatus();
                     continue;
+
+                // Быстрый запуск тестов напрямую без LLM
+                case "run tests" or "запусти тесты" or "тесты":
+                    await ExecuteToolDirectlyAsync("dotnet_test");
+                    continue;
+
+                // Быстрый запуск сборки напрямую без LLM
+                case "run build" or "запусти сборку" or "сборка" or "build":
+                    await ExecuteToolDirectlyAsync("dotnet_build");
+                    continue;
             }
 
             // ── Фаза 5: выбираем модель для этого запроса ────────────────────
@@ -455,7 +465,7 @@ public class Agent
                 // Фаза 3: streaming для финального ответа (пересказываем через stream API)
                 if (_config.EnableStreaming)
                 {
-                    await StreamFinalResponseAsync(toolDefinitions, modelOverride);
+                    await StreamFinalResponseAsync(toolDefinitions, modelOverride, response.Message.Content);
                     return; // streaming сам добавляет сообщение в историю
                 }
                 else
@@ -478,8 +488,14 @@ public class Agent
     /// Заменяем последнее assistant-сообщение в истории на "streaming-заготовку"
     /// и добавляем streaming ответ, выводя токены по мере поступления.
     /// Фаза 5: modelOverride позволяет использовать выбранную модель.
+    ///
+    /// Если стриминг не вернул содержимого (например у thinking-моделей типа qwen3),
+    /// используем fallbackContent из не-стримингового ответа.
     /// </summary>
-    private async Task StreamFinalResponseAsync(List<ToolDefinition> toolDefinitions, string? modelOverride = null)
+    private async Task StreamFinalResponseAsync(
+        List<ToolDefinition> toolDefinitions,
+        string? modelOverride = null,
+        string? fallbackContent = null)
     {
         // Убираем последнее assistant-сообщение (оно содержит ответ без streaming)
         // и получаем streaming ответ через отдельный запрос
@@ -508,6 +524,15 @@ public class Agent
             Console.WriteLine($"\n❌ Ошибка streaming: {ex.Message}");
             Console.ResetColor();
             return;
+        }
+
+        // Если стриминг не вернул содержимого (thinking-модели вроде qwen3 могут
+        // вернуть пустой content при stream=true), используем не-стриминговый ответ.
+        if (string.IsNullOrWhiteSpace(fullResponse.ToString()) &&
+            !string.IsNullOrWhiteSpace(fallbackContent))
+        {
+            Console.Write(fallbackContent);
+            fullResponse.Append(fallbackContent);
         }
 
         Console.WriteLine();
@@ -612,7 +637,7 @@ public class Agent
         systemPrompt.AppendLine("7. ДЛЯ НАПИСАНИЯ ТЕСТОВ:");
         systemPrompt.AppendLine("   a. Вызови generate_tests с class_name = имя класса/компонента БЕЗ расширения (например: 'ChipCollectionInput', не 'ChipCollectionInput.razor')");
         systemPrompt.AppendLine("   b. generate_tests автоматически находит .razor компоненты и генерирует bUnit-тесты, C# классы — NUnit-тесты");
-        systemPrompt.AppendLine("   c. Укажи output_path чтобы сохранить тесты в файл (например: 'src/SecurityRule.Tests/Components/ChipCollectionInputTests.cs')");
+        systemPrompt.AppendLine("   c. Укажи output_path чтобы сохранить тесты в файл (например: 'src/MyProject.Tests/MyClassTests.cs')");
         systemPrompt.AppendLine("   d. Если generate_tests не нашёл файл — используй search_in_files с именем файла, затем read_file, и create_file для создания тестов");
         systemPrompt.AppendLine();
         systemPrompt.AppendLine("ПРАВИЛА:");
@@ -714,6 +739,10 @@ public class Agent
             > Запусти сборку проекта
             > Сгенерируй тесты для класса OrderService
           
+          Быстрые команды (без LLM):
+            run tests / запусти тесты / тесты   — запустить dotnet test
+            run build / запусти сборку / сборка — запустить dotnet build
+          
           Фаза 5 — Несколько моделей (роутинг):
             Агент автоматически выбирает модель:
               "найди", "покажи", "объясни" → быстрая модель
@@ -740,6 +769,48 @@ public class Agent
             выход       — завершить работу
         ───────────────────────────────────────────────────────
         """);
+    }
+
+    /// <summary>
+    /// Напрямую вызывает инструмент (например dotnet_test или dotnet_build)
+    /// без участия LLM — для команд быстрого доступа вроде "run tests".
+    /// </summary>
+    private async Task ExecuteToolDirectlyAsync(string toolName)
+    {
+        var tool = _toolRegistry.GetTool(toolName);
+        if (tool == null)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Инструмент '{toolName}' не найден.");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.WriteLine($"🔧 {toolName} ...");
+        Console.ResetColor();
+
+        string result;
+        try
+        {
+            result = await tool.ExecuteAsync(System.Text.Json.JsonDocument.Parse("{}").RootElement);
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Ошибка: {ex.Message}");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("── Результат ──────────────────────────────────────────────");
+        Console.ResetColor();
+        Console.WriteLine(result);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine("───────────────────────────────────────────────────────────");
+        Console.ResetColor();
     }
 
     /// <summary>Выводит статус сохранённого контекста проекта</summary>
