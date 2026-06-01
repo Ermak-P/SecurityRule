@@ -33,3 +33,6 @@ jobs:
 
             - name: Install Playwright Chromium with system dependencies
               run: pwsh src/SecurityRule.E2E.Tests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+
+            - name: Install Aider
+              run: pip install aider-chat
