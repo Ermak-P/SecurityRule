@@ -601,15 +601,16 @@ public class Agent
         systemPrompt.AppendLine("ДОСТУПНЫЕ ИНСТРУМЕНТЫ:");
         systemPrompt.Append(toolsList);
         systemPrompt.AppendLine("КАК РАБОТАТЬ:");
-        systemPrompt.AppendLine("1. Начинай с list_files чтобы понять структуру проекта");
+        systemPrompt.AppendLine("1. Начинай с list_files или search_in_files чтобы найти нужные файлы");
         systemPrompt.AppendLine("2. Используй read_file для чтения файлов ПЕРЕД любыми изменениями");
         systemPrompt.AppendLine("3. Используй get_class_info для анализа структуры C# классов");
         systemPrompt.AppendLine("4. Используй search_in_files для поиска классов, методов, паттернов");
         systemPrompt.AppendLine("5. Используй patch_method для изменения одного метода (лучше чем write_file для больших файлов)");
         systemPrompt.AppendLine("6. Используй dotnet_build после изменений чтобы убедиться что код компилируется");
-        systemPrompt.AppendLine("7. Объясняй что ты делаешь и почему");
         systemPrompt.AppendLine();
         systemPrompt.AppendLine("ПРАВИЛА:");
+        systemPrompt.AppendLine("- ВАЖНО: НЕ описывай что собираешься сделать — сразу вызывай инструменты");
+        systemPrompt.AppendLine("- ВАЖНО: первым шагом всегда должен быть вызов инструмента, а не текст");
         systemPrompt.AppendLine("- Всегда читай файл перед изменением");
         systemPrompt.AppendLine("- Сохраняй стиль кода существующего проекта");
         systemPrompt.AppendLine("- Отвечай на русском языке");

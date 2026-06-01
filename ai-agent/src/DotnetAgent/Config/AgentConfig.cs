@@ -71,7 +71,7 @@ public class AgentConfig
     /// Защита от бесконечного цикла.
     /// Для большинства задач достаточно 5-10 вызовов.
     /// </summary>
-    public int MaxToolCallsPerRequest { get; set; } = 10;
+    public int MaxToolCallsPerRequest { get; set; } = 25;
 
     /// <summary>
     /// Температура генерации (0.0 — 1.0).
