@@ -1,0 +1,98 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Docker Compose для запуска Ollama + ChromaDB — локального AI стека.
+#
+# Ollama — локальный LLM сервер (запускает языковые модели без интернета).
+# ChromaDB — векторная БД для RAG (семантический поиск по коду, Фаза 5).
+#
+# КАК ЗАПУСТИТЬ:
+#   1. docker compose up -d          — запустить оба сервиса в фоне
+#   2. docker compose logs -f        — посмотреть логи
+#   3. docker compose down           — остановить
+#
+# СКАЧАТЬ МОДЕЛИ (обязательный шаг после первого запуска!):
+#   docker exec -it ollama ollama pull qwen2.5-coder:7b    — основная модель
+#   docker exec -it ollama ollama pull qwen2.5-coder:3b    — быстрая лёгкая модель (Фаза 5)
+#   docker exec -it ollama ollama pull nomic-embed-text    — модель для embeddings RAG (Фаза 5)
+#
+# РЕКОМЕНДУЕМЫЕ МОДЕЛИ (Фаза 5 — несколько моделей):
+#   Основная / умная:
+#     qwen2.5-coder:7b   (~4.5 GB) — рекомендуется для старта
+#     qwen2.5-coder:14b  (~8 GB)   — лучше качество, нужно больше RAM
+#     qwen2.5-coder:32b  (~20 GB)  — максимальное качество для сложного кода
+#   Быстрая / лёгкая:
+#     qwen2.5-coder:3b   (~2 GB)   — быстрые ответы, поиск, объяснения
+#     phi3.5:mini        (~2 GB)   — альтернатива
+#   Embeddings (RAG):
+#     nomic-embed-text   (~300 MB) — генерация векторов для ChromaDB
+#
+# КОНФИГУРАЦИЯ agent.json для нескольких моделей (Фаза 5):
+#   {
+#     "ModelName": "qwen2.5-coder:7b",
+#     "FastModelName": "qwen2.5-coder:3b",
+#     "SmartModelName": "qwen2.5-coder:14b",
+#     "EmbeddingModel": "nomic-embed-text"
+#   }
+#
+# ТРЕБОВАНИЯ:
+#   Минимум: 8 GB RAM (для модели 7b)
+#   Рекомендуется: 16 GB RAM или GPU с поддержкой CUDA/ROCm
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      # Порт 11434 — стандартный порт Ollama API
+      # После запуска API доступен на http://localhost:11434
+      - "11434:11434"
+    volumes:
+      # Сохраняем скачанные модели в Docker volume
+      # Это позволяет не скачивать модели заново при пересоздании контейнера
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+
+    # ── Поддержка GPU (раскомментируй если есть NVIDIA GPU) ──────────────────
+    # Если есть NVIDIA GPU с CUDA — раскомментируй блок ниже.
+    # Это значительно ускорит работу модели (10-50x быстрее).
+    # Требуется: nvidia-container-toolkit (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+    #
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ── Фаза 5: ChromaDB — векторная БД для RAG ───────────────────────────────
+  # ChromaDB хранит embeddings кода и позволяет делать семантический поиск.
+  # Агент использует его через инструменты index_project / semantic_search.
+  #
+  # API доступен на http://localhost:8000 после запуска.
+  # Документация: https://docs.trychroma.com
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      # Сохраняем индекс между перезапусками контейнера
+      - chroma_data:/chroma/chroma
+    environment:
+      # Путь к директории хранения данных внутри контейнера
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+
+volumes:
+  # Docker volume для хранения скачанных моделей Ollama
+  ollama_models:
+    driver: local
+
+  # Docker volume для хранения векторного индекса ChromaDB (Фаза 5)
+  chroma_data:
+    driver: local

@@ -173,6 +173,43 @@ Before closing the task, confirm:
 
 ---
 
+## Branch Conventions
+
+- The default (main) branch of this repository is **`development`**, not `main` or `master`.
+- Feature branches follow the pattern `f/f-<number>` (e.g. `f/f-355`).
+- Task branches follow the pattern `tasks/task-<number>` (e.g. `tasks/task-123`).
+
+---
+
+## Branch Review Command
+
+When the user says **"сделай ревью ветки `<branch>` относительно `<base>`"** (or any equivalent phrasing such as "review branch X relative to Y / against Y / compared to Y"):
+
+1. Fetch both branches so their history is available locally:
+   ```bash
+   git fetch origin <base>:<base>
+   git fetch origin <branch>:<branch>
+   ```
+2. Identify the commits that belong to `<branch>` but not `<base>`:
+   ```bash
+   git log <base>..<branch> --oneline
+   ```
+3. Produce the full diff of all changes introduced by `<branch>` relative to `<base>`:
+   ```bash
+   git diff <base>...<branch>
+   ```
+   *(three-dot syntax — compares `<branch>` tip to the common ancestor with `<base>`)*
+4. Analyse the diff and provide a structured code review covering:
+   - **Summary** of what changed and why
+   - **Architecture / design** observations (Clean Architecture compliance, SOLID, layer rules)
+   - **Bugs or logic errors** found
+   - **Security issues**
+   - **Testing gaps** (missing unit / integration / E2E tests per the Testing Requirements above)
+   - **Code quality** remarks (naming, complexity, comments)
+   - **Suggestions** for improvement
+
+---
+
 ## Workflow Rules
 
 - Always read the relevant existing code before making changes
@@ -195,6 +232,206 @@ A task is complete ONLY if ALL of the following are true:
 - [ ] No build errors or critical warnings remain
 - [ ] All new public functionality is covered by tests
 - [ ] No orphaned tests reference deleted code
+
+---
+
+## MudBlazor & Razor Pages
+
+### File structure
+
+All Blazor pages live under `src/SecurityRule.Web/Components/Pages/<EntityName>/`.  
+Each entity section contains the same set of files:
+
+| File | Purpose |
+|---|---|
+| `Index.razor` | List page — loads data, shows `<Table>` component |
+| `Table.razor` | Reusable `MudTable` component (no `@page` directive) |
+| `Create.razor` | Create form page |
+| `Edit.razor` | Edit / Delete form page |
+| `Details.razor` | Read-only detail view; supports `Embedded="true"` for inline rendering inside Table |
+
+Shared reusable components (inputs, chips) go in `Components/Shared/`.  
+Modal dialogs go in `Components/Dialogs/` and inherit `MudDialog`.
+
+### Required directives (every page)
+
+```razor
+@page "/entity-name"
+@rendermode InteractiveServer
+@inject IEntityRepository EntityRepository
+@inject NavigationManager Navigation
+```
+
+`@rendermode InteractiveServer` is **mandatory** on every `@page` component — without it, event handlers will not fire.
+
+Global usings (MudBlazor, Domain models, services, etc.) are declared once in `Components/_Imports.razor` — do **not** repeat them in individual files.
+
+### Index page pattern
+
+```razor
+@page "/entities"
+@rendermode InteractiveServer
+@inject IEntityRepository EntityRepository
+@inject NavigationManager Navigation
+
+<PageTitle>Сущности</PageTitle>
+
+<MudStack Row="true" Spacing="1">
+    <MudText Typo="Typo.h4" GutterBottom="true">Сущности</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" Color="Color.Default"
+                   Title="Добавить"
+                   OnClick="@(() => Navigation.NavigateTo("/entities/create"))" />
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <Table Items="_entities" />
+}
+
+@code {
+    private IEnumerable<Entity> _entities = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _entities = await EntityRepository.GetAllAsync();
+        _loading = false;
+    }
+}
+```
+
+### Table component pattern
+
+- No `@page` directive
+- `[Parameter] public IEnumerable<Entity> Items { get; set; } = [];`
+- `[Parameter] public int Elevation { get; set; } = 1;`
+- Use `MudTable` with `Hover="true" Striped="true" Dense="true"`
+- Row click expands inline `<Details>` with `Embedded="true"` — Ctrl+click / middle-click opens in new tab
+- Action buttons (`MudIconButton`) in the last column use `@onclick:stopPropagation="true"` to prevent row expansion
+- Always include `data-testid` attributes on interactive elements for Playwright E2E tests
+
+```razor
+<MudTable T="Entity" Items="@Items" Hover="true" Striped="true" Dense="true"
+          Elevation="@Elevation" OnRowClick="@ToggleRow">
+    <HeaderContent>
+        <MudTh>Название</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Название">@context.Name</MudTd>
+        <MudTd Style="text-align:right">
+            <span @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               OnClick="@(() => Navigation.NavigateTo($"/entities/edit/{context.Id}"))" />
+            </span>
+        </MudTd>
+    </RowTemplate>
+    <ChildRowContent Context="entity">
+        @if (_expandedRows.Contains(entity.Id))
+        {
+            <MudTr>
+                <td colspan="2" style="padding:0; background:var(--mud-palette-background-grey);">
+                    <div style="border-left:3px solid var(--mud-palette-primary); margin:8px 16px 12px 36px; padding-left:16px;">
+                        <Details Server="entity" Embedded="true" />
+                    </div>
+                </td>
+            </MudTr>
+        }
+    </ChildRowContent>
+</MudTable>
+```
+
+### Create / Edit form pattern
+
+- Wrap fields in `<MudCard><MudCardContent>` / `<MudCardActions>`
+- Add `Class="mb-3"` to every input for consistent spacing
+- Show `ISnackbar` notifications after save/delete: `Snackbar.Add("Сохранено", Severity.Success)`
+- Catch exceptions on Delete and show `Severity.Error`
+- Navigate back with `NavigationManager` after successful save
+
+```razor
+@inject ISnackbar Snackbar
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="_entity.Name" Label="Название" Required="true" Class="mb-3" />
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">Сохранить</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/entities"))">Отмена</MudButton>
+        @* Edit only — Delete button *@
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete" OnClick="@Delete">Удалить</MudButton>
+    </MudCardActions>
+</MudCard>
+```
+
+### Details page / component pattern
+
+- Supports dual mode: standalone page (`@page`) and embedded in a table row (`Embedded="true"`)
+- Use `MudBreadcrumbs` on standalone pages
+- Use `MudGrid` + `MudItem` for field layout (xs/sm breakpoints)
+- Label: `Typo.caption Color="Color.Secondary"`, value: `Typo.body1`
+
+### Common MudBlazor components used in this project
+
+| Component | Usage |
+|---|---|
+| `MudTextField` | Text, IP, description inputs |
+| `MudAutocomplete` | OS selection, tag input (`CoerceText="true"`) |
+| `MudSelect` + `MudSelectItem` | Multi-select of related entities (`MultiSelection="true"`) |
+| `MudTable` | All data lists (`Hover`, `Striped`, `Dense`) |
+| `MudCard` / `MudCardContent` / `MudCardActions` | Form containers |
+| `MudGrid` / `MudItem` | Responsive detail layouts |
+| `MudStack` | Horizontal/vertical flex layouts (`Row="true"`) |
+| `MudChip` / `MudChipSet` | Tag display |
+| `MudIconButton` | Icon actions in tables |
+| `MudProgressLinear` | Loading indicator (`Color.Primary Indeterminate`) |
+| `MudDialog` | Modal dialogs — use `[CascadingParameter] IMudDialogInstance MudDialog` |
+| `MudBreadcrumbs` | Page navigation trail |
+| `MudSnackbar` / `ISnackbar` | Toast notifications (Success / Error / Warning) |
+| `MudNavLink` | Navigation menu items |
+| `MudDivider` | Horizontal separator in nav / dialogs |
+| `MudTooltip` | Hover hints on icon buttons |
+| `MudSpacer` | Flex spacer in MudStack / MudAppBar |
+
+### Icons
+
+Always use `Icons.Material.Filled.*` — never use string literals.  
+Common icons: `Dns` (server), `MiscellaneousServices` (service), `CompareArrows` (connections), `Security` (certificates), `AccountCircle` (user), `Group` (group), `Edit`, `Delete`, `Add`, `ContentCopy`, `OpenInNew`.
+
+### Navigation
+
+- Routes follow the pattern `/entity-name`, `/entity-name/create`, `/entity-name/edit/{Id:int}`, `/entity-name/{Id:int}`
+- Route parameters use `[Parameter] public int Id { get; set; }`
+- Query parameters use `[SupplyParameterFromQuery] public int? ParamName { get; set; }`
+- After successful save → navigate back to the list or detail page
+
+### NavMenu
+
+Add new pages to `Components/Layout/NavMenu.razor` under the appropriate section (`ИНФРАСТРУКТУРА`, `БЕЗОПАСНОСТЬ`, `УЧЁТНЫЕ ЗАПИСИ`) using `<MudNavLink Href="..." Icon="...">`.
+
+### Dialog pattern
+
+```razor
+@inject IDialogService DialogService
+
+// Open a dialog:
+var parameters = new DialogParameters<MyDialog> { { p => p.EntityId, id } };
+await DialogService.ShowAsync<MyDialog>("Заголовок", parameters,
+    new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+```
+
+In the dialog component:
+```razor
+[CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+void Close() => MudDialog.Close();
+```
 
 ---
 

@@ -1,0 +1,896 @@
+using System.Text;
+using DotnetAgent.Config;
+using DotnetAgent.Models;
+using DotnetAgent.Tools;
+
+namespace DotnetAgent.Core;
+
+/// <summary>
+/// Главный класс агента — реализует цикл "думать → действовать → думать".
+///
+/// ══════════════════════════════════════════════════════════
+/// АРХИТЕКТУРА: паттерн ReAct (Reasoning + Acting)
+/// ══════════════════════════════════════════════════════════
+///
+/// ReAct — это основной подход в построении AI агентов.
+/// Агент работает в цикле:
+///
+///   Пользователь: "Найди все TODO в проекте"
+///       ↓
+///   [THINK] Отправить запрос в LLM: "что нужно сделать?"
+///       ↓
+///   LLM: "Мне нужно использовать search_in_files с query='TODO'"
+///       ↓
+///   [ACT] Выполнить инструмент search_in_files
+///       ↓
+///   Результат: "TODO в файлах: Program.cs:15, UserService.cs:42..."
+///       ↓
+///   [THINK] Отправить результат в LLM: "что теперь?"
+///       ↓
+///   LLM: "Вот список TODO комментариев: ..." (финальный ответ)
+///       ↓
+///   Пользователь видит ответ
+///
+/// Цикл продолжается пока LLM вызывает инструменты.
+/// Когда LLM даёт текстовый ответ без tool_calls — цикл завершается.
+/// ══════════════════════════════════════════════════════════
+///
+/// Фаза 3: streaming ответов, сохранение сессий, planning mode, undo.
+/// </summary>
+public class Agent
+{
+    private readonly OllamaClient _ollamaClient;
+    private readonly ToolRegistry _toolRegistry;
+    private readonly AgentConfig _config;
+    private readonly UndoManager _undoManager = new();
+
+    // История разговора (в рамках сессии)
+    private readonly List<ChatMessage> _conversationHistory = new();
+
+    // Фаза 3: хранилище сессий (может быть null если persistence отключена)
+    private SessionStore? _sessionStore;
+    private long _currentSessionId;
+
+    /// <summary>
+    /// Фиксированный промпт для команды "обнови контекст".
+    /// Пользователь просто вводит команду — агент получает этот текст автоматически.
+    /// </summary>
+    private const string UpdateContextPrompt =
+        "Немедленно начни анализ проекта с вызова инструмента list_files. " +
+        "Затем читай ключевые файлы: .sln/.slnx, .csproj каждого проекта, Program.cs, README.md и appsettings.json. " +
+        "Используй get_class_info и search_in_files для изучения ключевых классов и паттернов. " +
+        "Собери полную картину: технологии, фреймворки, NuGet-пакеты, " +
+        "структуру директорий и проектов в солюшене, назначение каждого проекта, " +
+        "ключевые классы и интерфейсы, точки входа, паттерны и архитектурные решения, " +
+        "соглашения по именованию и коду. " +
+        "После сбора всей информации ОБЯЗАТЕЛЬНО вызови инструмент save_project_context, " +
+        "передав описание в параметр 'context'. " +
+        "НЕ выводи описание как текст — только сохрани через инструмент save_project_context. " +
+        "НЕ описывай что собираешься сделать — сразу вызывай инструменты.";
+
+    // ── Фаза 5: ключевые слова для роутинга модели ────────────────────────────
+
+    /// <summary>Слова-признаки простой задачи (используем быструю модель).</summary>
+    private static readonly string[] FastKeywords =
+    [
+        "найди", "покажи", "список", "где", "что такое", "объясни", "расскажи",
+        "опиши", "какие", "структура", "покажи структуру", "открой", "прочитай",
+        "find", "show", "list", "explain", "describe", "search"
+    ];
+
+    /// <summary>Слова-признаки сложной задачи (используем умную модель).</summary>
+    private static readonly string[] SmartKeywords =
+    [
+        "создай", "напиши", "добавь", "измени", "исправь", "рефактори", "реализуй",
+        "сгенерируй", "генерируй", "ревью", "проверь", "оптимизируй", "перепиши",
+        "имплементируй", "архитектур", "мигра",
+        "тест", "тесты", "покрой тестами",          // генерация тестов — сложная задача
+        "create", "write", "add", "change", "fix", "refactor", "implement",
+        "generate", "review", "optimize", "rewrite", "test", "tests"
+    ];
+
+    public Agent(OllamaClient ollamaClient, ToolRegistry toolRegistry, AgentConfig config)
+    {
+        _ollamaClient = ollamaClient;
+        _toolRegistry = toolRegistry;
+        _config = config;
+    }
+
+    /// <summary>
+    /// Запускает интерактивный консольный цикл.
+    ///
+    /// Читает ввод пользователя, запускает агента, выводит ответ.
+    /// Повторяет пока пользователь не введёт "выход".
+    /// </summary>
+    public async Task RunAsync()
+    {
+        // ── Проверка соединения с Ollama ──────────────────────────────────────
+        Console.Write("Проверяю соединение с Ollama...");
+        if (!await _ollamaClient.IsAvailableAsync())
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(" ✗ НЕДОСТУПЕН");
+            Console.ResetColor();
+            Console.WriteLine();
+            Console.WriteLine($"Ollama не отвечает по адресу: {_config.OllamaUrl}");
+            Console.WriteLine();
+            Console.WriteLine("Для запуска Ollama в Docker:");
+            Console.WriteLine("  1. cd ai-agent");
+            Console.WriteLine("  2. docker compose up -d");
+            Console.WriteLine($"  3. docker exec -it ollama ollama pull {_config.ModelName}");
+            return;
+        }
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine(" ✓ OK");
+        Console.ResetColor();
+
+        // Показываем доступные модели как дополнительную диагностику
+        var models = await _ollamaClient.GetAvailableModelsAsync();
+        if (models.Length > 0)
+        {
+            Console.WriteLine($"Доступные модели: {string.Join(", ", models)}");
+            if (!models.Any(m => m.StartsWith(_config.ModelName.Split(':')[0], StringComparison.OrdinalIgnoreCase)))
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"⚠️  Модель '{_config.ModelName}' не найдена!");
+                Console.WriteLine($"   Скачайте её: docker exec -it ollama ollama pull {_config.ModelName}");
+                Console.ResetColor();
+            }
+        }
+
+        Console.WriteLine();
+
+        // ── Фаза 3: загрузка сессии ────────────────────────────────────────────
+        if (_config.EnableSessionPersistence)
+            await InitializeSessionAsync();
+
+        // ── Инициализация системного промпта ──────────────────────────────────
+        // Системный промпт добавляется один раз в начале разговора.
+        _conversationHistory.Add(BuildSystemMessage());
+
+        // Кешируем список инструментов (не меняется в ходе работы)
+        var toolDefinitions = _toolRegistry.GetToolDefinitions();
+
+        // ── Главный цикл ──────────────────────────────────────────────────────
+        while (true)
+        {
+            // Читаем ввод пользователя
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("\n> ");
+            Console.ResetColor();
+
+            var userInput = Console.ReadLine()?.Trim() ?? "";
+
+            // Обрабатываем служебные команды
+            if (string.IsNullOrEmpty(userInput)) continue;
+
+            // ── Фаза 5: флаги выбора модели ──────────────────────────────────
+            // Пользователь может явно указать модель: "--fast Найди все TODO" или "--smart Рефактори..."
+            ModelTask? forcedModelTask = null;
+            if (userInput.StartsWith("--fast ", StringComparison.OrdinalIgnoreCase))
+            {
+                forcedModelTask = ModelTask.Fast;
+                userInput = userInput[7..].TrimStart();
+            }
+            else if (userInput.StartsWith("--smart ", StringComparison.OrdinalIgnoreCase))
+            {
+                forcedModelTask = ModelTask.Smart;
+                userInput = userInput[8..].TrimStart();
+            }
+
+            var isUpdateContextCommand = false;
+
+            switch (userInput.ToLowerInvariant())
+            {
+                case "выход" or "exit" or "quit" or "q":
+                    Console.WriteLine("До свидания!");
+                    return;
+
+                case "история":
+                    PrintConversationHistory();
+                    continue;
+
+                case "очистить" or "clear":
+                    _conversationHistory.RemoveAll(m => m.Role != "system");
+                    Console.WriteLine("✓ История разговора очищена.");
+                    continue;
+
+                case "инструменты" or "tools":
+                    PrintAvailableTools();
+                    continue;
+
+                case "помощь" or "help":
+                    PrintHelp();
+                    continue;
+
+                // Фаза 3: откат последнего изменения
+                case "undo" or "отменить" or "откат":
+                    var undoResult = _undoManager.Undo();
+                    if (undoResult == null)
+                        Console.WriteLine("Нечего отменять.");
+                    else
+                        Console.WriteLine(undoResult);
+                    continue;
+
+                // Фаза 3: список последних сессий
+                case "сессии" or "sessions":
+                    PrintSessions();
+                    continue;
+
+                // Обновление контекста проекта одной командой
+                case "обнови контекст" or "update context" or "обновить контекст":
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine("Запускаю анализ проекта и обновление контекста...");
+                    Console.ResetColor();
+                    isUpdateContextCommand = true;
+                    userInput = UpdateContextPrompt;
+                    break;
+
+                // Статус контекста проекта
+                case "контекст" or "context":
+                    PrintContextStatus();
+                    continue;
+
+                // Быстрый запуск тестов напрямую без LLM
+                case "run tests" or "запусти тесты" or "тесты":
+                    await ExecuteToolDirectlyAsync("dotnet_test");
+                    continue;
+
+                // Быстрый запуск сборки напрямую без LLM
+                case "run build" or "запусти сборку" or "сборка" or "build":
+                    await ExecuteToolDirectlyAsync("dotnet_build");
+                    continue;
+            }
+
+            // ── Фаза 5: выбираем модель для этого запроса ────────────────────
+            var modelTask = forcedModelTask ?? ClassifyTask(userInput);
+            var modelName = _config.GetModelForTask(modelTask);
+
+            // Показываем какую модель используем (только если отличается от дефолтной)
+            if (modelName != _config.ModelName)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine($"  [модель: {modelName} — {modelTask switch {
+                    ModelTask.Fast => "быстрый режим",
+                    ModelTask.Smart => "умный режим",
+                    _ => "стандартный режим"
+                }}]");
+                Console.ResetColor();
+            }
+
+            // Добавляем сообщение пользователя в историю
+            _conversationHistory.Add(new ChatMessage { Role = "user", Content = userInput });
+
+            // Фаза 3: сохраняем в БД
+            if (_sessionStore != null)
+                _sessionStore.SaveMessage(_currentSessionId,
+                    _conversationHistory[^1]);
+
+            // Запоминаем время модификации файла контекста перед запуском агента
+            var contextFilePath = Tools.ContextTools.GetContextFilePath(_config.ProjectPath);
+            var contextModifiedBefore = File.Exists(contextFilePath)
+                ? File.GetLastWriteTime(contextFilePath)
+                : (DateTime?)null;
+
+            // Запускаем цикл агента (Фаза 5: передаём выбранную модель)
+            await RunAgentLoopAsync(toolDefinitions, modelName);
+
+            // Fallback для команды "обнови контекст": если LLM не вызвал save_project_context,
+            // сохраняем последний ответ ассистента как контекст автоматически.
+            if (isUpdateContextCommand)
+                TrySaveFallbackContext(contextFilePath, contextModifiedBefore);
+        }
+    }
+
+    /// <summary>
+    /// Фаза 3: инициализация или восстановление сессии.
+    /// </summary>
+    private async Task InitializeSessionAsync()
+    {
+        try
+        {
+            _sessionStore = SessionStore.CreateDefault();
+            var lastSession = _sessionStore.GetLastSession(_config.ProjectPath);
+
+            if (lastSession != null)
+            {
+                Console.WriteLine($"Найдена предыдущая сессия: {lastSession.Name} ({lastSession.CreatedAt})");
+                Console.Write("Продолжить? (д/н): ");
+                var answer = Console.ReadLine()?.Trim().ToLowerInvariant() ?? "";
+
+                if (answer is "д" or "y" or "yes" or "да")
+                {
+                    _currentSessionId = lastSession.Id;
+                    var history = _sessionStore.LoadMessages(_currentSessionId);
+                    _conversationHistory.AddRange(history);
+                    Console.WriteLine($"✓ Загружено {history.Count} сообщений из предыдущей сессии.");
+                    Console.WriteLine();
+                    return;
+                }
+            }
+
+            // Создаём новую сессию
+            var sessionName = $"Сессия {DateTime.Now:yyyy-MM-dd HH:mm}";
+            _currentSessionId = _sessionStore.CreateSession(_config.ProjectPath, sessionName);
+            Console.WriteLine($"✓ Новая сессия создана: {sessionName}");
+            Console.WriteLine();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"⚠️  Сессии недоступны: {ex.Message}");
+            Console.ResetColor();
+            _sessionStore = null;
+        }
+    }
+
+    /// <summary>
+    /// Внутренний цикл агента: LLM ↔ Инструменты.
+    ///
+    /// Отправляет текущую историю в LLM.
+    /// Если LLM возвращает tool_calls — выполняет инструменты и повторяет.
+    /// Если LLM возвращает текст — выводит его пользователю и завершает цикл.
+    ///
+    /// Фаза 3: для финального ответа используется streaming.
+    /// Фаза 5: modelOverride позволяет выбрать быструю или умную модель.
+    /// </summary>
+    private async Task RunAgentLoopAsync(List<ToolDefinition> toolDefinitions, string? modelOverride = null)
+    {
+        var toolCallCount = 0;
+
+        while (true)
+        {
+            // Индикатор что агент думает
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("🤔 Думаю...");
+            Console.ResetColor();
+
+            // ── Запрос к LLM ──────────────────────────────────────────────────
+            ChatResponse response;
+            try
+            {
+                response = await _ollamaClient.ChatAsync(
+                    _conversationHistory,
+                    toolDefinitions,
+                    _config.Temperature,
+                    _config.ContextWindowSize,
+                    modelOverride);
+            }
+            catch (Exception ex)
+            {
+                Console.Write("\r                    \r");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"❌ Ошибка: {ex.Message}");
+                Console.ResetColor();
+
+                // Удаляем последнее сообщение пользователя чтобы он мог повторить запрос
+                if (_conversationHistory.Count > 0 && _conversationHistory[^1].Role == "user")
+                    _conversationHistory.RemoveAt(_conversationHistory.Count - 1);
+
+                return;
+            }
+
+            Console.Write("\r                    \r");
+
+            if (response.Message == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("❌ LLM вернул пустой ответ");
+                Console.ResetColor();
+                return;
+            }
+
+            // Добавляем ответ LLM в историю разговора
+            _conversationHistory.Add(response.Message);
+            if (_sessionStore != null)
+                _sessionStore.SaveMessage(_currentSessionId, response.Message);
+
+            // ── Обработка вызовов инструментов ────────────────────────────────
+            if (response.Message.ToolCalls is { Count: > 0 } toolCalls)
+            {
+                // Защита от бесконечного цикла
+                if (toolCallCount >= _config.MaxToolCallsPerRequest)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"⚠️  Достигнут лимит вызовов инструментов ({_config.MaxToolCallsPerRequest}).");
+                    Console.WriteLine("Увеличьте MaxToolCallsPerRequest в AgentConfig если нужно.");
+                    Console.ResetColor();
+                    break;
+                }
+
+                foreach (var toolCall in toolCalls)
+                {
+                    toolCallCount++;
+                    var toolName = toolCall.Function.Name;
+
+                    Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    Console.Write($"  🔧 {toolName}");
+                    Console.ResetColor();
+
+                    var tool = _toolRegistry.GetTool(toolName);
+                    string toolResult;
+
+                    if (tool == null)
+                    {
+                        toolResult = $"Ошибка: инструмент '{toolName}' не найден";
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine(" → не найден");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        try
+                        {
+                            // Фаза 3: backup для undo перед инструментами изменяющими файлы
+                            using var tx = _undoManager.BeginTransaction(toolName);
+                            BackupToolFiles(tx, toolName, toolCall.Function.Arguments);
+
+                            toolResult = await tool.ExecuteAsync(toolCall.Function.Arguments);
+
+                            // Фиксируем undo только если инструмент что-то изменил
+                            if (IsWritingTool(toolName))
+                                tx.Commit();
+
+                            Console.ForegroundColor = ConsoleColor.DarkGray;
+                            Console.WriteLine($" → {toolResult.Length} симв.");
+                            Console.ResetColor();
+                        }
+                        catch (Exception ex)
+                        {
+                            toolResult = $"Ошибка выполнения инструмента '{toolName}': {ex.Message}";
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($" → ошибка: {ex.Message}");
+                            Console.ResetColor();
+                        }
+                    }
+
+                    var toolMessage = new ChatMessage { Role = "tool", Content = toolResult };
+                    _conversationHistory.Add(toolMessage);
+                    if (_sessionStore != null)
+                        _sessionStore.SaveMessage(_currentSessionId, toolMessage);
+                }
+
+                // Продолжаем цикл — LLM получит результаты и продолжит работу
+                continue;
+            }
+
+            // ── Финальный ответ LLM ────────────────────────────────────────────
+            if (!string.IsNullOrEmpty(response.Message.Content))
+            {
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("── Ответ ──────────────────────────────────────────────────");
+                Console.ResetColor();
+
+                // Фаза 3: streaming для финального ответа (пересказываем через stream API)
+                if (_config.EnableStreaming)
+                {
+                    await StreamFinalResponseAsync(toolDefinitions, modelOverride, response.Message.Content);
+                    return; // streaming сам добавляет сообщение в историю
+                }
+                else
+                {
+                    Console.WriteLine(response.Message.Content);
+                }
+
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine("───────────────────────────────────────────────────────────");
+                Console.ResetColor();
+            }
+
+            break;
+        }
+    }
+
+    /// <summary>
+    /// Фаза 3: streaming финального ответа от LLM.
+    ///
+    /// Заменяем последнее assistant-сообщение в истории на "streaming-заготовку"
+    /// и добавляем streaming ответ, выводя токены по мере поступления.
+    /// Фаза 5: modelOverride позволяет использовать выбранную модель.
+    ///
+    /// Если стриминг не вернул содержимого (например у thinking-моделей типа qwen3),
+    /// используем fallbackContent из не-стримингового ответа.
+    /// </summary>
+    private async Task StreamFinalResponseAsync(
+        List<ToolDefinition> toolDefinitions,
+        string? modelOverride = null,
+        string? fallbackContent = null)
+    {
+        // Убираем последнее assistant-сообщение (оно содержит ответ без streaming)
+        // и получаем streaming ответ через отдельный запрос
+        if (_conversationHistory.Count > 0 && _conversationHistory[^1].Role == "assistant")
+            _conversationHistory.RemoveAt(_conversationHistory.Count - 1);
+
+        // Также убираем его из БД (будет добавлен заново со streaming содержимым)
+        // Простой способ: просто получим streaming версию
+
+        var fullResponse = new StringBuilder();
+
+        try
+        {
+            await foreach (var token in _ollamaClient.ChatStreamAsync(
+                _conversationHistory, toolDefinitions,
+                _config.Temperature, _config.ContextWindowSize,
+                modelOverride: modelOverride))
+            {
+                Console.Write(token);
+                fullResponse.Append(token);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"\n❌ Ошибка streaming: {ex.Message}");
+            Console.ResetColor();
+            return;
+        }
+
+        // Если стриминг не вернул содержимого (thinking-модели вроде qwen3 могут
+        // вернуть пустой content при stream=true), используем не-стриминговый ответ.
+        if (string.IsNullOrWhiteSpace(fullResponse.ToString()) &&
+            !string.IsNullOrWhiteSpace(fallbackContent))
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("[streaming вернул пустой ответ — используется не-стриминговый результат]");
+            Console.ResetColor();
+            Console.Write(fallbackContent);
+            fullResponse.Append(fallbackContent);
+        }
+
+        Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine("───────────────────────────────────────────────────────────");
+        Console.ResetColor();
+
+        // Сохраняем полный ответ в историю
+        var assistantMessage = new ChatMessage
+        {
+            Role = "assistant",
+            Content = fullResponse.ToString()
+        };
+        _conversationHistory.Add(assistantMessage);
+        if (_sessionStore != null)
+            _sessionStore.SaveMessage(_currentSessionId, assistantMessage);
+    }
+
+    /// <summary>
+    /// Фаза 5: классифицирует задачу для выбора оптимальной модели.
+    ///
+    /// Анализирует ключевые слова в запросе:
+    ///   - Простые задачи (поиск, просмотр, объяснение) → Fast
+    ///   - Сложные задачи (написание кода, ревью, рефакторинг) → Smart
+    ///   - Остальное → Default
+    /// </summary>
+    private static ModelTask ClassifyTask(string userInput)
+    {
+        var lower = userInput.ToLowerInvariant();
+
+        // Проверяем сложные задачи первыми (они приоритетнее)
+        if (SmartKeywords.Any(k => lower.Contains(k)))
+            return ModelTask.Smart;
+
+        if (FastKeywords.Any(k => lower.Contains(k)))
+            return ModelTask.Fast;
+
+        return ModelTask.Default;
+    }
+
+    /// <summary>
+    /// Фаза 3: перед записью файла сохраняем backup для undo.
+    /// </summary>
+    private static void BackupToolFiles(UndoTransaction tx, string toolName, System.Text.Json.JsonElement args)
+    {
+        if (!IsWritingTool(toolName)) return;
+
+        if (args.TryGetProperty("path", out var pathEl))
+            tx.BackupFile(pathEl.GetString() ?? "");
+        else if (args.TryGetProperty("file_path", out var filePathEl))
+            tx.BackupFile(filePathEl.GetString() ?? "");
+    }
+
+    private static bool IsWritingTool(string toolName) =>
+        toolName is "write_file" or "create_file" or "patch_method" or "git_commit";
+
+    /// <summary>
+    /// Создаёт системный промпт для LLM.
+    ///
+    /// Системный промпт задаёт "личность" LLM:
+    ///   - Кто он такой (агент для .NET проектов)
+    ///   - Какие инструменты доступны
+    ///   - Какие правила соблюдать
+    ///   - На каком языке отвечать
+    /// </summary>
+    private ChatMessage BuildSystemMessage()
+    {
+        var toolsList = new StringBuilder();
+        foreach (var tool in _toolRegistry.GetAllTools())
+            toolsList.AppendLine($"  - {tool.Name}: {tool.Description.Split('.').FirstOrDefault() ?? tool.Description}");
+
+        var projectContextSection = !string.IsNullOrWhiteSpace(_config.ProjectContext)
+            ? $"\nКОНТЕКСТ ПРОЕКТА:\n{_config.ProjectContext}\n"
+            : "";
+
+        var sessionContinuationHint = _conversationHistory.Count > 0
+            ? "\nЭто продолжение существующей сессии. Структура проекта уже известна — не вызывай list_files повторно если пользователь не просит.\n"
+            : "";
+
+        var systemPromptExtra = !string.IsNullOrWhiteSpace(_config.SystemPromptExtra)
+            ? $"\n{_config.SystemPromptExtra}"
+            : "";
+
+        var systemPrompt = new StringBuilder();
+        systemPrompt.AppendLine("Ты — AI агент специализирующийся на анализе и изменении .NET/C# проектов.");
+        systemPrompt.AppendLine("Твоя цель — помогать разработчику понимать и улучшать код.");
+        systemPrompt.AppendLine();
+        systemPrompt.AppendLine($"АНАЛИЗИРУЕМЫЙ ПРОЕКТ: {_config.ProjectPath}");
+        if (!string.IsNullOrWhiteSpace(projectContextSection))
+            systemPrompt.Append(projectContextSection);
+        systemPrompt.AppendLine();
+        systemPrompt.AppendLine("ДОСТУПНЫЕ ИНСТРУМЕНТЫ:");
+        systemPrompt.Append(toolsList);
+        systemPrompt.AppendLine("КАК РАБОТАТЬ:");
+        systemPrompt.AppendLine("1. Начинай с list_files или search_in_files чтобы найти нужные файлы");
+        systemPrompt.AppendLine("   ВАЖНО: list_files возвращает не более 4000 символов. Используй параметр subdirectory или extension_filter чтобы сузить поиск.");
+        systemPrompt.AppendLine("2. Используй read_file для чтения файлов ПЕРЕД любыми изменениями");
+        systemPrompt.AppendLine("3. Используй get_class_info для анализа структуры C# классов");
+        systemPrompt.AppendLine("4. Используй search_in_files для поиска классов, методов, паттернов");
+        systemPrompt.AppendLine("5. Используй patch_method для изменения одного метода (лучше чем write_file для больших файлов)");
+        systemPrompt.AppendLine("6. Используй dotnet_build после изменений чтобы убедиться что код компилируется");
+        systemPrompt.AppendLine("7. ДЛЯ НАПИСАНИЯ ТЕСТОВ:");
+        systemPrompt.AppendLine("   a. Вызови generate_tests с class_name = имя класса/компонента БЕЗ расширения (например: 'MyService', не 'MyService.cs')");
+        systemPrompt.AppendLine("   b. generate_tests автоматически находит .razor компоненты и генерирует bUnit-тесты, C# классы — NUnit-тесты");
+        systemPrompt.AppendLine("   c. Укажи output_path чтобы сохранить тесты в файл (например: 'src/MyProject.Tests/MyClassTests.cs')");
+        systemPrompt.AppendLine("   d. Если generate_tests не нашёл файл — используй search_in_files с именем файла, затем read_file, и create_file для создания тестов");
+        systemPrompt.AppendLine();
+        systemPrompt.AppendLine("ПРАВИЛА:");
+        systemPrompt.AppendLine("- ВАЖНО: НЕ описывай что собираешься сделать — сразу вызывай инструменты");
+        systemPrompt.AppendLine("- ВАЖНО: первым шагом всегда должен быть вызов инструмента, а не текст");
+        systemPrompt.AppendLine("- Всегда читай файл перед изменением");
+        systemPrompt.AppendLine("- Сохраняй стиль кода существующего проекта");
+        systemPrompt.AppendLine("- Отвечай на русском языке");
+        systemPrompt.AppendLine("- Работай только с файлами внутри директории проекта");
+        systemPrompt.AppendLine("- Если задача неясна — уточни у пользователя");
+        systemPrompt.AppendLine("- Сообщай об ошибках понятным языком");
+        if (!string.IsNullOrWhiteSpace(sessionContinuationHint))
+            systemPrompt.Append(sessionContinuationHint);
+        if (!string.IsNullOrWhiteSpace(systemPromptExtra))
+            systemPrompt.Append(systemPromptExtra);
+
+        return new ChatMessage { Role = "system", Content = systemPrompt.ToString() };
+    }
+
+    /// <summary>Выводит краткую историю разговора</summary>
+    private void PrintConversationHistory()
+    {
+        Console.WriteLine("\n─── История разговора ─────────────────────────────────");
+        int msgNum = 0;
+        foreach (var msg in _conversationHistory)
+        {
+            if (msg.Role == "system") continue;
+
+            Console.ForegroundColor = msg.Role switch
+            {
+                "user" => ConsoleColor.Yellow,
+                "assistant" => ConsoleColor.Cyan,
+                "tool" => ConsoleColor.DarkGray,
+                _ => ConsoleColor.White
+            };
+
+            var preview = msg.Content?.Replace('\n', ' ') ?? "(tool call)";
+            if (preview.Length > 120) preview = preview[..120] + "...";
+
+            Console.WriteLine($"  [{++msgNum}] {msg.Role}: {preview}");
+        }
+        Console.ResetColor();
+        Console.WriteLine("───────────────────────────────────────────────────────");
+    }
+
+    /// <summary>Фаза 3: выводит список сессий для текущего проекта</summary>
+    private void PrintSessions()
+    {
+        if (_sessionStore == null)
+        {
+            Console.WriteLine("Сессии отключены (EnableSessionPersistence = false).");
+            return;
+        }
+
+        var sessions = _sessionStore.ListSessions(_config.ProjectPath);
+        if (sessions.Count == 0)
+        {
+            Console.WriteLine("Нет сохранённых сессий.");
+            return;
+        }
+
+        Console.WriteLine("\n─── Последние сессии ───────────────────────────────────");
+        foreach (var s in sessions)
+            Console.WriteLine($"  [{s.Id}] {s.Name} ({s.CreatedAt})");
+        Console.WriteLine("───────────────────────────────────────────────────────");
+    }
+
+    /// <summary>Выводит список доступных инструментов</summary>
+    private void PrintAvailableTools()
+    {
+        Console.WriteLine("\n─── Доступные инструменты ──────────────────────────────");
+        foreach (var tool in _toolRegistry.GetAllTools())
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write($"  🔧 {tool.Name}");
+            Console.ResetColor();
+            Console.WriteLine($": {tool.Description.Split('.').FirstOrDefault() ?? tool.Description}");
+        }
+        Console.WriteLine("───────────────────────────────────────────────────────");
+    }
+
+    /// <summary>Выводит помощь</summary>
+    private void PrintHelp()
+    {
+        Console.WriteLine("""
+
+        ─── Справка ────────────────────────────────────────────
+          Введите любой текст — агент выполнит задачу.
+          
+          Примеры задач:
+            > Покажи структуру проекта
+            > Найди все классы наследующие ControllerBase
+            > Покажи структуру класса UserService
+            > Найди где используется метод GetById
+            > Прочитай файл Program.cs
+            > Найди все TODO комментарии
+            > Добавь XML документацию к методу GetUsers
+            > Создай новый сервис EmailService с интерфейсом IEmailService
+            > Запусти сборку проекта
+            > Сгенерируй тесты для класса OrderService
+          
+          Быстрые команды (без LLM):
+            run tests / запусти тесты / тесты   — запустить dotnet test
+            run build / запусти сборку / сборка — запустить dotnet build
+          
+          Фаза 5 — Несколько моделей (роутинг):
+            Агент автоматически выбирает модель:
+              "найди", "покажи", "объясни" → быстрая модель
+              "создай", "напиши", "рефактори", "ревью" → умная модель
+            Явный выбор:
+            > --fast Покажи структуру проекта    (принудительно быстрая)
+            > --smart Рефактори класс UserService (принудительно умная)
+          
+          Фаза 5 — RAG (семантический поиск по коду):
+            > индексируй проект      — проиндексировать код в ChromaDB
+            > семантический поиск X  — найти код по смыслу
+          
+          Контекст проекта (ускоряет работу в больших солюшенах):
+            обнови контекст — проанализировать проект и сохранить контекст
+            контекст        — показать статус сохранённого контекста
+          
+          Служебные команды:
+            история     — показать историю разговора
+            очистить    — очистить историю (новый контекст)
+            инструменты — список доступных инструментов
+            сессии      — список последних сессий
+            undo        — отменить последнее изменение файла
+            помощь      — эта справка
+            выход       — завершить работу
+        ───────────────────────────────────────────────────────
+        """);
+    }
+
+    /// <summary>
+    /// Напрямую вызывает инструмент (например dotnet_test или dotnet_build)
+    /// без участия LLM — для команд быстрого доступа вроде "run tests".
+    /// </summary>
+    private async Task ExecuteToolDirectlyAsync(string toolName)
+    {
+        var tool = _toolRegistry.GetTool(toolName);
+        if (tool == null)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Инструмент '{toolName}' не найден.");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.WriteLine($"🔧 {toolName} ...");
+        Console.ResetColor();
+
+        string result;
+        try
+        {
+            result = await tool.ExecuteAsync(System.Text.Json.JsonDocument.Parse("{}").RootElement);
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Ошибка: {ex.Message}");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("── Результат ──────────────────────────────────────────────");
+        Console.ResetColor();
+        Console.WriteLine(result);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine("───────────────────────────────────────────────────────────");
+        Console.ResetColor();
+    }
+
+    /// <summary>Выводит статус сохранённого контекста проекта</summary>
+    private void PrintContextStatus()
+    {
+        var contextFile = Tools.ContextTools.GetContextFilePath(_config.ProjectPath);
+        Console.WriteLine("\n─── Контекст проекта ───────────────────────────────────");
+        if (File.Exists(contextFile))
+        {
+            var info = new FileInfo(contextFile);
+            var size = info.Length;
+            var modified = info.LastWriteTime;
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"  ✓ Контекст загружен: {contextFile}");
+            Console.ResetColor();
+            Console.WriteLine($"  Размер:   {size:N0} байт");
+            Console.WriteLine($"  Обновлён: {modified:yyyy-MM-dd HH:mm}");
+            Console.WriteLine();
+            Console.WriteLine("  Чтобы обновить — введите: обнови контекст");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("  ⚠  Контекст не сохранён.");
+            Console.ResetColor();
+            Console.WriteLine($"  Файл не найден: {contextFile}");
+            Console.WriteLine();
+            Console.WriteLine("  Введите: обнови контекст");
+            Console.WriteLine("  Агент проанализирует проект и сохранит описание.");
+            Console.WriteLine("  При следующем запуске контекст загрузится автоматически.");
+        }
+        Console.WriteLine("───────────────────────────────────────────────────────");
+    }
+
+    /// <summary>
+    /// Fallback для команды "обнови контекст".
+    ///
+    /// Если LLM завершил работу без вызова save_project_context (то есть вернул
+    /// описание как текст, а не через инструмент), этот метод сохраняет последний
+    /// текстовый ответ ассистента в файл .agent-context.md автоматически.
+    /// </summary>
+    private void TrySaveFallbackContext(string contextFilePath, DateTime? modifiedBefore)
+    {
+        // Проверяем, был ли файл создан или обновлён в ходе работы агента.
+        // Добавляем запас в 1 секунду для файловых систем с грубой точностью временных меток (FAT32 и др.).
+        var contextWasSaved = File.Exists(contextFilePath) &&
+                              (modifiedBefore == null ||
+                               File.GetLastWriteTime(contextFilePath) > modifiedBefore.Value.AddSeconds(-1));
+
+        if (contextWasSaved) return;
+
+        // Ищем последний ответ ассистента с достаточно содержательным текстом.
+        // Минимум 200 символов — чтобы не сохранять короткие служебные ответы.
+        const int MinContextLength = 50;
+        var lastAssistantContent = _conversationHistory
+            .LastOrDefault(m => m.Role == "assistant" &&
+                                !string.IsNullOrWhiteSpace(m.Content) &&
+                                m.Content.Length >= MinContextLength)
+            ?.Content;
+
+        if (string.IsNullOrWhiteSpace(lastAssistantContent)) return;
+
+        try
+        {
+            var header = $"# Контекст проекта\n\n" +
+                         $"_Сгенерировано: {DateTime.Now:yyyy-MM-dd HH:mm}_\n\n";
+            File.WriteAllText(contextFilePath, header + lastAssistantContent);
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"✓ Контекст сохранён автоматически: {contextFilePath}");
+            Console.ResetColor();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Не удалось сохранить контекст: {ex.Message}");
+            Console.ResetColor();
+        }
+    }
+}
