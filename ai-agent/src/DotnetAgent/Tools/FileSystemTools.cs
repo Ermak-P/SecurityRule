@@ -106,6 +106,17 @@ public static class FileSystemTools
     /// </summary>
     private class ListFilesTool(string projectPath) : IAgentTool
     {
+        /// <summary>
+        /// Максимальный размер вывода list_files в символах.
+        ///
+        /// Ограничение нужно чтобы не переполнять контекстное окно LLM:
+        ///   8192 токенов ≈ ~32 000 символов.
+        /// Вывод без фильтра на большом проекте легко достигает 100 000+ символов
+        /// и вытесняет из контекста задачу пользователя.
+        /// При превышении лимита агент получает подсказку использовать фильтры.
+        /// </summary>
+        private const int MaxOutputChars = 4000;
+
         public string Name => "list_files";
 
         public string Description =>
@@ -166,7 +177,18 @@ public static class FileSystemTools
 
             AppendDirectoryTree(targetPath, projectPath, sb, "  ", extensionFilter, depth: 0, maxDepth: 5);
 
-            return Task.FromResult(sb.ToString());
+            var result = sb.ToString();
+
+            // Защита от переполнения контекста: обрезаем слишком длинный вывод
+            if (result.Length > MaxOutputChars)
+            {
+                result = result[..MaxOutputChars] +
+                         "\n...\n⚠️ Вывод обрезан — слишком много файлов." +
+                         " Используй параметры subdirectory или extension_filter чтобы сузить область поиска." +
+                         " Например: subdirectory='src/SecurityRule.Web/Components', extension_filter='.razor'";
+            }
+
+            return Task.FromResult(result);
         }
 
         private static void AppendDirectoryTree(

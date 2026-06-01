@@ -84,8 +84,9 @@ public class Agent
         "создай", "напиши", "добавь", "измени", "исправь", "рефактори", "реализуй",
         "сгенерируй", "генерируй", "ревью", "проверь", "оптимизируй", "перепиши",
         "имплементируй", "архитектур", "мигра",
+        "тест", "тесты", "покрой тестами",          // генерация тестов — сложная задача
         "create", "write", "add", "change", "fix", "refactor", "implement",
-        "generate", "review", "optimize", "rewrite"
+        "generate", "review", "optimize", "rewrite", "test", "tests"
     ];
 
     public Agent(OllamaClient ollamaClient, ToolRegistry toolRegistry, AgentConfig config)
@@ -602,11 +603,17 @@ public class Agent
         systemPrompt.Append(toolsList);
         systemPrompt.AppendLine("КАК РАБОТАТЬ:");
         systemPrompt.AppendLine("1. Начинай с list_files или search_in_files чтобы найти нужные файлы");
+        systemPrompt.AppendLine("   ВАЖНО: list_files возвращает не более 4000 символов. Используй параметр subdirectory или extension_filter чтобы сузить поиск.");
         systemPrompt.AppendLine("2. Используй read_file для чтения файлов ПЕРЕД любыми изменениями");
         systemPrompt.AppendLine("3. Используй get_class_info для анализа структуры C# классов");
         systemPrompt.AppendLine("4. Используй search_in_files для поиска классов, методов, паттернов");
         systemPrompt.AppendLine("5. Используй patch_method для изменения одного метода (лучше чем write_file для больших файлов)");
         systemPrompt.AppendLine("6. Используй dotnet_build после изменений чтобы убедиться что код компилируется");
+        systemPrompt.AppendLine("7. ДЛЯ НАПИСАНИЯ ТЕСТОВ:");
+        systemPrompt.AppendLine("   a. Вызови generate_tests с class_name = имя класса/компонента БЕЗ расширения (например: 'ChipCollectionInput', не 'ChipCollectionInput.razor')");
+        systemPrompt.AppendLine("   b. generate_tests автоматически находит .razor компоненты и генерирует bUnit-тесты, C# классы — NUnit-тесты");
+        systemPrompt.AppendLine("   c. Укажи output_path чтобы сохранить тесты в файл (например: 'src/SecurityRule.Tests/Components/ChipCollectionInputTests.cs')");
+        systemPrompt.AppendLine("   d. Если generate_tests не нашёл файл — используй search_in_files с именем файла, затем read_file, и create_file для создания тестов");
         systemPrompt.AppendLine();
         systemPrompt.AppendLine("ПРАВИЛА:");
         systemPrompt.AppendLine("- ВАЖНО: НЕ описывай что собираешься сделать — сразу вызывай инструменты");
