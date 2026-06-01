@@ -57,6 +57,8 @@ public static class RagTools
         };
     }
 
+    private const int MaxEmbeddingTextLength = 2000;
+
     // ─── Получение embeddings от Ollama ──────────────────────────────────────
 
     private static async Task<float[]> GetEmbeddingAsync(
@@ -66,7 +68,7 @@ public static class RagTools
         string text)
     {
         // Усекаем текст до ~2000 символов (ограничение контекста embedding моделей)
-        if (text.Length > 2000) text = text[..2000];
+        if (text.Length > MaxEmbeddingTextLength) text = text[..MaxEmbeddingTextLength];
 
         var response = await httpClient.PostAsJsonAsync($"{ollamaUrl}/api/embeddings", new
         {
@@ -288,19 +290,6 @@ public static class RagTools
             }
 
             // Если не force — загружаем существующие хеши из ChromaDB для сравнения
-            var existingHashes = new HashSet<string>(); // "chunkId|hash"
-            if (!force)
-            {
-                // Мы не можем легко выгрузить все метаданные без отдельного GET endpoint,
-                // поэтому используем соглашение: храним хеш в id чанка через суффикс "@{hash}"
-                // Это позволяет определить по id, изменился ли файл:
-                // новый id = "{relPath}::{member}@{fileHash}"
-                foreach (var chunk in allChunks)
-                {
-                    // Хеш уже встроен в контент — используем его для формирования устойчивого Id
-                }
-            }
-
             // Группируем чанки по слоям и загружаем батчами
             var chunksByLayer = allChunks.GroupBy(c => c.Layer).ToList();
             var totalIndexed = 0;
@@ -317,10 +306,10 @@ public static class RagTools
                 var collectionId = collectionIds[layer];
                 var layerChunks = layerGroup.ToList();
 
-                // Загружаем хеши существующих чанков через специальный GET
+                // Загружаем хеши существующих чанков через ChromaDB GET endpoint
                 var existingChunkHashes = force
                     ? new Dictionary<string, string>()
-                    : await FetchExistingHashesAsync(collectionId);
+                    : await _chroma.GetItemHashesAsync(collectionId);
 
                 for (var i = 0; i < layerChunks.Count; i += batchSize)
                 {
@@ -389,39 +378,6 @@ public static class RagTools
             }
 
             return sb.ToString().TrimEnd();
-        }
-
-        /// <summary>Пытается получить существующие хеши чанков из ChromaDB через get endpoint.</summary>
-        private async Task<Dictionary<string, string>> FetchExistingHashesAsync(string collectionId)
-        {
-            try
-            {
-                // ChromaDB REST: GET /api/v1/collections/{id}/get
-                // Запрашиваем только метаданные (без embeddings)
-                var body = new { include = new[] { "metadatas" }, limit = 10000 };
-                var response = await _chroma._httpClient.PostAsJsonAsync(
-                    $"{_chroma._baseUrl}/api/v1/collections/{collectionId}/get", body);
-
-                if (!response.IsSuccessStatusCode) return new Dictionary<string, string>();
-
-                var result = await response.Content.ReadFromJsonAsync<ChromaGetResponse>();
-                if (result == null) return new Dictionary<string, string>();
-
-                var dict = new Dictionary<string, string>();
-                var ids = result.Ids ?? [];
-                var metas = result.Metadatas ?? [];
-
-                for (var i = 0; i < ids.Length && i < metas.Length; i++)
-                {
-                    if (metas[i]?.TryGetValue("file_hash", out var hash) == true && hash != null)
-                        dict[ids[i]] = hash;
-                }
-                return dict;
-            }
-            catch
-            {
-                return new Dictionary<string, string>();
-            }
         }
     }
 
@@ -564,15 +520,4 @@ public static class RagTools
             return sb.ToString().TrimEnd();
         }
     }
-}
-
-// ─── Вспомогательные типы для ChromaDB GET endpoint ──────────────────────────
-
-internal class ChromaGetResponse
-{
-    [System.Text.Json.Serialization.JsonPropertyName("ids")]
-    public string[]? Ids { get; set; }
-
-    [System.Text.Json.Serialization.JsonPropertyName("metadatas")]
-    public Dictionary<string, string>[]? Metadatas { get; set; }
 }

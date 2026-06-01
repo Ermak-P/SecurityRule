@@ -22,8 +22,8 @@ namespace DotnetAgent.Rag;
 /// </summary>
 public sealed class ChromaClient
 {
-    internal readonly HttpClient _httpClient;
-    internal readonly string _baseUrl;
+    private readonly HttpClient _httpClient;
+    private readonly string _baseUrl;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -163,6 +163,40 @@ public sealed class ChromaClient
             $"{_baseUrl}/api/v1/collections/{collectionId}/delete", body, JsonOpts);
         response.EnsureSuccessStatusCode();
     }
+
+    /// <summary>
+    /// Возвращает словарь {id → file_hash} для всех документов в коллекции.
+    /// Используется для инкрементальной переиндексации.
+    /// </summary>
+    public async Task<Dictionary<string, string>> GetItemHashesAsync(string collectionId)
+    {
+        try
+        {
+            var body = new { include = new[] { "metadatas" }, limit = 10000 };
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{_baseUrl}/api/v1/collections/{collectionId}/get", body, JsonOpts);
+
+            if (!response.IsSuccessStatusCode) return new Dictionary<string, string>();
+
+            var result = await response.Content.ReadFromJsonAsync<ChromaGetResponse>(JsonOpts);
+            if (result == null) return new Dictionary<string, string>();
+
+            var dict = new Dictionary<string, string>();
+            var resultIds = result.Ids ?? [];
+            var metas = result.Metadatas ?? [];
+
+            for (var i = 0; i < resultIds.Length && i < metas.Length; i++)
+            {
+                if (metas[i]?.TryGetValue("file_hash", out var hash) == true && hash != null)
+                    dict[resultIds[i]] = hash;
+            }
+            return dict;
+        }
+        catch
+        {
+            return new Dictionary<string, string>();
+        }
+    }
 }
 
 // ─── Модели ChromaDB API ──────────────────────────────────────────────────────
@@ -179,6 +213,12 @@ public class ChromaQueryResponse
     [JsonPropertyName("documents")] public string[][]? Documents { get; set; }
     [JsonPropertyName("distances")] public float[][]? Distances { get; set; }
     [JsonPropertyName("metadatas")] public Dictionary<string, string>[][]? Metadatas { get; set; }
+}
+
+public class ChromaGetResponse
+{
+    [JsonPropertyName("ids")] public string[]? Ids { get; set; }
+    [JsonPropertyName("metadatas")] public Dictionary<string, string>[]? Metadatas { get; set; }
 }
 
 public record ChromaQueryResult(
