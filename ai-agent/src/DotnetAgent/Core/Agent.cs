@@ -60,7 +60,9 @@ public class Agent
         "структуру директорий и проектов в солюшене, назначение каждого проекта, " +
         "ключевые классы и интерфейсы, точки входа, паттерны и архитектурные решения, " +
         "соглашения по именованию и коду. " +
-        "Собери всё это в структурированное описание и сохрани с помощью save_project_context.";
+        "Собери всё это в структурированное описание и ОБЯЗАТЕЛЬНО вызови инструмент save_project_context, " +
+        "передав описание в параметр 'context'. " +
+        "НЕ выводи описание как текст — только сохрани через инструмент save_project_context.";
 
     // ── Фаза 5: ключевые слова для роутинга модели ────────────────────────────
 
@@ -171,6 +173,8 @@ public class Agent
                 userInput = userInput[8..].TrimStart();
             }
 
+            var isUpdateContextCommand = false;
+
             switch (userInput.ToLowerInvariant())
             {
                 case "выход" or "exit" or "quit" or "q":
@@ -213,6 +217,7 @@ public class Agent
                     Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.WriteLine("Запускаю анализ проекта и обновление контекста...");
                     Console.ResetColor();
+                    isUpdateContextCommand = true;
                     userInput = UpdateContextPrompt;
                     break;
 
@@ -246,8 +251,19 @@ public class Agent
                 _sessionStore.SaveMessage(_currentSessionId,
                     _conversationHistory[^1]);
 
+            // Запоминаем время модификации файла контекста перед запуском агента
+            var contextFilePath = Tools.ContextTools.GetContextFilePath(_config.ProjectPath);
+            var contextModifiedBefore = File.Exists(contextFilePath)
+                ? File.GetLastWriteTime(contextFilePath)
+                : (DateTime?)null;
+
             // Запускаем цикл агента (Фаза 5: передаём выбранную модель)
             await RunAgentLoopAsync(toolDefinitions, modelName);
+
+            // Fallback для команды "обнови контекст": если LLM не вызвал save_project_context,
+            // сохраняем последний ответ ассистента как контекст автоматически.
+            if (isUpdateContextCommand)
+                TrySaveFallbackContext(contextFilePath, contextModifiedBefore);
         }
     }
 
@@ -744,5 +760,51 @@ public class Agent
             Console.WriteLine("  При следующем запуске контекст загрузится автоматически.");
         }
         Console.WriteLine("───────────────────────────────────────────────────────");
+    }
+
+    /// <summary>
+    /// Fallback для команды "обнови контекст".
+    ///
+    /// Если LLM завершил работу без вызова save_project_context (то есть вернул
+    /// описание как текст, а не через инструмент), этот метод сохраняет последний
+    /// текстовый ответ ассистента в файл .agent-context.md автоматически.
+    /// </summary>
+    private void TrySaveFallbackContext(string contextFilePath, DateTime? modifiedBefore)
+    {
+        // Проверяем, был ли файл создан или обновлён в ходе работы агента.
+        // Добавляем запас в 1 секунду для файловых систем с грубой точностью временных меток (FAT32 и др.).
+        var contextWasSaved = File.Exists(contextFilePath) &&
+                              (modifiedBefore == null ||
+                               File.GetLastWriteTime(contextFilePath) > modifiedBefore.Value.AddSeconds(-1));
+
+        if (contextWasSaved) return;
+
+        // Ищем последний ответ ассистента с достаточно содержательным текстом.
+        // Минимум 200 символов — чтобы не сохранять короткие служебные ответы.
+        const int MinContextLength = 200;
+        var lastAssistantContent = _conversationHistory
+            .LastOrDefault(m => m.Role == "assistant" &&
+                                !string.IsNullOrWhiteSpace(m.Content) &&
+                                m.Content.Length >= MinContextLength)
+            ?.Content;
+
+        if (string.IsNullOrWhiteSpace(lastAssistantContent)) return;
+
+        try
+        {
+            var header = $"# Контекст проекта\n\n" +
+                         $"_Сгенерировано: {DateTime.Now:yyyy-MM-dd HH:mm}_\n\n";
+            File.WriteAllText(contextFilePath, header + lastAssistantContent);
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"✓ Контекст сохранён автоматически: {contextFilePath}");
+            Console.ResetColor();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Не удалось сохранить контекст: {ex.Message}");
+            Console.ResetColor();
+        }
     }
 }
