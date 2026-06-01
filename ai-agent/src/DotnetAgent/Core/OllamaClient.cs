@@ -65,16 +65,21 @@ public class OllamaClient
     /// </param>
     /// <param name="temperature">Температура генерации (0.0–1.0)</param>
     /// <param name="contextWindowSize">Размер контекста в токенах</param>
+    /// <param name="modelOverride">
+    ///   Фаза 5: переопределить модель для этого запроса.
+    ///   Если null — используется модель из конструктора.
+    /// </param>
     public async Task<ChatResponse> ChatAsync(
         List<ChatMessage> messages,
         List<ToolDefinition>? tools = null,
         float temperature = 0.1f,
-        int contextWindowSize = 8192)
+        int contextWindowSize = 8192,
+        string? modelOverride = null)
     {
         // Формируем запрос к Ollama
         var request = new ChatRequest
         {
-            Model = _modelName,
+            Model = modelOverride ?? _modelName,
             Messages = messages,
             Tools = tools,
             Stream = false, // Ждём полный ответ (не стриминг)
@@ -160,11 +165,12 @@ public class OllamaClient
         List<ToolDefinition>? tools = null,
         float temperature = 0.1f,
         int contextWindowSize = 8192,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default,
+        string? modelOverride = null)
     {
         var request = new ChatRequest
         {
-            Model = _modelName,
+            Model = modelOverride ?? _modelName,
             Messages = messages,
             Tools = tools,
             Stream = true,

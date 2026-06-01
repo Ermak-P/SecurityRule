@@ -22,8 +22,8 @@ namespace DotnetAgent.Rag;
 /// </summary>
 public sealed class ChromaClient
 {
-    private readonly HttpClient _httpClient;
-    private readonly string _baseUrl;
+    internal readonly HttpClient _httpClient;
+    internal readonly string _baseUrl;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -79,10 +79,10 @@ public sealed class ChromaClient
     /// Добавляет или обновляет документы в коллекции.
     /// </summary>
     /// <param name="collectionId">ID коллекции</param>
-    /// <param name="documents">Список (id, content, embedding)</param>
+    /// <param name="documents">Список (id, content, embedding, metadata)</param>
     public async Task UpsertAsync(
         string collectionId,
-        IReadOnlyList<(string Id, string Content, float[] Embedding)> documents)
+        IReadOnlyList<(string Id, string Content, float[] Embedding, Dictionary<string, string>? Metadata)> documents)
     {
         if (documents.Count == 0) return;
 
@@ -90,7 +90,8 @@ public sealed class ChromaClient
         {
             ids = documents.Select(d => d.Id).ToArray(),
             documents = documents.Select(d => d.Content).ToArray(),
-            embeddings = documents.Select(d => d.Embedding).ToArray()
+            embeddings = documents.Select(d => d.Embedding).ToArray(),
+            metadatas = documents.Select(d => (object)(d.Metadata ?? new Dictionary<string, string>())).ToArray()
         };
 
         var response = await _httpClient.PostAsJsonAsync(
@@ -104,18 +105,34 @@ public sealed class ChromaClient
     /// <param name="collectionId">ID коллекции</param>
     /// <param name="queryEmbedding">Вектор запроса</param>
     /// <param name="nResults">Количество результатов</param>
+    /// <param name="whereFilter">Фильтр по метаданным (например {"layer": "domain"})</param>
     /// <returns>Список (id, content, distance) — ближайшие документы</returns>
     public async Task<IReadOnlyList<ChromaQueryResult>> QueryAsync(
         string collectionId,
         float[] queryEmbedding,
-        int nResults = 5)
+        int nResults = 5,
+        Dictionary<string, string>? whereFilter = null)
     {
-        var body = new
+        object body;
+        if (whereFilter is { Count: > 0 })
         {
-            query_embeddings = new[] { queryEmbedding },
-            n_results = nResults,
-            include = new[] { "documents", "distances", "metadatas" }
-        };
+            body = new
+            {
+                query_embeddings = new[] { queryEmbedding },
+                n_results = nResults,
+                include = new[] { "documents", "distances", "metadatas" },
+                where = whereFilter
+            };
+        }
+        else
+        {
+            body = new
+            {
+                query_embeddings = new[] { queryEmbedding },
+                n_results = nResults,
+                include = new[] { "documents", "distances", "metadatas" }
+            };
+        }
 
         var response = await _httpClient.PostAsJsonAsync(
             $"{_baseUrl}/api/v1/collections/{collectionId}/query", body, JsonOpts);
@@ -127,11 +144,13 @@ public sealed class ChromaClient
         var ids = result.Ids?.FirstOrDefault() ?? Array.Empty<string>();
         var documents = result.Documents?.FirstOrDefault() ?? Array.Empty<string>();
         var distances = result.Distances?.FirstOrDefault() ?? Array.Empty<float>();
+        var metadatas = result.Metadatas?.FirstOrDefault();
 
         return ids.Select((id, i) => new ChromaQueryResult(
             id,
             i < documents.Length ? documents[i] : "",
-            i < distances.Length ? distances[i] : 0f
+            i < distances.Length ? distances[i] : 0f,
+            metadatas != null && i < metadatas.Length ? metadatas[i] : null
         )).ToList();
     }
 
@@ -159,6 +178,11 @@ public class ChromaQueryResponse
     [JsonPropertyName("ids")] public string[][]? Ids { get; set; }
     [JsonPropertyName("documents")] public string[][]? Documents { get; set; }
     [JsonPropertyName("distances")] public float[][]? Distances { get; set; }
+    [JsonPropertyName("metadatas")] public Dictionary<string, string>[][]? Metadatas { get; set; }
 }
 
-public record ChromaQueryResult(string Id, string Content, float Distance);
+public record ChromaQueryResult(
+    string Id,
+    string Content,
+    float Distance,
+    Dictionary<string, string>? Metadata = null);

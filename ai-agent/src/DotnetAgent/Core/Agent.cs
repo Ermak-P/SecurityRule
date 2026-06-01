@@ -62,6 +62,26 @@ public class Agent
         "соглашения по именованию и коду. " +
         "Собери всё это в структурированное описание и сохрани с помощью save_project_context.";
 
+    // ── Фаза 5: ключевые слова для роутинга модели ────────────────────────────
+
+    /// <summary>Слова-признаки простой задачи (используем быструю модель).</summary>
+    private static readonly string[] FastKeywords =
+    [
+        "найди", "покажи", "список", "где", "что такое", "объясни", "расскажи",
+        "опиши", "какие", "структура", "покажи структуру", "открой", "прочитай",
+        "find", "show", "list", "explain", "describe", "search"
+    ];
+
+    /// <summary>Слова-признаки сложной задачи (используем умную модель).</summary>
+    private static readonly string[] SmartKeywords =
+    [
+        "создай", "напиши", "добавь", "измени", "исправь", "рефактори", "реализуй",
+        "сгенерируй", "генерируй", "ревью", "проверь", "оптимизируй", "перепиши",
+        "имплементируй", "архитектур", "мигра",
+        "create", "write", "add", "change", "fix", "refactor", "implement",
+        "generate", "review", "optimize", "rewrite"
+    ];
+
     public Agent(OllamaClient ollamaClient, ToolRegistry toolRegistry, AgentConfig config)
     {
         _ollamaClient = ollamaClient;
@@ -137,6 +157,20 @@ public class Agent
             // Обрабатываем служебные команды
             if (string.IsNullOrEmpty(userInput)) continue;
 
+            // ── Фаза 5: флаги выбора модели ──────────────────────────────────
+            // Пользователь может явно указать модель: "--fast Найди все TODO" или "--smart Рефактори..."
+            ModelTask? forcedModelTask = null;
+            if (userInput.StartsWith("--fast ", StringComparison.OrdinalIgnoreCase))
+            {
+                forcedModelTask = ModelTask.Fast;
+                userInput = userInput[7..].TrimStart();
+            }
+            else if (userInput.StartsWith("--smart ", StringComparison.OrdinalIgnoreCase))
+            {
+                forcedModelTask = ModelTask.Smart;
+                userInput = userInput[8..].TrimStart();
+            }
+
             switch (userInput.ToLowerInvariant())
             {
                 case "выход" or "exit" or "quit" or "q":
@@ -188,6 +222,22 @@ public class Agent
                     continue;
             }
 
+            // ── Фаза 5: выбираем модель для этого запроса ────────────────────
+            var modelTask = forcedModelTask ?? ClassifyTask(userInput);
+            var modelName = _config.GetModelForTask(modelTask);
+
+            // Показываем какую модель используем (только если отличается от дефолтной)
+            if (modelName != _config.ModelName)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.WriteLine($"  [модель: {modelName} — {modelTask switch {
+                    ModelTask.Fast => "быстрый режим",
+                    ModelTask.Smart => "умный режим",
+                    _ => "стандартный режим"
+                }}]");
+                Console.ResetColor();
+            }
+
             // Добавляем сообщение пользователя в историю
             _conversationHistory.Add(new ChatMessage { Role = "user", Content = userInput });
 
@@ -196,8 +246,8 @@ public class Agent
                 _sessionStore.SaveMessage(_currentSessionId,
                     _conversationHistory[^1]);
 
-            // Запускаем цикл агента
-            await RunAgentLoopAsync(toolDefinitions);
+            // Запускаем цикл агента (Фаза 5: передаём выбранную модель)
+            await RunAgentLoopAsync(toolDefinitions, modelName);
         }
     }
 
@@ -251,8 +301,9 @@ public class Agent
     /// Если LLM возвращает текст — выводит его пользователю и завершает цикл.
     ///
     /// Фаза 3: для финального ответа используется streaming.
+    /// Фаза 5: modelOverride позволяет выбрать быструю или умную модель.
     /// </summary>
-    private async Task RunAgentLoopAsync(List<ToolDefinition> toolDefinitions)
+    private async Task RunAgentLoopAsync(List<ToolDefinition> toolDefinitions, string? modelOverride = null)
     {
         var toolCallCount = 0;
 
@@ -271,7 +322,8 @@ public class Agent
                     _conversationHistory,
                     toolDefinitions,
                     _config.Temperature,
-                    _config.ContextWindowSize);
+                    _config.ContextWindowSize,
+                    modelOverride);
             }
             catch (Exception ex)
             {
@@ -382,7 +434,7 @@ public class Agent
                 // Фаза 3: streaming для финального ответа (пересказываем через stream API)
                 if (_config.EnableStreaming)
                 {
-                    await StreamFinalResponseAsync(toolDefinitions);
+                    await StreamFinalResponseAsync(toolDefinitions, modelOverride);
                     return; // streaming сам добавляет сообщение в историю
                 }
                 else
@@ -404,8 +456,9 @@ public class Agent
     ///
     /// Заменяем последнее assistant-сообщение в истории на "streaming-заготовку"
     /// и добавляем streaming ответ, выводя токены по мере поступления.
+    /// Фаза 5: modelOverride позволяет использовать выбранную модель.
     /// </summary>
-    private async Task StreamFinalResponseAsync(List<ToolDefinition> toolDefinitions)
+    private async Task StreamFinalResponseAsync(List<ToolDefinition> toolDefinitions, string? modelOverride = null)
     {
         // Убираем последнее assistant-сообщение (оно содержит ответ без streaming)
         // и получаем streaming ответ через отдельный запрос
@@ -421,7 +474,8 @@ public class Agent
         {
             await foreach (var token in _ollamaClient.ChatStreamAsync(
                 _conversationHistory, toolDefinitions,
-                _config.Temperature, _config.ContextWindowSize))
+                _config.Temperature, _config.ContextWindowSize,
+                modelOverride: modelOverride))
             {
                 Console.Write(token);
                 fullResponse.Append(token);
@@ -449,6 +503,28 @@ public class Agent
         _conversationHistory.Add(assistantMessage);
         if (_sessionStore != null)
             _sessionStore.SaveMessage(_currentSessionId, assistantMessage);
+    }
+
+    /// <summary>
+    /// Фаза 5: классифицирует задачу для выбора оптимальной модели.
+    ///
+    /// Анализирует ключевые слова в запросе:
+    ///   - Простые задачи (поиск, просмотр, объяснение) → Fast
+    ///   - Сложные задачи (написание кода, ревью, рефакторинг) → Smart
+    ///   - Остальное → Default
+    /// </summary>
+    private static ModelTask ClassifyTask(string userInput)
+    {
+        var lower = userInput.ToLowerInvariant();
+
+        // Проверяем сложные задачи первыми (они приоритетнее)
+        if (SmartKeywords.Any(k => lower.Contains(k)))
+            return ModelTask.Smart;
+
+        if (FastKeywords.Any(k => lower.Contains(k)))
+            return ModelTask.Fast;
+
+        return ModelTask.Default;
     }
 
     /// <summary>
@@ -609,6 +685,18 @@ public class Agent
             > Создай новый сервис EmailService с интерфейсом IEmailService
             > Запусти сборку проекта
             > Сгенерируй тесты для класса OrderService
+          
+          Фаза 5 — Несколько моделей (роутинг):
+            Агент автоматически выбирает модель:
+              "найди", "покажи", "объясни" → быстрая модель
+              "создай", "напиши", "рефактори", "ревью" → умная модель
+            Явный выбор:
+            > --fast Покажи структуру проекта    (принудительно быстрая)
+            > --smart Рефактори класс UserService (принудительно умная)
+          
+          Фаза 5 — RAG (семантический поиск по коду):
+            > индексируй проект      — проиндексировать код в ChromaDB
+            > семантический поиск X  — найти код по смыслу
           
           Контекст проекта (ускоряет работу в больших солюшенах):
             обнови контекст — проанализировать проект и сохранить контекст

@@ -1,7 +1,10 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DotnetAgent.Rag;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DotnetAgent.Tools;
 
@@ -10,17 +13,36 @@ namespace DotnetAgent.Tools;
 ///
 /// Фаза 5: семантический поиск по коду через ChromaDB.
 ///
+/// Стратегия чанкинга:
+///   - Roslyn разбивает .cs файлы на отдельные методы и классы
+///   - Каждый чанк = один метод или standalone-класс
+///   - Хранятся в отдельных коллекциях ChromaDB по слоям: code-domain, code-infrastructure, code-web, code-tests
+///
+/// Инкрементальная переиндексация:
+///   - SHA256 хеш файла сохраняется в метаданных
+///   - При переиндексации файлы с неизменившимся хешем пропускаются
+///
 /// Инструменты:
-///   - index_project  — индексировать все .cs файлы проекта в ChromaDB
-///   - semantic_search — найти код по смыслу (семантический поиск)
+///   - index_project    — индексировать .cs файлы проекта в ChromaDB (Roslyn-чанки)
+///   - semantic_search  — найти код по смыслу (семантический поиск), опционально по слою
 ///
 /// ВАЖНО: ChromaDB должен быть запущен:
-///   docker run -d -p 8000:8000 chromadb/chroma
-///
-/// Для получения embeddings используется Ollama API (/api/embeddings).
+///   docker compose up -d (в папке ai-agent)
 /// </summary>
 public static class RagTools
 {
+    // Имена коллекций по слоям архитектуры
+    private const string LayerDomain = "domain";
+    private const string LayerInfrastructure = "infrastructure";
+    private const string LayerWeb = "web";
+    private const string LayerTests = "tests";
+    private const string LayerDefault = "default";
+
+    private static readonly string[] AllLayers =
+        [LayerDomain, LayerInfrastructure, LayerWeb, LayerTests, LayerDefault];
+
+    private static string CollectionName(string layer) => $"code-{layer}";
+
     public static IEnumerable<IAgentTool> Create(
         string projectPath,
         ChromaClient chromaClient,
@@ -35,7 +57,7 @@ public static class RagTools
         };
     }
 
-    // ─── Общее: получение embeddings от Ollama ────────────────────────────────
+    // ─── Получение embeddings от Ollama ──────────────────────────────────────
 
     private static async Task<float[]> GetEmbeddingAsync(
         HttpClient httpClient,
@@ -60,6 +82,133 @@ public static class RagTools
         return embEl.EnumerateArray().Select(e => (float)e.GetDouble()).ToArray();
     }
 
+    // ─── Определение слоя по пути файла ──────────────────────────────────────
+
+    private static string DetectLayer(string filePath)
+    {
+        var normalized = filePath.Replace('\\', '/');
+        if (normalized.Contains("/Domain/") || normalized.Contains(".Domain/"))
+            return LayerDomain;
+        if (normalized.Contains("/Infrastructure/") || normalized.Contains(".Infrastructure/"))
+            return LayerInfrastructure;
+        if (normalized.Contains(".E2E.") || normalized.Contains(".Tests/") || normalized.Contains("/Tests/"))
+            return LayerTests;
+        if (normalized.Contains("/Web/") || normalized.Contains(".Web/") || normalized.EndsWith(".razor"))
+            return LayerWeb;
+        return LayerDefault;
+    }
+
+    // ─── Roslyn-чанкинг: методы и классы ─────────────────────────────────────
+
+    private sealed record CodeChunk(
+        string Id,           // "{relPath}::{MemberName}"
+        string Content,      // текст метода/класса
+        string FilePath,     // относительный путь к файлу
+        string MemberName,   // имя метода или класса
+        string MemberType,   // "method", "class", "interface", "record", "struct"
+        string? EntityName,  // имя класса-контейнера (для методов)
+        string Layer,        // domain / infrastructure / web / tests / default
+        string FileHash      // SHA256 файла (для инкрементальной переиндексации)
+    );
+
+    private static string ComputeHash(string content)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(content));
+        return Convert.ToHexString(bytes)[..16]; // 16 символов достаточно
+    }
+
+    /// <summary>Разбивает один .cs файл на чанки методов и классов через Roslyn.</summary>
+    private static IReadOnlyList<CodeChunk> ChunkFile(string filePath, string relPath, string layer)
+    {
+        string code;
+        try { code = File.ReadAllText(filePath); }
+        catch { return []; }
+
+        var fileHash = ComputeHash(code);
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = tree.GetRoot();
+        var chunks = new List<CodeChunk>();
+
+        // Обходим все объявления типов верхнего уровня
+        var typeDecls = root.DescendantNodes()
+            .OfType<TypeDeclarationSyntax>()
+            .Where(t => t.Parent is not TypeDeclarationSyntax) // только верхний уровень
+            .ToList();
+
+        foreach (var typeDecl in typeDecls)
+        {
+            var typeName = typeDecl.Identifier.Text;
+            var memberType = typeDecl switch
+            {
+                InterfaceDeclarationSyntax => "interface",
+                RecordDeclarationSyntax => "record",
+                StructDeclarationSyntax => "struct",
+                _ => "class"
+            };
+
+            // Методы внутри класса
+            var methods = typeDecl.Members.OfType<MethodDeclarationSyntax>().ToList();
+
+            if (methods.Count == 0)
+            {
+                // Класс без методов — индексируем как единый чанк
+                var classText = typeDecl.ToFullString();
+                if (classText.Length > 50)
+                {
+                    chunks.Add(new CodeChunk(
+                        Id: $"{relPath}::{typeName}",
+                        Content: classText.Length > 4000 ? classText[..4000] : classText,
+                        FilePath: relPath,
+                        MemberName: typeName,
+                        MemberType: memberType,
+                        EntityName: null,
+                        Layer: layer,
+                        FileHash: fileHash
+                    ));
+                }
+            }
+            else
+            {
+                // Индексируем каждый метод отдельно
+                foreach (var method in methods)
+                {
+                    var methodName = method.Identifier.Text;
+                    var methodText = method.ToFullString();
+
+                    if (methodText.Length < 20) continue; // пропускаем тривиальные
+
+                    chunks.Add(new CodeChunk(
+                        Id: $"{relPath}::{typeName}.{methodName}",
+                        Content: methodText.Length > 4000 ? methodText[..4000] : methodText,
+                        FilePath: relPath,
+                        MemberName: methodName,
+                        MemberType: "method",
+                        EntityName: typeName,
+                        Layer: layer,
+                        FileHash: fileHash
+                    ));
+                }
+            }
+        }
+
+        // Если Roslyn не нашёл структур — индексируем весь файл как один чанк
+        if (chunks.Count == 0 && code.Length > 50)
+        {
+            chunks.Add(new CodeChunk(
+                Id: relPath,
+                Content: code.Length > 4000 ? code[..4000] : code,
+                FilePath: relPath,
+                MemberName: Path.GetFileNameWithoutExtension(relPath),
+                MemberType: "file",
+                EntityName: null,
+                Layer: layer,
+                FileHash: fileHash
+            ));
+        }
+
+        return chunks;
+    }
+
     // ─── index_project ────────────────────────────────────────────────────────
 
     private sealed class IndexProjectTool : IAgentTool
@@ -81,76 +230,198 @@ public static class RagTools
         public string Name => "index_project";
 
         public string Description =>
-            "Индексирует все .cs файлы проекта в ChromaDB для семантического поиска. " +
+            "Индексирует .cs файлы проекта в ChromaDB для семантического поиска. " +
+            "Использует Roslyn для разбивки на чанки (метод/класс). " +
+            "Коллекции разделены по слоям: code-domain, code-infrastructure, code-web, code-tests. " +
+            "Поддерживает инкрементальную переиндексацию — пропускает неизменённые файлы. " +
             "Запусти один раз перед использованием semantic_search. " +
-            "Требует ChromaDB (docker run -d -p 8000:8000 chromadb/chroma) и модель " +
-            "nomic-embed-text (docker exec -it ollama ollama pull nomic-embed-text).";
+            "Требует ChromaDB (docker compose up -d) и модель nomic-embed-text в Ollama.";
 
         public object Parameters => new
         {
             type = "object",
-            properties = new { },
+            properties = new
+            {
+                force = new
+                {
+                    type = "boolean",
+                    description = "true — переиндексировать все файлы, даже неизменённые. " +
+                                  "По умолчанию false — инкрементальная индексация."
+                }
+            },
             required = Array.Empty<string>()
         };
 
         public async Task<string> ExecuteAsync(JsonElement arguments)
         {
+            var force = false;
+            if (arguments.TryGetProperty("force", out var forceEl) && forceEl.ValueKind == JsonValueKind.True)
+                force = true;
+
             if (!await _chroma.IsAvailableAsync())
-                return "❌ ChromaDB недоступен. Запустите: docker run -d -p 8000:8000 chromadb/chroma";
+                return "❌ ChromaDB недоступен. Запустите: docker compose up -d (в папке ai-agent)";
 
-            string collectionId;
-            try
+            // Создаём коллекции для всех слоёв
+            var collectionIds = new Dictionary<string, string>();
+            foreach (var layer in AllLayers)
             {
-                collectionId = await _chroma.EnsureCollectionAsync("project-code");
-            }
-            catch (Exception ex)
-            {
-                return $"❌ Ошибка создания коллекции: {ex.Message}";
+                try
+                {
+                    collectionIds[layer] = await _chroma.EnsureCollectionAsync(CollectionName(layer));
+                }
+                catch (Exception ex)
+                {
+                    return $"❌ Ошибка создания коллекции {CollectionName(layer)}: {ex.Message}";
+                }
             }
 
+            // Собираем все .cs файлы и разбиваем на чанки
             var files = RoslynTools.FindCsFiles(_projectPath).ToList();
-            var indexed = 0;
+            var allChunks = new List<CodeChunk>();
+
+            foreach (var file in files)
+            {
+                var relPath = Path.GetRelativePath(_projectPath, file);
+                var layer = DetectLayer(file);
+                var fileChunks = ChunkFile(file, relPath, layer);
+                allChunks.AddRange(fileChunks);
+            }
+
+            // Если не force — загружаем существующие хеши из ChromaDB для сравнения
+            var existingHashes = new HashSet<string>(); // "chunkId|hash"
+            if (!force)
+            {
+                // Мы не можем легко выгрузить все метаданные без отдельного GET endpoint,
+                // поэтому используем соглашение: храним хеш в id чанка через суффикс "@{hash}"
+                // Это позволяет определить по id, изменился ли файл:
+                // новый id = "{relPath}::{member}@{fileHash}"
+                foreach (var chunk in allChunks)
+                {
+                    // Хеш уже встроен в контент — используем его для формирования устойчивого Id
+                }
+            }
+
+            // Группируем чанки по слоям и загружаем батчами
+            var chunksByLayer = allChunks.GroupBy(c => c.Layer).ToList();
+            var totalIndexed = 0;
+            var totalSkipped = 0;
             var errors = new List<string>();
 
-            using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
 
-            // Индексируем батчами по 10 файлов
-            const int batchSize = 10;
-            for (var i = 0; i < files.Count; i += batchSize)
+            const int batchSize = 5; // небольшие батчи для стабильности
+
+            foreach (var layerGroup in chunksByLayer)
             {
-                var batch = files.Skip(i).Take(batchSize).ToList();
-                var docs = new List<(string Id, string Content, float[] Embedding)>();
+                var layer = layerGroup.Key;
+                var collectionId = collectionIds[layer];
+                var layerChunks = layerGroup.ToList();
 
-                foreach (var file in batch)
-                {
-                    try
-                    {
-                        var content = await File.ReadAllTextAsync(file);
-                        var relPath = Path.GetRelativePath(_projectPath, file);
-                        var embedding = await GetEmbeddingAsync(httpClient, _ollamaUrl, _embeddingModel, content);
-                        docs.Add((relPath, content, embedding));
-                    }
-                    catch (Exception ex)
-                    {
-                        errors.Add($"{file}: {ex.Message}");
-                    }
-                }
+                // Загружаем хеши существующих чанков через специальный GET
+                var existingChunkHashes = force
+                    ? new Dictionary<string, string>()
+                    : await FetchExistingHashesAsync(collectionId);
 
-                if (docs.Count > 0)
+                for (var i = 0; i < layerChunks.Count; i += batchSize)
                 {
-                    await _chroma.UpsertAsync(collectionId, docs);
-                    indexed += docs.Count;
+                    var batch = layerChunks.Skip(i).Take(batchSize).ToList();
+                    var toUpsert = new List<(string, string, float[], Dictionary<string, string>?)>();
+
+                    foreach (var chunk in batch)
+                    {
+                        // Инкрементальная переиндексация: пропускаем если хеш не изменился
+                        if (!force && existingChunkHashes.TryGetValue(chunk.Id, out var storedHash)
+                            && storedHash == chunk.FileHash)
+                        {
+                            totalSkipped++;
+                            continue;
+                        }
+
+                        try
+                        {
+                            var embedding = await GetEmbeddingAsync(
+                                httpClient, _ollamaUrl, _embeddingModel, chunk.Content);
+
+                            var metadata = new Dictionary<string, string>
+                            {
+                                ["layer"] = chunk.Layer,
+                                ["file"] = chunk.FilePath,
+                                ["member"] = chunk.MemberName,
+                                ["member_type"] = chunk.MemberType,
+                                ["file_hash"] = chunk.FileHash
+                            };
+                            if (chunk.EntityName != null)
+                                metadata["entity"] = chunk.EntityName;
+
+                            toUpsert.Add((chunk.Id, chunk.Content, embedding, metadata));
+                        }
+                        catch (Exception ex)
+                        {
+                            errors.Add($"{chunk.Id}: {ex.Message}");
+                        }
+                    }
+
+                    if (toUpsert.Count > 0)
+                    {
+                        await _chroma.UpsertAsync(collectionId, toUpsert);
+                        totalIndexed += toUpsert.Count;
+                    }
                 }
             }
 
             var sb = new StringBuilder();
-            sb.AppendLine($"✅ Проиндексировано {indexed} из {files.Count} файлов.");
+            sb.AppendLine($"✅ Индексация завершена:");
+            sb.AppendLine($"   Файлов обработано: {files.Count}");
+            sb.AppendLine($"   Чанков создано: {allChunks.Count}");
+            sb.AppendLine($"   Проиндексировано: {totalIndexed}");
+            if (totalSkipped > 0) sb.AppendLine($"   Пропущено (без изменений): {totalSkipped}");
+
+            foreach (var layer in AllLayers)
+            {
+                var count = allChunks.Count(c => c.Layer == layer);
+                if (count > 0) sb.AppendLine($"   [{layer}]: {count} чанков");
+            }
+
             if (errors.Count > 0)
             {
                 sb.AppendLine($"⚠️  Ошибки ({errors.Count}):");
                 foreach (var e in errors.Take(5)) sb.AppendLine($"  {e}");
             }
+
             return sb.ToString().TrimEnd();
+        }
+
+        /// <summary>Пытается получить существующие хеши чанков из ChromaDB через get endpoint.</summary>
+        private async Task<Dictionary<string, string>> FetchExistingHashesAsync(string collectionId)
+        {
+            try
+            {
+                // ChromaDB REST: GET /api/v1/collections/{id}/get
+                // Запрашиваем только метаданные (без embeddings)
+                var body = new { include = new[] { "metadatas" }, limit = 10000 };
+                var response = await _chroma._httpClient.PostAsJsonAsync(
+                    $"{_chroma._baseUrl}/api/v1/collections/{collectionId}/get", body);
+
+                if (!response.IsSuccessStatusCode) return new Dictionary<string, string>();
+
+                var result = await response.Content.ReadFromJsonAsync<ChromaGetResponse>();
+                if (result == null) return new Dictionary<string, string>();
+
+                var dict = new Dictionary<string, string>();
+                var ids = result.Ids ?? [];
+                var metas = result.Metadatas ?? [];
+
+                for (var i = 0; i < ids.Length && i < metas.Length; i++)
+                {
+                    if (metas[i]?.TryGetValue("file_hash", out var hash) == true && hash != null)
+                        dict[ids[i]] = hash;
+                }
+                return dict;
+            }
+            catch
+            {
+                return new Dictionary<string, string>();
+            }
         }
     }
 
@@ -175,8 +446,9 @@ public static class RagTools
         public string Name => "semantic_search";
 
         public string Description =>
-            "Семантический поиск по коду через ChromaDB. Находит файлы похожие по смыслу на запрос. " +
+            "Семантический поиск по коду через ChromaDB. Находит методы и классы похожие по смыслу на запрос. " +
             "Работает лучше чем текстовый поиск для концептуальных вопросов. " +
+            "Поддерживает фильтрацию по слою архитектуры (domain, infrastructure, web, tests). " +
             "Требует предварительной индексации через index_project.";
 
         public object Parameters => new
@@ -185,7 +457,13 @@ public static class RagTools
             properties = new
             {
                 query = new { type = "string", description = "Поисковый запрос на естественном языке" },
-                n_results = new { type = "integer", description = "Количество результатов (по умолчанию 5)" }
+                layer = new
+                {
+                    type = "string",
+                    description = "Фильтр по слою: domain, infrastructure, web, tests. Если не указан — поиск по всем слоям.",
+                    @enum = new[] { "domain", "infrastructure", "web", "tests" }
+                },
+                n_results = new { type = "integer", description = "Количество результатов (по умолчанию 5, максимум 20)" }
             },
             required = new[] { "query" }
         };
@@ -203,18 +481,12 @@ public static class RagTools
             if (arguments.TryGetProperty("n_results", out var nEl) && nEl.TryGetInt32(out var n))
                 nResults = Math.Clamp(n, 1, 20);
 
-            if (!await _chroma.IsAvailableAsync())
-                return "❌ ChromaDB недоступен. Запустите: docker run -d -p 8000:8000 chromadb/chroma";
+            string? layerFilter = null;
+            if (arguments.TryGetProperty("layer", out var layerEl))
+                layerFilter = layerEl.GetString()?.ToLowerInvariant()?.Trim();
 
-            string collectionId;
-            try
-            {
-                collectionId = await _chroma.EnsureCollectionAsync("project-code");
-            }
-            catch (Exception ex)
-            {
-                return $"❌ Ошибка подключения к ChromaDB: {ex.Message}";
-            }
+            if (!await _chroma.IsAvailableAsync())
+                return "❌ ChromaDB недоступен. Запустите: docker compose up -d (в папке ai-agent)";
 
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
             float[] queryEmbedding;
@@ -226,31 +498,65 @@ public static class RagTools
             {
                 return $"❌ Ошибка получения embedding: {ex.Message}. " +
                        $"Убедитесь что модель {_embeddingModel} скачана: " +
-                       $"docker exec -it ollama ollama pull {_embeddingModel}";
+                       $"ollama pull {_embeddingModel}";
             }
 
-            IReadOnlyList<ChromaQueryResult> results;
-            try
+            // Определяем какие коллекции искать
+            var layersToSearch = string.IsNullOrEmpty(layerFilter)
+                ? AllLayers
+                : new[] { layerFilter };
+
+            var allResults = new List<(ChromaQueryResult Result, string Layer)>();
+
+            foreach (var layer in layersToSearch)
             {
-                results = await _chroma.QueryAsync(collectionId, queryEmbedding, nResults);
-            }
-            catch (Exception ex)
-            {
-                return $"❌ Ошибка поиска: {ex.Message}. Возможно проект ещё не проиндексирован (используй index_project).";
+                string collectionId;
+                try
+                {
+                    collectionId = await _chroma.EnsureCollectionAsync(CollectionName(layer));
+                }
+                catch
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var results = await _chroma.QueryAsync(
+                        collectionId, queryEmbedding, nResults);
+                    allResults.AddRange(results.Select(r => (r, layer)));
+                }
+                catch
+                {
+                    // Коллекция могла быть пуста — пропускаем
+                }
             }
 
-            if (results.Count == 0)
+            if (allResults.Count == 0)
                 return "Ничего не найдено. Попробуйте другой запрос или сначала запустите index_project.";
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"Найдено {results.Count} результатов для запроса: \"{query}\"\n");
+            // Сортируем все результаты по дистанции и берём top-N
+            var topResults = allResults
+                .OrderBy(x => x.Result.Distance)
+                .Take(nResults)
+                .ToList();
 
-            foreach (var (id, content, distance) in results)
+            var sb = new StringBuilder();
+            var layerDesc = string.IsNullOrEmpty(layerFilter) ? "всем слоям" : layerFilter;
+            sb.AppendLine($"Найдено {topResults.Count} результатов по запросу: \"{query}\" (слой: {layerDesc})\n");
+
+            foreach (var (result, layer) in topResults)
             {
-                var similarity = 1f / (1f + distance); // нормализуем L2 distance в [0,1]
-                sb.AppendLine($"📄 {id} (схожесть: {similarity:P0})");
-                // Показываем первые 20 строк файла как превью
-                var preview = string.Join("\n", content.Split('\n').Take(20));
+                var similarity = 1f / (1f + result.Distance);
+                var memberType = result.Metadata?.GetValueOrDefault("member_type") ?? "?";
+                var member = result.Metadata?.GetValueOrDefault("member") ?? result.Id;
+                var entity = result.Metadata?.GetValueOrDefault("entity");
+                var file = result.Metadata?.GetValueOrDefault("file") ?? result.Id;
+                var displayName = entity != null ? $"{entity}.{member}" : member;
+
+                sb.AppendLine($"📄 [{layer}] {displayName} ({memberType}) — {file} (схожесть: {similarity:P0})");
+                // Показываем первые 15 строк чанка как превью
+                var preview = string.Join("\n", result.Content.Split('\n').Take(15));
                 sb.AppendLine(preview);
                 sb.AppendLine();
             }
@@ -258,4 +564,15 @@ public static class RagTools
             return sb.ToString().TrimEnd();
         }
     }
+}
+
+// ─── Вспомогательные типы для ChromaDB GET endpoint ──────────────────────────
+
+internal class ChromaGetResponse
+{
+    [System.Text.Json.Serialization.JsonPropertyName("ids")]
+    public string[]? Ids { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("metadatas")]
+    public Dictionary<string, string>[]? Metadatas { get; set; }
 }
