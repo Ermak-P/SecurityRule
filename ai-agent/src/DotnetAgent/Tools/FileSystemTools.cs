@@ -183,7 +183,7 @@ public static class FileSystemTools
             if (result.Length > MaxOutputChars)
             {
                 result = result[..MaxOutputChars] +
-                         "\n...\n⚠️ Вывод обрезан — слишком много файлов." +
+                         $"\n...\n⚠️ Вывод обрезан (лимит {MaxOutputChars} символов) — слишком много файлов." +
                          " Используй параметры subdirectory или extension_filter чтобы сузить область поиска." +
                          " Например: subdirectory='src/SecurityRule.Web/Components', extension_filter='.razor'";
             }
