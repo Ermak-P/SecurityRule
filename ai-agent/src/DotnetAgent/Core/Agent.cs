@@ -531,6 +531,9 @@ public class Agent
         if (string.IsNullOrWhiteSpace(fullResponse.ToString()) &&
             !string.IsNullOrWhiteSpace(fallbackContent))
         {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("[streaming вернул пустой ответ — используется не-стриминговый результат]");
+            Console.ResetColor();
             Console.Write(fallbackContent);
             fullResponse.Append(fallbackContent);
         }
@@ -635,7 +638,7 @@ public class Agent
         systemPrompt.AppendLine("5. Используй patch_method для изменения одного метода (лучше чем write_file для больших файлов)");
         systemPrompt.AppendLine("6. Используй dotnet_build после изменений чтобы убедиться что код компилируется");
         systemPrompt.AppendLine("7. ДЛЯ НАПИСАНИЯ ТЕСТОВ:");
-        systemPrompt.AppendLine("   a. Вызови generate_tests с class_name = имя класса/компонента БЕЗ расширения (например: 'ChipCollectionInput', не 'ChipCollectionInput.razor')");
+        systemPrompt.AppendLine("   a. Вызови generate_tests с class_name = имя класса/компонента БЕЗ расширения (например: 'MyService', не 'MyService.cs')");
         systemPrompt.AppendLine("   b. generate_tests автоматически находит .razor компоненты и генерирует bUnit-тесты, C# классы — NUnit-тесты");
         systemPrompt.AppendLine("   c. Укажи output_path чтобы сохранить тесты в файл (например: 'src/MyProject.Tests/MyClassTests.cs')");
         systemPrompt.AppendLine("   d. Если generate_tests не нашёл файл — используй search_in_files с именем файла, затем read_file, и create_file для создания тестов");
