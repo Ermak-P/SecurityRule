@@ -131,7 +131,7 @@ if (!isMcpMode)
 // HTTP клиент для Ollama API
 var httpClient = new HttpClient
 {
-    Timeout = TimeSpan.FromMinutes(5)
+    Timeout = TimeSpan.FromMinutes(60)
 };
 
 // Клиент Ollama

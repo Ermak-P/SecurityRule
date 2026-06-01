@@ -296,7 +296,7 @@ public static class RagTools
             var totalSkipped = 0;
             var errors = new List<string>();
 
-            using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(60) };
 
             const int batchSize = 5; // небольшие батчи для стабильности
 
@@ -444,7 +444,7 @@ public static class RagTools
             if (!await _chroma.IsAvailableAsync())
                 return "❌ ChromaDB недоступен. Запустите: docker compose up -d (в папке ai-agent)";
 
-            using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(60) };
             float[] queryEmbedding;
             try
             {

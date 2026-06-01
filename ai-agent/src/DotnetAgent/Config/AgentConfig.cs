@@ -39,7 +39,7 @@ public class AgentConfig
     ///
     /// ВАЖНО: модель должна поддерживать "tool calling" (function calling)!
     /// </summary>
-    public string ModelName { get; set; } = "qwen2.5-coder:7b";
+    public string ModelName { get; set; } = "qwen3-coder:30b";
 
     /// <summary>
     /// Фаза 5: быстрая лёгкая модель для простых задач.
